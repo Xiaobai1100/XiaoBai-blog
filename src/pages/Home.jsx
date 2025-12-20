@@ -268,8 +268,8 @@ const Home = () => {
           </h1>
           
           <p className="max-w-xl text-white/90 text-sm md:text-base leading-relaxed mb-12 font-mono border-l border-white/20 pl-6 backdrop-blur-sm bg-black/10 p-4 rounded-r-lg">
-            我是 <strong>XiaoBai SAMA</strong>。<br />
-            用 WebGL 重构宇宙。
+            This is <strong>XiaoBai SAMA</strong>.<br />
+            It remains that, from the same principles, I now demonstrate the frame of the System of the World.
           </p>
 
           <button className="flex items-center gap-2 bg-white text-black px-8 py-3 font-mono font-bold tracking-widest hover:bg-cyan-300 transition-colors">
