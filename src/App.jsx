@@ -5,7 +5,84 @@ import { Github, Terminal, ChevronDown, Menu, X, ArrowRight, Zap } from 'lucide-
 
 /**
  * =================================================================
- * 1. 核心组件：首页黑洞背景 (V25 Supermassive)
+ * 1. 核心组件：引力鼠标特效 (Gravity Cursor)
+ * =================================================================
+ */
+const GravityCursor = () => {
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [trailPos, setTrailPos] = useState({ x: 0, y: 0 });
+  const [isHovering, setIsHovering] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setMousePos({ x: e.clientX, y: e.clientY });
+      if (!isVisible) setIsVisible(true);
+      
+      // 检测是否悬停在可交互元素上
+      const target = e.target;
+      const isClickable = target.closest('button, a, .cursor-pointer');
+      setIsHovering(!!isClickable);
+    };
+
+    const handleMouseOut = () => setIsVisible(false);
+    const handleMouseIn = () => setIsVisible(true);
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseleave', handleMouseOut);
+    window.addEventListener('mouseenter', handleMouseIn);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseleave', handleMouseOut);
+      window.removeEventListener('mouseenter', handleMouseIn);
+    };
+  }, [isVisible]);
+
+  // 平滑跟踪算法 (引力感的核心)
+  useEffect(() => {
+    let frameId;
+    const follow = () => {
+      setTrailPos(prev => ({
+        x: prev.x + (mousePos.x - prev.x) * 0.15,
+        y: prev.y + (mousePos.y - prev.y) * 0.15
+      }));
+      frameId = requestAnimationFrame(follow);
+    };
+    follow();
+    return () => cancelAnimationFrame(frameId);
+  }, [mousePos]);
+
+  if (!isVisible) return null;
+
+  return (
+    <div className="hidden md:block pointer-events-none fixed inset-0 z-[9999]">
+      {/* 核心奇异点 */}
+      <div 
+        className="absolute w-1.5 h-1.5 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 transition-transform duration-300"
+        style={{ left: mousePos.x, top: mousePos.y, transform: `translate(-50%, -50%) scale(${isHovering ? 2 : 1})` }}
+      />
+      {/* 引力场光环 */}
+      <div 
+        className="absolute w-10 h-10 border border-cyan-500/30 rounded-full -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ease-out flex items-center justify-center"
+        style={{ 
+          left: trailPos.x, 
+          top: trailPos.y, 
+          width: isHovering ? '80px' : '40px',
+          height: isHovering ? '80px' : '40px',
+          backgroundColor: isHovering ? 'rgba(6, 182, 212, 0.1)' : 'transparent',
+          boxShadow: isHovering ? '0 0 30px rgba(6, 182, 212, 0.3)' : 'none'
+        }}
+      >
+        <div className={`w-1 h-1 bg-cyan-400/50 rounded-full ${isHovering ? 'animate-ping' : 'hidden'}`} />
+      </div>
+    </div>
+  );
+};
+
+/**
+ * =================================================================
+ * 2. 核心组件：首页黑洞背景 (V25 Supermassive)
  * =================================================================
  */
 const BlackHoleBackground = () => {
@@ -117,7 +194,7 @@ const BlackHoleBackground = () => {
 
 /**
  * =================================================================
- * 2. 页面组件：Home 首页
+ * 3. 页面组件：Home 首页
  * =================================================================
  */
 const Home = () => {
@@ -133,7 +210,13 @@ const Home = () => {
   );
 
   return (
-    <div className="relative w-full min-h-screen bg-black overflow-x-hidden text-white">
+    <div className="relative w-full min-h-screen bg-black overflow-x-hidden text-white cursor-none-on-desktop">
+      <style>{`
+        @media (min-width: 768px) {
+          .cursor-none-on-desktop { cursor: none !important; }
+        }
+      `}</style>
+      <GravityCursor />
       <div className="fixed inset-0 z-0"><BlackHoleBackground /></div>
       <main className="relative z-10 flex flex-col justify-center min-h-screen px-6 md:px-20 max-w-7xl mx-auto pt-20 pointer-events-none">
         <div className="flex flex-col items-start pointer-events-auto">
@@ -144,7 +227,6 @@ const Home = () => {
             Explore<br />THE <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-purple-400">UNSEEN</span>
           </h1>
           
-          {/* 修正：移除了移动端的强制单行显示，增加 md:whitespace-nowrap */}
           <div className="max-w-full text-white/90 text-sm md:text-base leading-relaxed mb-12 font-mono border-l border-white/20 pl-6 backdrop-blur-sm bg-black/10 p-4 rounded-r-lg overflow-x-visible">
             <p className="mb-1">This is <strong>XiaoBai SAMA</strong>.</p>
             <p className="md:whitespace-nowrap tracking-tight">
@@ -152,7 +234,9 @@ const Home = () => {
             </p>
           </div>
 
-          <button className="flex items-center gap-2 bg-white text-black px-8 py-3 font-mono font-bold tracking-widest hover:bg-cyan-300 transition-colors">START READING <ArrowRight size={16} /></button>
+          <button className="flex items-center gap-2 bg-white text-black px-8 py-3 font-mono font-bold tracking-widest hover:bg-cyan-300 transition-colors group">
+            START READING <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+          </button>
         </div>
       </main>
       
@@ -172,12 +256,18 @@ const Home = () => {
 
 /**
  * =================================================================
- * 3. 页面组件：BlackHoleModel
+ * 4. 页面组件：BlackHoleModel
  * =================================================================
  */
 const BlackHoleModel = () => {
   return (
-    <div className="relative w-full h-screen bg-black overflow-hidden pt-20 md:pt-0">
+    <div className="relative w-full h-screen bg-black overflow-hidden pt-20 md:pt-0 cursor-none-on-desktop">
+      <style>{`
+        @media (min-width: 768px) {
+          .cursor-none-on-desktop { cursor: none !important; }
+        }
+      `}</style>
+      <GravityCursor />
       <iframe src="/blackhole.html" title="Black Hole Simulation" className="w-full h-full border-0 block" />
     </div>
   );
@@ -185,7 +275,7 @@ const BlackHoleModel = () => {
 
 /**
  * =================================================================
- * 4. 全局导航栏组件 (NavBar)
+ * 5. 全局导航栏组件 (NavBar)
  * =================================================================
  */
 const NavBar = () => {
@@ -201,7 +291,6 @@ const NavBar = () => {
     <>
       <nav className="fixed top-0 left-0 w-full p-6 z-[100] text-white mix-blend-difference pointer-events-none">
         <div className="flex justify-between items-center max-w-7xl mx-auto">
-          {/* Logo 区域 */}
           <div onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }} className="flex items-center gap-3 cursor-pointer group no-underline pointer-events-auto select-none">
             <div className="w-8 h-8 flex items-center justify-center border border-white group-hover:bg-white group-hover:text-black transition-colors">
               <Terminal size={16} />
@@ -215,19 +304,17 @@ const NavBar = () => {
             </div>
           </div>
 
-          {/* 修正：桌面端导航字体放大 (text-sm), 间距微调 (gap-10) */}
           <div className="hidden md:flex gap-10 text-sm font-mono tracking-widest items-center pointer-events-auto uppercase font-semibold">
             <Link to="/" className="hover:text-cyan-400 transition-colors">Home</Link>
             <div className="relative group h-full">
               <button className="flex items-center gap-1 hover:text-cyan-400 transition-colors py-4">Models <ChevronDown size={14} /></button>
               <div className="absolute left-1/2 -translate-x-1/2 top-full hidden group-hover:block min-w-[180px] pt-0">
                 <div className="bg-black/90 border border-white/10 backdrop-blur-xl flex flex-col p-1 shadow-2xl">
-                  <Link to="/models/black-hole" className="px-4 py-3 text-white/70 hover:text-cyan-400 hover:bg-white/5 transition-all">// Black_Hole</Link>
+                  <Link to="/models/black-hole" className="px-4 py-3 text-white/70 hover:text-cyan-400 hover:bg-white/5 transition-all text-left">// Black_Hole</Link>
                 </div>
               </div>
             </div>
             <Link to="/lab" className="hover:text-cyan-400 transition-colors">Lab</Link>
-            {/* GitHub 按钮文字也随之同步放大 */}
             <a href="https://github.com/Xiaobai1100" target="_blank" rel="noreferrer" className="border border-white/20 px-6 py-2 hover:bg-white hover:text-black transition-all flex items-center gap-2">
               <Github size={14} /> Github
             </a>
@@ -235,7 +322,6 @@ const NavBar = () => {
         </div>
       </nav>
 
-      {/* 移动端抽屉 */}
       <div className={`fixed inset-0 z-[90] transition-opacity duration-500 md:hidden ${isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div onClick={() => setIsMenuOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
         <div className={`absolute top-0 left-0 w-[80%] max-w-[300px] h-full bg-black/70 backdrop-blur-2xl border-r border-white/10 transition-transform duration-500 ease-out flex flex-col p-10 pt-32 gap-8 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -260,7 +346,7 @@ const NavBar = () => {
 
 /**
  * =================================================================
- * 5. App 根组件
+ * 6. App 根组件
  * =================================================================
  */
 const App = () => {
