@@ -63,7 +63,7 @@ const NavBar = () => {
 
       {/* 3. 右侧 GitHub */}
       <a 
-        href="https://github.com" 
+        href="https://github.com/Xiaobai1100/XiaoBai-blog" 
         target="_blank" 
         rel="noopener noreferrer"
         className="pointer-events-auto border border-white/30 px-6 py-2 text-[10px] tracking-[0.2em] hover:bg-white hover:text-black transition-all flex items-center gap-2"
