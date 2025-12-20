@@ -37,7 +37,7 @@ const BlackHoleBackground = () => {
       spawnZone: 60.0,
       baseSpeed: 0.12,  // 电影级低速
       infallRate: 15.0,
-      massScale: 5.0    // 首页采用 3.0 质量增强压迫感
+      massScale: 3.5    // 首页采用 3.5 质量增强压迫感
     };
 
     const blackHole = new THREE.Mesh(
