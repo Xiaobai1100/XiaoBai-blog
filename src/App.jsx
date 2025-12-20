@@ -28,16 +28,15 @@ const BlackHoleBackground = () => {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     containerRef.current.appendChild(renderer.domElement);
 
-    // --- 物理参数 (参考 HTML V24 参数) ---
     const CONFIG = { 
       particleCount: 160000, 
       horizonRadius: 9.0, 
       diskInner: 12.0, 
       diskOuter: 140.0,
       spawnZone: 60.0,
-      baseSpeed: 0.12,  // 电影级低速
+      baseSpeed: 0.12,
       infallRate: 15.0,
-      massScale: 3.5    // 首页采用 3.5 质量增强压迫感
+      massScale: 3.0
     };
 
     const blackHole = new THREE.Mesh(
@@ -46,7 +45,6 @@ const BlackHoleBackground = () => {
     );
     universeGroup.add(blackHole);
 
-    // --- 粒子系统数据 ---
     const positions = [], colors = [], sizes = [], alphas = [], phases = [], radii = [], yOffsets = [], speeds = [], targetAlpha = [], infallMod = [];
     for (let i = 0; i < CONFIG.particleCount; i++) {
         const t = Math.random();
@@ -64,7 +62,6 @@ const BlackHoleBackground = () => {
     geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
     geometry.setAttribute('alpha', new THREE.Float32BufferAttribute(alphas, 1));
 
-    // --- 真实透镜 Shader (移植自 HTML V24) ---
     const material = new THREE.ShaderMaterial({
         uniforms: { massScale: { value: CONFIG.massScale }, lensingStrength: { value: 1.0 } },
         vertexShader: `
@@ -74,21 +71,16 @@ const BlackHoleBackground = () => {
             void main() {
                 vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
                 vAlpha = alpha; vColor = customColor;
-
-                // 1. 多普勒 & 红移
                 float rs = massScale * 3.0; float rPhys = length(position.xyz);
                 float gShift = sqrt(clamp(1.0 - (rs / (rPhys + 0.1)), 0.0, 1.0));
                 vec3 velObj = normalize(vec3(-position.z, 0.0, position.x));
                 vec3 velView = normalize(normalMatrix * velObj);
                 float beaming = pow(1.0 + 0.5 * dot(velView, normalize(-mvPosition.xyz)), 2.0);
                 vColor *= beaming * gShift * 1.5;
-
-                // 2. 引力透镜 (复刻 HTML 逻辑: rsSq / rClamped)
                 float rScreen = length(mvPosition.xy);
                 float rsScreen = massScale * 12.0; 
                 float distortion = ((rsScreen * rsScreen) / max(rScreen, 0.1)) * lensingStrength;
                 mvPosition.xy += normalize(mvPosition.xy) * distortion;
-
                 gl_Position = projectionMatrix * mvPosition;
                 gl_PointSize = size * (1200.0 / -mvPosition.z);
             }
@@ -132,17 +124,13 @@ const BlackHoleBackground = () => {
         const pos = geometry.attributes.position.array;
         const alp = geometry.attributes.alpha.array;
         
-        // --- 脉冲与崩解逻辑 (1.5s) ---
-        // 前 0.5s 为爆发，后 1.0s 为超速漂移恢复
         const isAbnormal = pulseRef.current.active && pulseElapsed < 1.5;
         const disintegrationFactor = isAbnormal ? Math.pow(1.0 - pulseElapsed / 1.5, 2) * 200 : 0;
-        const overspeed = isAbnormal ? 8.0 : 1.0; // 崩解期间速度提升 8 倍
+        const overspeed = isAbnormal ? 8.0 : 1.0; 
 
         for(let i = 0; i < CONFIG.particleCount; i++) {
             let r = radii[i];
             let phase = phases[i];
-            
-            // 物理轨道
             let dilation = r > CONFIG.horizonRadius ? Math.sqrt(1.0 - (CONFIG.horizonRadius / r)) : 0;
             phase += (Math.sqrt(1800.0 / r) * dilation * delta * CONFIG.baseSpeed * speeds[i] * overspeed);
             r -= (CONFIG.infallRate / Math.sqrt(r)) * (dilation * dilation) * delta * infallMod[i] * overspeed;
@@ -150,12 +138,10 @@ const BlackHoleBackground = () => {
             if (r < CONFIG.horizonRadius * 1.05) { r = CONFIG.diskOuter + Math.random() * CONFIG.spawnZone; alp[i] = 0.0; }
             if (alp[i] < targetAlpha[i]) alp[i] += delta * 0.3;
 
-            // 应用崩解位移
             const currentR = r + disintegrationFactor * speeds[i];
             pos[i*3] = Math.cos(phase) * currentR;
             pos[i*3+1] = yOffsets[i] + (Math.sin(phase + time) * 0.3);
             pos[i*3+2] = Math.sin(phase) * currentR;
-            
             radii[i] = r; phases[i] = phase;
         }
         geometry.attributes.position.needsUpdate = true;
@@ -177,17 +163,17 @@ const BlackHoleBackground = () => {
 
 /**
  * =================================================================
- * 2. 页面组件：Home 首页 (带分段失真效果与标题修正)
+ * 2. 页面组件：Home 首页
  * =================================================================
  */
 const Home = () => {
-  const [glitchState, setGlitchState] = useState('stable'); // stable | shaking | abnormal
+  const [glitchState, setGlitchState] = useState('stable'); 
 
   useEffect(() => {
     const onPulse = () => {
-      setGlitchState('shaking'); // 0-0.5s 剧烈抖动
-      setTimeout(() => setGlitchState('abnormal'), 500); // 0.5-1.5s 维持异常状态
-      setTimeout(() => setGlitchState('stable'), 1500); // 1.5s 恢复正常
+      setGlitchState('shaking'); 
+      setTimeout(() => setGlitchState('abnormal'), 500); 
+      setTimeout(() => setGlitchState('stable'), 1500); 
     };
     window.addEventListener('singularity-pulse', onPulse);
     return () => window.removeEventListener('singularity-pulse', onPulse);
@@ -218,7 +204,6 @@ const Home = () => {
         .shaking-active { animation: fragment-shake 0.4s cubic-bezier(.25,.46,.45,.94) infinite; }
       `}</style>
 
-      {/* 固定背景：在 shaking 阶段抖动 */}
       <div className={`fixed inset-0 z-0 ${glitchState === 'shaking' ? 'shaking-active' : ''}`}>
         <BlackHoleBackground />
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay pointer-events-none"></div>
@@ -232,7 +217,6 @@ const Home = () => {
             {glitchState !== 'stable' ? 'Alert: Pulse_Detected' : 'Status: Singularity_Stable'}
           </div>
           
-          {/* 修正大标题 */}
           <h1 className="text-6xl md:text-9xl font-black mb-8 leading-[0.85] tracking-tighter mix-blend-exclusion opacity-95 uppercase">
             Explore<br />The <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-purple-400">Unseen</span>
           </h1>
@@ -250,13 +234,13 @@ const Home = () => {
         </div>
       </main>
       
-      {/* 文章区域：背景半透明，隐约可见底下的黑洞运行 */}
-      <section className="relative z-10 bg-black/20 backdrop-blur-xl py-32 px-6 border-t border-white/5">
+      <section className="relative z-10 bg-black/30 backdrop-blur-xl py-32 px-6 border-t border-white/5">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-4xl font-bold tracking-tighter uppercase opacity-60 mb-16">Transmission_Logs</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <ArticleCard title="The visualization of black hole" category="Simulation" date="DEC 20" />
-            <ArticleCard title="About this blog" category="Idea" date="DEC 20" />
+            <ArticleCard title="模拟卡冈图雅" category="Physics" date="DEC 20" />
+            <ArticleCard title="三体问题混沌边缘" category="Simulation" date="DEC 15" />
+            <ArticleCard title="Shader 手写物理" category="WebGL" date="NOV 28" />
           </div>
         </div>
       </section>
@@ -266,7 +250,7 @@ const Home = () => {
 
 /**
  * =================================================================
- * 3. 页面组件：BlackHoleModel (保持 iframe)
+ * 3. 页面组件：BlackHoleModel
  * =================================================================
  */
 const BlackHoleModel = () => (
@@ -307,10 +291,13 @@ const NavBar = () => {
             >
               <Terminal size={20} className={isGlowing ? 'text-black' : ''} />
             </div>
+            
+            {/* 针对手机端微调标题尺寸 */}
             <div onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex flex-col">
-              <span className="text-xl font-bold tracking-widest leading-none uppercase">XiaoBai</span>
-              <span className="text-[11px] tracking-[0.3em] opacity-60">SAMA</span>
+              <span className="text-lg md:text-xl font-bold tracking-widest leading-none uppercase">XiaoBai</span>
+              <span className="text-[9px] md:text-[11px] tracking-[0.3em] opacity-60">SAMA</span>
             </div>
+            
             <div onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden ml-2 text-cyan-400">
               {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </div>
@@ -334,7 +321,6 @@ const NavBar = () => {
         </div>
       </nav>
 
-      {/* 移动端抽屉 */}
       <div className={`fixed inset-0 z-[110] transition-opacity duration-500 md:hidden ${isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div onClick={() => setIsMenuOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-md" />
         <div className={`absolute top-0 left-0 w-[85%] max-w-[320px] h-full bg-black/80 backdrop-blur-2xl border-r border-white/10 transition-transform duration-500 ease-out flex flex-col p-12 pt-32 gap-10 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
