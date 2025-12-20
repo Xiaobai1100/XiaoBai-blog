@@ -143,13 +143,19 @@ const Home = () => {
           <h1 className="text-6xl md:text-9xl font-black mb-8 leading-[0.85] tracking-tighter mix-blend-exclusion opacity-90 uppercase">
             Explore<br />THE <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-purple-400">UNSEEN</span>
           </h1>
-          <p className="max-w-xl text-white/90 text-sm md:text-base leading-relaxed mb-12 font-mono border-l border-white/20 pl-6 backdrop-blur-sm bg-black/10 p-4 rounded-r-lg">
-            This is <strong>XiaoBai SAMA</strong>.<br />
-            It remains that, from the same principles, I now demonstrate the frame of the System of the World.——Issac Newton
-          </p>
+          
+          {/* 修正：移除了移动端的强制单行显示，增加 md:whitespace-nowrap */}
+          <div className="max-w-full text-white/90 text-sm md:text-base leading-relaxed mb-12 font-mono border-l border-white/20 pl-6 backdrop-blur-sm bg-black/10 p-4 rounded-r-lg overflow-x-visible">
+            <p className="mb-1">This is <strong>XiaoBai SAMA</strong>.</p>
+            <p className="md:whitespace-nowrap tracking-tight">
+              It remains that, from the same principles, I now demonstrate the frame of the System of the World.——Issac Newton
+            </p>
+          </div>
+
           <button className="flex items-center gap-2 bg-white text-black px-8 py-3 font-mono font-bold tracking-widest hover:bg-cyan-300 transition-colors">START READING <ArrowRight size={16} /></button>
         </div>
       </main>
+      
       <section className="relative z-10 bg-black/40 backdrop-blur-lg py-24 px-6 border-t border-white/10">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl font-bold tracking-[0.2em] mb-16 text-white/80 uppercase">Latest_Logs</h2>
@@ -179,7 +185,7 @@ const BlackHoleModel = () => {
 
 /**
  * =================================================================
- * 4. 全局导航栏组件 (NavBar) - 极致抽屉适配
+ * 4. 全局导航栏组件 (NavBar)
  * =================================================================
  */
 const NavBar = () => {
@@ -187,7 +193,6 @@ const NavBar = () => {
   const [isModelsSubMenuOpen, setIsModelsSubMenuOpen] = useState(false);
   const location = useLocation();
 
-  // 每次切换路由时关闭菜单
   useEffect(() => {
     setIsMenuOpen(false);
   }, [location]);
@@ -196,15 +201,8 @@ const NavBar = () => {
     <>
       <nav className="fixed top-0 left-0 w-full p-6 z-[100] text-white mix-blend-difference pointer-events-none">
         <div className="flex justify-between items-center max-w-7xl mx-auto">
-          
           {/* Logo 区域 */}
-          <div 
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsMenuOpen(!isMenuOpen);
-            }} 
-            className="flex items-center gap-3 cursor-pointer group no-underline pointer-events-auto select-none"
-          >
+          <div onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }} className="flex items-center gap-3 cursor-pointer group no-underline pointer-events-auto select-none">
             <div className="w-8 h-8 flex items-center justify-center border border-white group-hover:bg-white group-hover:text-black transition-colors">
               <Terminal size={16} />
             </div>
@@ -212,75 +210,48 @@ const NavBar = () => {
               <span className="text-lg font-bold tracking-widest leading-none">XIAOBAI</span>
               <span className="text-[10px] tracking-[0.3em] opacity-70">SAMA</span>
             </div>
-            {/* 移动端菜单状态指示器 */}
             <div className="md:hidden ml-2 text-cyan-400">
               {isMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </div>
           </div>
 
-          {/* 桌面端导航 */}
-          <div className="hidden md:flex gap-12 text-[10px] font-mono tracking-[0.2em] items-center pointer-events-auto uppercase">
+          {/* 修正：桌面端导航字体放大 (text-sm), 间距微调 (gap-10) */}
+          <div className="hidden md:flex gap-10 text-sm font-mono tracking-widest items-center pointer-events-auto uppercase font-semibold">
             <Link to="/" className="hover:text-cyan-400 transition-colors">Home</Link>
             <div className="relative group h-full">
-              <button className="flex items-center gap-1 hover:text-cyan-400 transition-colors py-4">Models <ChevronDown size={10} /></button>
+              <button className="flex items-center gap-1 hover:text-cyan-400 transition-colors py-4">Models <ChevronDown size={14} /></button>
               <div className="absolute left-1/2 -translate-x-1/2 top-full hidden group-hover:block min-w-[180px] pt-0">
                 <div className="bg-black/90 border border-white/10 backdrop-blur-xl flex flex-col p-1 shadow-2xl">
                   <Link to="/models/black-hole" className="px-4 py-3 text-white/70 hover:text-cyan-400 hover:bg-white/5 transition-all">// Black_Hole</Link>
-                  <div className="px-4 py-3 text-white/20 cursor-not-allowed">// Three_Body</div>
                 </div>
               </div>
             </div>
             <Link to="/lab" className="hover:text-cyan-400 transition-colors">Lab</Link>
-            <a href="https://github.com/Xiaobai1100" target="_blank" rel="noreferrer" className="border border-white/20 px-5 py-2 hover:bg-white hover:text-black transition-all flex items-center gap-2">
-              <Github size={12} /> Github
+            {/* GitHub 按钮文字也随之同步放大 */}
+            <a href="https://github.com/Xiaobai1100" target="_blank" rel="noreferrer" className="border border-white/20 px-6 py-2 hover:bg-white hover:text-black transition-all flex items-center gap-2">
+              <Github size={14} /> Github
             </a>
           </div>
         </div>
       </nav>
 
-      {/* 5. 移动端抽屉 (Drawer) */}
-      <div 
-        className={`fixed inset-0 z-[90] transition-opacity duration-500 md:hidden ${isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-      >
-        {/* 背景点击关闭遮罩层 */}
-        <div 
-          onClick={() => setIsMenuOpen(false)}
-          className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        />
-
-        {/* 抽屉内容面板 */}
-        <div className={`
-          absolute top-0 left-0 w-[80%] max-w-[300px] h-full bg-black/70 backdrop-blur-2xl border-r border-white/10
-          transition-transform duration-500 ease-out flex flex-col p-10 pt-32 gap-8
-          ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}>
+      {/* 移动端抽屉 */}
+      <div className={`fixed inset-0 z-[90] transition-opacity duration-500 md:hidden ${isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div onClick={() => setIsMenuOpen(false)} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+        <div className={`absolute top-0 left-0 w-[80%] max-w-[300px] h-full bg-black/70 backdrop-blur-2xl border-r border-white/10 transition-transform duration-500 ease-out flex flex-col p-10 pt-32 gap-8 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="text-[10px] tracking-[0.4em] text-white/30 uppercase mb-4 border-b border-white/10 pb-2 font-mono">Navigation_Menu</div>
-          
           <Link to="/" className="text-lg font-bold tracking-[0.2em] text-white hover:text-cyan-400">HOME</Link>
-          
           <div className="flex flex-col gap-4">
-            <button 
-              onClick={() => setIsModelsSubMenuOpen(!isModelsSubMenuOpen)}
-              className="text-lg font-bold tracking-[0.2em] flex items-center gap-2 text-white"
-            >
+            <button onClick={() => setIsModelsSubMenuOpen(!isModelsSubMenuOpen)} className="text-lg font-bold tracking-[0.2em] flex items-center gap-2 text-white">
               MODELS <ChevronDown size={16} className={`transition-transform duration-300 ${isModelsSubMenuOpen ? 'rotate-180' : ''}`} />
             </button>
-            
             {isModelsSubMenuOpen && (
               <div className="flex flex-col gap-5 pl-4 border-l border-cyan-500/30 py-2 animate-in fade-in slide-in-from-left-2 duration-300">
                 <Link to="/models/black-hole" className="text-sm font-mono tracking-widest text-cyan-400">// BLACK_HOLE</Link>
-                <span className="text-sm font-mono tracking-widest text-white/20">// THREE_BODY (WIP)</span>
               </div>
             )}
           </div>
-
           <Link to="/lab" className="text-lg font-bold tracking-[0.2em] text-white hover:text-cyan-400">LAB</Link>
-
-          <div className="mt-auto pt-8 border-t border-white/10">
-             <a href="https://github.com/Xiaobai1100" target="_blank" rel="noreferrer" className="flex items-center gap-3 text-white/40 text-[10px] font-mono tracking-widest uppercase hover:text-white transition-colors">
-              <Github size={16} /> Git_Log
-            </a>
-          </div>
         </div>
       </div>
     </>
