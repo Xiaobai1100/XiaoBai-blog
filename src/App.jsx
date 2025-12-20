@@ -5,12 +5,12 @@ import { Github, Terminal, ChevronDown, Menu, X, ArrowRight, Zap } from 'lucide-
 
 /**
  * =================================================================
- * 1. 核心组件：极简低速交互黑洞背景 (包含陀螺仪与脉冲爆发)
+ * 1. 核心组件：1:1 物理复刻版黑洞 (带崩解逻辑)
  * =================================================================
  */
 const BlackHoleBackground = () => {
   const containerRef = useRef(null);
-  const pulseRef = useRef({ active: false, startTime: 0 });
+  const pulseRef = useRef({ active: false, startTime: 0, phase: 'idle' });
   const gyroRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -28,14 +28,16 @@ const BlackHoleBackground = () => {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     containerRef.current.appendChild(renderer.domElement);
 
+    // --- 物理参数 (参考 HTML V24 参数) ---
     const CONFIG = { 
       particleCount: 160000, 
       horizonRadius: 9.0, 
       diskInner: 12.0, 
       diskOuter: 140.0,
       spawnZone: 60.0,
-      baseSpeed: 0.12,  // 电影级慢速
-      infallRate: 15.0  // 优雅坠落
+      baseSpeed: 0.12,  // 电影级低速
+      infallRate: 15.0,
+      massScale: 3.0    // 首页采用 3.0 质量增强压迫感
     };
 
     const blackHole = new THREE.Mesh(
@@ -44,12 +46,13 @@ const BlackHoleBackground = () => {
     );
     universeGroup.add(blackHole);
 
+    // --- 粒子系统数据 ---
     const positions = [], colors = [], sizes = [], alphas = [], phases = [], radii = [], yOffsets = [], speeds = [], targetAlpha = [], infallMod = [];
     for (let i = 0; i < CONFIG.particleCount; i++) {
         const t = Math.random();
         const r = CONFIG.diskInner + (CONFIG.diskOuter - CONFIG.diskInner) * Math.pow(t, 0.8);
         const angle = Math.random() * Math.PI * 2;
-        const y = (Math.random() - 0.5) * (0.3 + r * 0.03);
+        const y = (Math.random() - 0.5) * (0.3 + r * 0.02);
         positions.push(Math.cos(angle) * r, y, Math.sin(angle) * r);
         colors.push(1.0, 0.8, 0.5); sizes.push(Math.random() * 0.6 + 0.4); alphas.push(0.0); targetAlpha.push(Math.random() * 0.6 + 0.3); 
         phases.push(angle); radii.push(r); yOffsets.push(y); speeds.push(Math.random() * 0.2 + 0.9); infallMod.push(0.8 + Math.random() * 0.4);
@@ -61,24 +64,31 @@ const BlackHoleBackground = () => {
     geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
     geometry.setAttribute('alpha', new THREE.Float32BufferAttribute(alphas, 1));
 
+    // --- 真实透镜 Shader (移植自 HTML V24) ---
     const material = new THREE.ShaderMaterial({
-        uniforms: { lensingStrength: { value: 1.1 } },
+        uniforms: { massScale: { value: CONFIG.massScale }, lensingStrength: { value: 1.0 } },
         vertexShader: `
-            uniform float lensingStrength;
+            uniform float massScale; uniform float lensingStrength;
             attribute float size; attribute float alpha; attribute vec3 customColor;
             varying vec3 vColor; varying float vAlpha;
             void main() {
                 vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
                 vAlpha = alpha; vColor = customColor;
-                float rs = 27.0; float rPhys = length(position.xyz);
+
+                // 1. 多普勒 & 红移
+                float rs = massScale * 3.0; float rPhys = length(position.xyz);
                 float gShift = sqrt(clamp(1.0 - (rs / (rPhys + 0.1)), 0.0, 1.0));
                 vec3 velObj = normalize(vec3(-position.z, 0.0, position.x));
                 vec3 velView = normalize(normalMatrix * velObj);
                 float beaming = pow(1.0 + 0.5 * dot(velView, normalize(-mvPosition.xyz)), 2.0);
                 vColor *= beaming * gShift * 1.5;
-                float r = length(mvPosition.xy);
-                float distortion = (1500.0 / max(r, 0.1)) * lensingStrength;
+
+                // 2. 引力透镜 (复刻 HTML 逻辑: rsSq / rClamped)
+                float rScreen = length(mvPosition.xy);
+                float rsScreen = massScale * 12.0; 
+                float distortion = ((rsScreen * rsScreen) / max(rScreen, 0.1)) * lensingStrength;
                 mvPosition.xy += normalize(mvPosition.xy) * distortion;
+
                 gl_Position = projectionMatrix * mvPosition;
                 gl_PointSize = size * (1200.0 / -mvPosition.z);
             }
@@ -96,7 +106,9 @@ const BlackHoleBackground = () => {
     const system = new THREE.Points(geometry, material);
     universeGroup.add(system);
 
-    const handlePulse = () => { pulseRef.current = { active: true, startTime: clock.getElapsedTime() }; };
+    const handlePulse = () => { 
+      pulseRef.current = { active: true, startTime: clock.getElapsedTime() }; 
+    };
     window.addEventListener('singularity-pulse', handlePulse);
 
     const handleGyro = (e) => {
@@ -120,23 +132,30 @@ const BlackHoleBackground = () => {
         const pos = geometry.attributes.position.array;
         const alp = geometry.attributes.alpha.array;
         
-        const isPulsing = pulseRef.current.active && pulseElapsed < 2.0;
-        const pulseForce = isPulsing ? Math.pow(1.0 - pulseElapsed/2.0, 3) * 150 : 0;
+        // --- 脉冲与崩解逻辑 (1.5s) ---
+        // 前 0.5s 为爆发，后 1.0s 为超速漂移恢复
+        const isAbnormal = pulseRef.current.active && pulseElapsed < 1.5;
+        const disintegrationFactor = isAbnormal ? Math.pow(1.0 - pulseElapsed / 1.5, 2) * 200 : 0;
+        const overspeed = isAbnormal ? 8.0 : 1.0; // 崩解期间速度提升 8 倍
 
         for(let i = 0; i < CONFIG.particleCount; i++) {
             let r = radii[i];
             let phase = phases[i];
+            
+            // 物理轨道
             let dilation = r > CONFIG.horizonRadius ? Math.sqrt(1.0 - (CONFIG.horizonRadius / r)) : 0;
-            phase += (Math.sqrt(1800.0 / r) * dilation * delta * CONFIG.baseSpeed * speeds[i]);
-            r -= (CONFIG.infallRate / Math.sqrt(r)) * (dilation * dilation) * delta * infallMod[i];
+            phase += (Math.sqrt(1800.0 / r) * dilation * delta * CONFIG.baseSpeed * speeds[i] * overspeed);
+            r -= (CONFIG.infallRate / Math.sqrt(r)) * (dilation * dilation) * delta * infallMod[i] * overspeed;
 
             if (r < CONFIG.horizonRadius * 1.05) { r = CONFIG.diskOuter + Math.random() * CONFIG.spawnZone; alp[i] = 0.0; }
             if (alp[i] < targetAlpha[i]) alp[i] += delta * 0.3;
 
-            const currentR = r + pulseForce;
+            // 应用崩解位移
+            const currentR = r + disintegrationFactor * speeds[i];
             pos[i*3] = Math.cos(phase) * currentR;
             pos[i*3+1] = yOffsets[i] + (Math.sin(phase + time) * 0.3);
             pos[i*3+2] = Math.sin(phase) * currentR;
+            
             radii[i] = r; phases[i] = phase;
         }
         geometry.attributes.position.needsUpdate = true;
@@ -158,24 +177,24 @@ const BlackHoleBackground = () => {
 
 /**
  * =================================================================
- * 2. 页面组件：Home 首页 (包含硬核割裂特效)
+ * 2. 页面组件：Home 首页 (带分段失真效果与标题修正)
  * =================================================================
  */
 const Home = () => {
-  const [glitch, setGlitch] = useState(false);
+  const [glitchState, setGlitchState] = useState('stable'); // stable | shaking | abnormal
 
   useEffect(() => {
     const onPulse = () => {
-      setGlitch(true);
-      // 增加持续时间到 1.5 秒，让 Pulse_Detected 被清晰看到
-      setTimeout(() => setGlitch(false), 1500); 
+      setGlitchState('shaking'); // 0-0.5s 剧烈抖动
+      setTimeout(() => setGlitchState('abnormal'), 500); // 0.5-1.5s 维持异常状态
+      setTimeout(() => setGlitchState('stable'), 1500); // 1.5s 恢复正常
     };
     window.addEventListener('singularity-pulse', onPulse);
     return () => window.removeEventListener('singularity-pulse', onPulse);
   }, []);
 
   const ArticleCard = ({ title, category, date }) => (
-    <div className="group relative bg-black/30 border border-white/10 p-8 hover:border-cyan-500/50 hover:bg-black/50 transition-all duration-300 cursor-pointer overflow-hidden backdrop-blur-md">
+    <div className="group relative bg-white/5 border border-white/10 p-8 hover:border-cyan-500/50 hover:bg-white/10 transition-all duration-300 cursor-pointer overflow-hidden backdrop-blur-md">
       <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 text-cyan-500"><Zap size={20} /></div>
       <div className="text-cyan-500/80 text-[10px] font-mono tracking-widest mb-3 uppercase">{category}</div>
       <h3 className="text-2xl font-bold text-white mb-4 leading-tight group-hover:text-cyan-100 transition-colors uppercase">{title}</h3>
@@ -187,40 +206,33 @@ const Home = () => {
 
   return (
     <div className="relative w-full min-h-screen bg-black overflow-x-hidden text-white">
-      {/* 强化版赛博割裂动画 */}
       <style>{`
-        @keyframes hard-fragment-glitch {
-          0% { transform: translate(0); clip-path: inset(0 0 0 0); filter: hue-rotate(0deg); }
-          5% { transform: translate(-25px, 2px); clip-path: inset(10% 0 85% 0); filter: hue-rotate(90deg) contrast(150%); }
-          10% { transform: translate(30px, -2px); clip-path: inset(80% 0 5% 0); }
-          15% { transform: translate(-10px, 5px); clip-path: inset(40% 0 40% 0); filter: hue-rotate(-90deg); }
-          20% { transform: translate(0); clip-path: inset(0 0 0 0); }
-          45% { transform: translate(15px, -1px) skewX(10deg); clip-path: inset(20% 0 70% 0); }
-          50% { transform: translate(-15px, 1px) skewX(-10deg); clip-path: inset(70% 0 20% 0); }
-          55% { transform: translate(0); filter: none; }
-          85% { transform: translate(10px, 2px); clip-path: inset(0 0 95% 0); }
-          90% { transform: translate(-10px, -2px); clip-path: inset(95% 0 0 0); }
+        @keyframes fragment-shake {
+          0% { transform: translate(0); clip-path: inset(0 0 0 0); }
+          10% { transform: translate(-30px, 2px); clip-path: inset(10% 0 80% 0); filter: hue-rotate(90deg); }
+          20% { transform: translate(25px, -2px); clip-path: inset(70% 0 5% 0); }
+          30% { transform: translate(-10px, 4px); clip-path: inset(40% 0 40% 0); }
+          40% { transform: translate(0); clip-path: inset(0 0 0 0); filter: none; }
           100% { transform: translate(0); }
         }
-        .glitch-active {
-          animation: hard-fragment-glitch 0.6s cubic-bezier(.25,.46,.45,.94) infinite;
-        }
+        .shaking-active { animation: fragment-shake 0.4s cubic-bezier(.25,.46,.45,.94) infinite; }
       `}</style>
 
-      <div className={`fixed inset-0 z-0 ${glitch ? 'glitch-active' : ''}`}>
+      {/* 固定背景：在 shaking 阶段抖动 */}
+      <div className={`fixed inset-0 z-0 ${glitchState === 'shaking' ? 'shaking-active' : ''}`}>
         <BlackHoleBackground />
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay pointer-events-none"></div>
       </div>
 
-      <main className={`relative z-10 flex flex-col justify-center min-h-screen px-6 md:px-20 max-w-7xl mx-auto pt-20 pointer-events-none transition-all duration-300 ${glitch ? 'opacity-80' : 'opacity-100'}`}>
-        <div className={`flex flex-col items-start pointer-events-auto ${glitch ? 'glitch-active' : ''}`}>
-          <div className={`mb-8 flex items-center gap-4 font-mono text-[10px] tracking-[0.3em] border-l-2 pl-4 py-1 pr-4 rounded-r uppercase transition-colors duration-300 
-            ${glitch ? 'text-red-500 border-red-500 bg-red-500/10' : 'text-cyan-400 border-cyan-500 bg-black/20 backdrop-blur-md'}
+      <main className={`relative z-10 flex flex-col justify-center min-h-screen px-6 md:px-20 max-w-7xl mx-auto pt-20 pointer-events-none transition-all duration-300 ${glitchState !== 'stable' ? 'opacity-80' : 'opacity-100'}`}>
+        <div className={`flex flex-col items-start pointer-events-auto ${glitchState === 'shaking' ? 'shaking-active' : ''}`}>
+          <div className={`mb-8 flex items-center gap-4 font-mono text-[10px] tracking-[0.3em] border-l-2 pl-4 py-1 pr-4 rounded-r uppercase transition-all duration-500
+            ${glitchState !== 'stable' ? 'text-red-500 border-red-500 bg-red-500/10' : 'text-cyan-400 border-cyan-500 bg-black/20 backdrop-blur-md'}
           `}>
-            {glitch ? 'Alert: Pulse_Detected' : 'Status: Singularity_Stable'}
+            {glitchState !== 'stable' ? 'Alert: Pulse_Detected' : 'Status: Singularity_Stable'}
           </div>
           
-          {/* 修正标题为 EXPLORE THE UNSEEN */}
+          {/* 修正大标题 */}
           <h1 className="text-6xl md:text-9xl font-black mb-8 leading-[0.85] tracking-tighter mix-blend-exclusion opacity-95 uppercase">
             Explore<br />The <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-purple-400">Unseen</span>
           </h1>
@@ -232,19 +244,20 @@ const Home = () => {
             </p>
           </div>
 
-          <button className="flex items-center gap-2 bg-white text-black px-10 py-4 font-mono font-bold tracking-[0.2em] hover:bg-cyan-300 transition-all hover:scale-105 group uppercase">
+          <button className="flex items-center gap-2 bg-white text-black px-10 py-4 font-mono font-bold tracking-[0.2em] hover:bg-cyan-300 transition-all group uppercase">
             Start Reading <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
       </main>
       
-      <section className="relative z-10 bg-black/60 backdrop-blur-2xl py-32 px-6 border-t border-white/10">
+      {/* 文章区域：背景半透明，隐约可见底下的黑洞运行 */}
+      <section className="relative z-10 bg-black/30 backdrop-blur-xl py-32 px-6 border-t border-white/5">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-bold tracking-tighter uppercase opacity-80 mb-16">Transmission_Logs</h2>
+          <h2 className="text-4xl font-bold tracking-tighter uppercase opacity-60 mb-16">Transmission_Logs</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <ArticleCard title="模拟卡冈图雅" category="Physics" date="DEC 20" />
-            <ArticleCard title="三体问题的混沌边缘" category="Simulation" date="DEC 15" />
-            <ArticleCard title="Shader 魔法" category="WebGL" date="NOV 28" />
+            <ArticleCard title="三体问题混沌边缘" category="Simulation" date="DEC 15" />
+            <ArticleCard title="Shader 手写物理" category="WebGL" date="NOV 28" />
           </div>
         </div>
       </section>
@@ -254,7 +267,7 @@ const Home = () => {
 
 /**
  * =================================================================
- * 3. 页面组件：BlackHoleModel
+ * 3. 页面组件：BlackHoleModel (保持 iframe)
  * =================================================================
  */
 const BlackHoleModel = () => (
@@ -279,7 +292,6 @@ const NavBar = () => {
   const triggerPulse = () => {
     setIsGlowing(true);
     window.dispatchEvent(new CustomEvent('singularity-pulse'));
-    // 强光反馈也稍微延长
     setTimeout(() => setIsGlowing(false), 1200);
   };
 
@@ -287,9 +299,7 @@ const NavBar = () => {
     <>
       <nav className="fixed top-0 left-0 w-full p-8 z-[100] text-white mix-blend-difference pointer-events-none">
         <div className="flex justify-between items-center max-w-7xl mx-auto">
-          
           <div className="flex items-center gap-4 cursor-pointer group pointer-events-auto select-none">
-            {/* 图标强光反馈 */}
             <div 
               onClick={triggerPulse}
               className={`w-10 h-10 flex items-center justify-center border transition-all duration-300 
