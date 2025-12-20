@@ -263,7 +263,7 @@ const Home = () => {
           </div>
           
           <h1 className="text-6xl md:text-9xl font-black mb-8 leading-[0.85] tracking-tighter mix-blend-exclusion opacity-90">
-            VISUALIZE<br />
+            Explore<br />
             THE <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-purple-400">UNSEEN</span>
           </h1>
           
