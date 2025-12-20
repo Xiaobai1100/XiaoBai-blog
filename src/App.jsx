@@ -238,9 +238,8 @@ const Home = () => {
         <div className="max-w-7xl mx-auto">
           <h2 className="text-4xl font-bold tracking-tighter uppercase opacity-60 mb-16">Transmission_Logs</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <ArticleCard title="模拟卡冈图雅" category="Physics" date="DEC 20" />
-            <ArticleCard title="三体问题混沌边缘" category="Simulation" date="DEC 15" />
-            <ArticleCard title="Shader 手写物理" category="WebGL" date="NOV 28" />
+            <ArticleCard title="The visualization of black hole" category="Simulation" date="DEC 20" />
+            <ArticleCard title="About this blog" category="WebGL" date="DEC 20" />
           </div>
         </div>
       </section>
