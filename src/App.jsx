@@ -466,7 +466,7 @@ const NavBar = () => {
             </button>
             {isModelsSubMenuOpen && (
               <div className="flex flex-col gap-4 pl-4 border-l border-white/10 py-1">
-                <Link to="/models/black-hole" className="text-[11px] tracking-[0.2em] text-cyan-400/80 uppercase">/ Black_Hole</Link>
+                <Link to="/models/black-hole" className="text-[11px] tracking-[0.2em] text-cyan-400/80 uppercase">Black_Hole</Link>
               </div>
             )}
           </div>
