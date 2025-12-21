@@ -1,18 +1,22 @@
-// 1. 所有的 import 放在最上面
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import * as THREE from 'three';
-import { Github, Terminal, ChevronDown, Menu, X, ArrowRight, Zap } from 'lucide-react';
+import * as THREE from "three";
+import { 
+  Github, 
+  Terminal, 
+  ChevronDown, 
+  Menu, 
+  X, 
+  ArrowRight, 
+  Zap, 
+  AlertTriangle 
+} from 'lucide-react';
+
+// 导入你的页面组件
 import AboutBlog from './pages/AboutBlog';
 import { POSTS } from './config/posts';
 
-/**
- * =================================================================
- * 1. 核心组件：经典引力透镜版黑洞 
- * =================================================================
- */
-import React, { useEffect, useRef } from 'react';
-import * as THREE from 'three';
+// 后面直接开始写 export const BlackHoleBackground = ...
 
 /**
  * =================================================================
@@ -480,7 +484,7 @@ const NotFound = () => {
         {/* 错误标签 */}
         <div className="inline-block border border-white/20 bg-white/5 px-3 py-1 mb-6 md:mb-10 rounded-sm">
           <span className="text-white/40 text-[8px] md:text-[9px] tracking-[0.3em] md:tracking-[0.4em] uppercase">
-            Signal_Interrupted // 0x404
+            Signal_Interrupted // 404
           </span>
         </div>
         
