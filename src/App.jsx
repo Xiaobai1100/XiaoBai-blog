@@ -8,163 +8,208 @@ import { POSTS } from './config/posts';
 
 /**
  * =================================================================
- * 1. 核心组件：1:1 物理复刻版黑洞 (带崩解逻辑)
+ * 1. 核心组件：BlackHoleBackground v2.0 (物理复刻 Gargantua)
  * =================================================================
  */
- 
 export const BlackHoleBackground = () => {
   const containerRef = useRef(null);
-  const pulseRef = useRef({ active: false, startTime: 0, phase: 'idle' });
-  const gyroRef = useRef({ x: 0, y: 0 });
+  const stateRef = useRef({
+    mass: 1.0,
+    simSpeed: 1.0,
+    lensingCurrent: 1.0,
+    isExploding: false,
+    explosionFactor: 0.0,
+    gyro: { x: 0, y: 0 }
+  });
 
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // --- 初始化环境 ---
     const scene = new THREE.Scene();
     const universeGroup = new THREE.Group();
     scene.add(universeGroup);
 
     const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
-    camera.position.set(0, 60, 220); 
+    camera.position.set(0, 60, 220);
 
     const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance", alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
     containerRef.current.appendChild(renderer.domElement);
 
-    const CONFIG = { 
-      particleCount: 160000, 
-      horizonRadius: 9.0, 
-      diskInner: 12.0, 
-      diskOuter: 140.0,
-      spawnZone: 60.0,
-      baseSpeed: 0.12,
-      infallRate: 15.0,
-      massScale: 3.0
+    // --- 物理常量配置 ---
+    const CONFIG = {
+      particleCount: 80000, // 适配React性能，设为8万粒子
+      horizonRadius: 2.0,
+      iscoRadius: 6.0,
+      baseSpeed: 0.4,
+      colAccretion: new THREE.Color(0xffaa33)
     };
 
+    // --- 核心视界 ---
     const blackHole = new THREE.Mesh(
-      new THREE.SphereGeometry(8.8, 64, 64), 
+      new THREE.SphereGeometry(1.9, 64, 64),
       new THREE.MeshBasicMaterial({ color: 0x000000 })
     );
     universeGroup.add(blackHole);
 
-    const positions = [], colors = [], sizes = [], alphas = [], phases = [], radii = [], yOffsets = [], speeds = [], targetAlpha = [], infallMod = [];
+    // --- 粒子系统数据初始化 ---
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(CONFIG.particleCount * 3);
+    const colors = new Float32Array(CONFIG.particleCount * 3);
+    const alphas = new Float32Array(CONFIG.particleCount);
+    const sizes = new Float32Array(CONFIG.particleCount);
+    
+    const uData = {
+      radii: new Float32Array(CONFIG.particleCount),
+      phases: new Float32Array(CONFIG.particleCount),
+      yOffsets: new Float32Array(CONFIG.particleCount),
+      speeds: new Float32Array(CONFIG.particleCount),
+      infallMod: new Float32Array(CONFIG.particleCount)
+    };
+
     for (let i = 0; i < CONFIG.particleCount; i++) {
-        const t = Math.random();
-        const r = CONFIG.diskInner + (CONFIG.diskOuter - CONFIG.diskInner) * Math.pow(t, 0.8);
-        const angle = Math.random() * Math.PI * 2;
-        const y = (Math.random() - 0.5) * (0.3 + r * 0.02);
-        positions.push(Math.cos(angle) * r, y, Math.sin(angle) * r);
-        colors.push(1.0, 0.8, 0.5); sizes.push(Math.random() * 0.6 + 0.4); alphas.push(0.0); targetAlpha.push(Math.random() * 0.6 + 0.3); 
-        phases.push(angle); radii.push(r); yOffsets.push(y); speeds.push(Math.random() * 0.2 + 0.9); infallMod.push(0.8 + Math.random() * 0.4);
+      uData.radii[i] = 10.0 + Math.random() * 80.0;
+      uData.phases[i] = Math.random() * Math.PI * 2;
+      uData.yOffsets[i] = (Math.random() - 0.5) * (uData.radii[i] * 0.05);
+      uData.speeds[i] = Math.random() * 0.2 + 0.9;
+      uData.infallMod[i] = 0.8 + Math.random() * 0.4;
+      
+      sizes[i] = Math.random() * 0.8 + 0.4;
+      alphas[i] = 0.0;
+      colors[i*3] = CONFIG.colAccretion.r;
+      colors[i*3+1] = CONFIG.colAccretion.g;
+      colors[i*3+2] = CONFIG.colAccretion.b;
     }
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geometry.setAttribute('customColor', new THREE.Float32BufferAttribute(colors, 3));
-    geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
-    geometry.setAttribute('alpha', new THREE.Float32BufferAttribute(alphas, 1));
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('customColor', new THREE.BufferAttribute(colors, 3));
+    geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
+    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
 
+    // --- 物理 Shader ---
     const material = new THREE.ShaderMaterial({
-        uniforms: { massScale: { value: CONFIG.massScale }, lensingStrength: { value: 1.0 } },
-        vertexShader: `
-            uniform float massScale; uniform float lensingStrength;
-            attribute float size; attribute float alpha; attribute vec3 customColor;
-            varying vec3 vColor; varying float vAlpha;
-            void main() {
-                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                vAlpha = alpha; vColor = customColor;
-                float rs = massScale * 3.0; float rPhys = length(position.xyz);
-                float gShift = sqrt(clamp(1.0 - (rs / (rPhys + 0.1)), 0.0, 1.0));
-                vec3 velObj = normalize(vec3(-position.z, 0.0, position.x));
-                vec3 velView = normalize(normalMatrix * velObj);
-                float beaming = pow(1.0 + 0.5 * dot(velView, normalize(-mvPosition.xyz)), 2.0);
-                vColor *= beaming * gShift * 1.5;
-                float rScreen = length(mvPosition.xy);
-                float rsScreen = massScale * 12.0; 
-                float distortion = ((rsScreen * rsScreen) / max(rScreen, 0.1)) * lensingStrength;
-                mvPosition.xy += normalize(mvPosition.xy) * distortion;
-                gl_Position = projectionMatrix * mvPosition;
-                gl_PointSize = size * (1200.0 / -mvPosition.z);
-            }
-        `,
-        fragmentShader: `
-            varying vec3 vColor; varying float vAlpha;
-            void main() {
-                float dist = length(gl_PointCoord - 0.5);
-                if (dist > 0.5) discard;
-                gl_FragColor = vec4(vColor, vAlpha * pow(1.0 - (dist * 2.0), 2.0));
-            }
-        `,
-        blending: THREE.AdditiveBlending, depthWrite: false, transparent: true
+      uniforms: { 
+        massScale: { value: 1.0 }, 
+        lensingStrength: { value: 1.0 } 
+      },
+      vertexShader: `
+        uniform float massScale;
+        uniform float lensingStrength;
+        attribute float size;
+        attribute float alpha;
+        attribute vec3 customColor;
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() {
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          float rPhys = length(position.xyz);
+          float rsPhys = massScale * 3.0;
+          float gFactor = sqrt(clamp(1.0 - rsPhys / (rPhys + 0.01), 0.0, 1.0));
+          vec3 velDir = normalize(vec3(-position.z, 0.0, position.x));
+          vec3 velView = normalize(normalMatrix * velDir);
+          float beaming = pow(1.0 + 0.5 * dot(velView, normalize(-mvPosition.xyz)), 3.0);
+          vColor = customColor * beaming * (gFactor + 0.2);
+          vAlpha = alpha;
+          float rScreen = length(mvPosition.xy);
+          float rsScreen = massScale * 12.0;
+          float b = max(rScreen, 0.1);
+          float deflection = (2.0 * rsScreen / b) + (15.0 * rsScreen * rsScreen / (b * b));
+          mvPosition.xy += normalize(mvPosition.xy) * deflection * lensingStrength;
+          gl_Position = projectionMatrix * mvPosition;
+          gl_PointSize = size * (1000.0 / -mvPosition.z);
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vColor;
+        varying float vAlpha;
+        void main() {
+          float dist = length(gl_PointCoord - 0.5);
+          if (dist > 0.5) discard;
+          gl_FragColor = vec4(vColor, vAlpha * pow(1.0 - dist * 2.0, 2.0));
+        }
+      `,
+      blending: THREE.AdditiveBlending, depthWrite: false, transparent: true
     });
+
     const system = new THREE.Points(geometry, material);
     universeGroup.add(system);
 
-    const handlePulse = () => { 
-      pulseRef.current = { active: true, startTime: clock.getElapsedTime() }; 
-    };
-    window.addEventListener('singularity-pulse', handlePulse);
-
-    const handleGyro = (e) => {
-      if (!e.beta || !e.gamma) return;
-      gyroRef.current.x = e.beta * 0.005;
-      gyroRef.current.y = e.gamma * 0.005;
-    };
-    window.addEventListener('deviceorientation', handleGyro);
-
+    // --- 动画循环 ---
     const clock = new THREE.Clock();
     let frameId;
+
     const animate = () => {
-        frameId = requestAnimationFrame(animate);
-        const delta = clock.getDelta();
-        const time = clock.getElapsedTime();
-        const pulseElapsed = time - pulseRef.current.startTime;
+      frameId = requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      const time = clock.getElapsedTime();
+      const st = stateRef.current;
 
-        universeGroup.rotation.x += (gyroRef.current.x - universeGroup.rotation.x) * 0.05;
-        universeGroup.rotation.y += (gyroRef.current.y - universeGroup.rotation.y) * 0.05;
+      // 陀螺仪平滑
+      universeGroup.rotation.x += (st.gyro.x - universeGroup.rotation.x) * 0.05;
+      universeGroup.rotation.y += (st.gyro.y - universeGroup.rotation.y) * 0.05;
 
-        const pos = geometry.attributes.position.array;
-        const alp = geometry.attributes.alpha.array;
-        
-        const isAbnormal = pulseRef.current.active && pulseElapsed < 1.5;
-        const disintegrationFactor = isAbnormal ? Math.pow(1.0 - pulseElapsed / 1.5, 2) * 200 : 0;
-        const overspeed = isAbnormal ? 8.0 : 1.0; 
+      const posAttr = geometry.attributes.position.array;
+      const alphaAttr = geometry.attributes.alpha.array;
+      const currentRs = CONFIG.horizonRadius * st.mass;
 
-        for(let i = 0; i < CONFIG.particleCount; i++) {
-            let r = radii[i];
-            let phase = phases[i];
-            let dilation = r > CONFIG.horizonRadius ? Math.sqrt(1.0 - (CONFIG.horizonRadius / r)) : 0;
-            phase += (Math.sqrt(1800.0 / r) * dilation * delta * CONFIG.baseSpeed * speeds[i] * overspeed);
-            r -= (CONFIG.infallRate / Math.sqrt(r)) * (dilation * dilation) * delta * infallMod[i] * overspeed;
+      for (let i = 0; i < CONFIG.particleCount; i++) {
+        let r = uData.radii[i];
+        let phase = uData.phases[i];
 
-            if (r < CONFIG.horizonRadius * 1.05) { r = CONFIG.diskOuter + Math.random() * CONFIG.spawnZone; alp[i] = 0.0; }
-            if (alp[i] < targetAlpha[i]) alp[i] += delta * 0.3;
-
-            const currentR = r + disintegrationFactor * speeds[i];
-            pos[i*3] = Math.cos(phase) * currentR;
-            pos[i*3+1] = yOffsets[i] + (Math.sin(phase + time) * 0.3);
-            pos[i*3+2] = Math.sin(phase) * currentR;
-            radii[i] = r; phases[i] = phase;
+        // 吞噬检测
+        if (r < currentRs * 1.01) {
+          r = 40.0 + Math.random() * 60.0;
+          alphaAttr[i] = 0.0;
         }
-        geometry.attributes.position.needsUpdate = true;
-        geometry.attributes.alpha.needsUpdate = true;
-        renderer.render(scene, camera);
+
+        // 相对论时间膨胀因子
+        let dilation = r > currentRs ? Math.sqrt(1.0 - (currentRs / r)) : 0;
+        
+        // 物理轨道步进
+        const vOrbital = Math.sqrt((500.0 * st.mass) / r);
+        phase += vOrbital * Math.max(dilation, 0.1) * CONFIG.baseSpeed * uData.speeds[i] * delta * 0.5;
+        
+        // 径向吸积 (越靠近 ISCO 越快)
+        const vr = (r > currentRs * 3.0) ? -2.0 / Math.sqrt(r) : -15.0;
+        r += vr * (dilation * dilation) * delta * st.simSpeed;
+
+        posAttr[i*3] = Math.cos(phase) * r;
+        posAttr[i*3+1] = uData.yOffsets[i];
+        posAttr[i*3+2] = Math.sin(phase) * r;
+
+        // 亮度渐入
+        if (alphaAttr[i] < 0.8) alphaAttr[i] += delta * 0.2;
+
+        uData.radii[i] = r;
+        uData.phases[i] = phase;
+      }
+
+      geometry.attributes.position.needsUpdate = true;
+      geometry.attributes.alpha.needsUpdate = true;
+      
+      material.uniforms.massScale.value = st.mass;
+      blackHole.scale.setScalar(currentRs);
+      
+      renderer.render(scene, camera);
     };
+
     animate();
+
+    // 监听事件 (可选，用于交互)
+    const onPulse = () => { st.simSpeed = 5.0; setTimeout(()=> st.simSpeed = 1.0, 1000); };
+    window.addEventListener('singularity-pulse', onPulse);
 
     return () => {
       cancelAnimationFrame(frameId);
-      window.removeEventListener('singularity-pulse', handlePulse);
-      window.removeEventListener('deviceorientation', handleGyro);
+      window.removeEventListener('singularity-pulse', onPulse);
       renderer.dispose();
     };
   }, []);
 
   return <div ref={containerRef} className="absolute top-0 left-0 w-full h-full bg-black z-0" />;
 };
-
 /**
  * =================================================================
  * 2. 页面组件：Home 首页
