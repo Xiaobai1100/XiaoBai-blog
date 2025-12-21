@@ -126,7 +126,7 @@ export const BlackHoleBackground = () => {
 		  gl_Position = projectionMatrix * mvPosition;
 		  
 		  float r = length(position.xz);
-		  float baseSize = (0.7 + 2.5 / r) * glowBoost;
+		  float baseSize = (1 + 3.5 / r) * glowBoost;
 		  gl_PointSize = baseSize * (1000.0 / -mvPosition.z);
 		  
 		  vAlpha = alpha * (1.2 - explosion * 0.7); 
@@ -345,23 +345,71 @@ const NavBar = () => {
   const [isGlowing, setIsGlowing] = useState(false);
   const location = useLocation();
 
-  // 路由变化时自动关闭移动端菜单
-  useEffect(() => setIsMenuOpen(false), [location]);
+  // --- 滚动隐藏逻辑状态 ---
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
+  // 1. 监听滚动方向
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // 如果菜单正打开，不隐藏导航栏
+      if (isMenuOpen) {
+        setIsVisible(true);
+        return;
+      }
+
+      if (currentScrollY < 20) {
+        // 靠近顶部始终显示
+        setIsVisible(true);
+      } else if (currentScrollY > lastScrollY) {
+        // 向上滑动 (页面下滚) -> 隐藏
+        setIsVisible(false);
+      } else {
+        // 向下滑动 (页面上滚) -> 显示
+        setIsVisible(true);
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY, isMenuOpen]);
+
+  // 2. 路由变化时自动关闭移动端菜单
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location]);
+
+  // 3. 触发黑洞彩蛋 & 激活传感器权限
   const triggerPulse = () => {
     setIsGlowing(true);
-    window.dispatchEvent(new CustomEvent('singularity-pulse'));
+    window.dispatchEvent(new CustomEvent("singularity-pulse"));
+
+    // 针对 iOS 显式请求陀螺仪权限
+    if (typeof DeviceOrientationEvent !== 'undefined' && 
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().catch(console.error);
+    }
+
     setTimeout(() => setIsGlowing(false), 1200);
   };
 
   return (
     <>
-      <nav className="fixed top-0 left-0 w-full p-8 z-[100] text-white mix-blend-difference pointer-events-none">
+      {/* 主导航栏 */}
+      <nav 
+        className={`fixed top-0 left-0 w-full p-6 md:p-8 z-[100] text-white mix-blend-difference pointer-events-none 
+          transition-all duration-500 ease-in-out
+          ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}
+        `}
+      >
         <div className="flex justify-between items-center max-w-7xl mx-auto">
           
-          {/* 左侧区域：Logo + 标题 */}
+          {/* 左侧：Logo + 标题 (点击返回首页) */}
           <div className="flex items-center gap-4 pointer-events-auto select-none">
-            {/* 1. Terminal 图标彩蛋 */}
+            {/* Terminal 图标触发彩蛋 */}
             <div 
               onClick={triggerPulse}
               className={`w-10 h-10 flex items-center justify-center border transition-all duration-300 cursor-pointer
@@ -371,33 +419,35 @@ const NavBar = () => {
               <Terminal size={20} className={isGlowing ? 'text-black' : ''} />
             </div>
             
-            {/* 2. 点击返回首页的标题 */}
+            {/* 站点名称链接 */}
             <Link 
               to="/" 
               className="flex flex-col cursor-pointer hover:opacity-70 transition-opacity active:scale-95"
             >
-              <span className="text-lg md:text-xl font-bold tracking-widest leading-none uppercase">XiaoBai</span>
-              <span className="text-[9px] md:text-[11px] tracking-[0.3em] opacity-60">SAMA</span>
+              <span className="text-lg md:text-xl font-black tracking-widest leading-none uppercase">XiaoBai</span>
+              <span className="text-[9px] md:text-[11px] tracking-[0.3em] opacity-60 font-bold">SAMA</span>
             </Link>
             
-            {/* 移动端菜单开关 */}
-            <div onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden ml-2 text-cyan-400 cursor-pointer pointer-events-auto">
-              {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            {/* 手机端汉堡菜单按钮 */}
+            <div 
+              onClick={() => setIsMenuOpen(!isMenuOpen)} 
+              className="md:hidden ml-2 text-cyan-400 cursor-pointer pointer-events-auto p-2"
+            >
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </div>
           </div>
 
-          {/* 右侧区域：桌面端功能菜单 (恢复所有功能) */}
-          <div className="hidden md:flex gap-12 text-sm font-mono tracking-widest items-center pointer-events-auto uppercase font-bold">
+          {/* 右侧：桌面端菜单 (恢复所有功能) */}
+          <div className="hidden md:flex gap-12 text-[10px] font-mono tracking-[0.4em] items-center pointer-events-auto uppercase font-bold">
             <Link to="/" className="hover:text-cyan-400 transition-colors">Home</Link>
             
-            {/* Models 下拉菜单 */}
-            <div className="relative group h-full">
+            <div className="relative group">
               <button className="flex items-center gap-1 hover:text-cyan-400 transition-colors py-4">
                 Models <ChevronDown size={14} />
               </button>
-              <div className="absolute left-1/2 -translate-x-1/2 top-full hidden group-hover:block min-w-[200px] pt-0">
-                <div className="bg-black/95 border border-white/10 backdrop-blur-xl flex flex-col p-1 shadow-2xl">
-                  <Link to="/models/black-hole" className="px-4 py-4 text-white/70 hover:text-cyan-400 hover:bg-white/5 transition-all text-left">
+              <div className="absolute left-1/2 -translate-x-1/2 top-full hidden group-hover:block min-w-[180px] pt-2">
+                <div className="bg-black/95 border border-white/10 backdrop-blur-xl flex flex-col p-1">
+                  <Link to="/models/black-hole" className="px-4 py-3 text-white/50 hover:text-cyan-400 hover:bg-white/5 transition-all text-left">
                     // Black_Hole
                   </Link>
                 </div>
@@ -406,28 +456,30 @@ const NavBar = () => {
 
             <Link to="/lab" className="hover:text-cyan-400 transition-colors">Lab</Link>
             
-            {/* 恢复 GitHub 真实链接 */}
             <a 
               href="https://github.com/Xiaobai1100" 
               target="_blank" 
               rel="noreferrer" 
-              className="border border-white/20 px-6 py-2.5 hover:bg-white hover:text-black transition-all flex items-center gap-2"
+              className="border border-white/20 px-6 py-2 hover:bg-white hover:text-black transition-all flex items-center gap-2"
             >
-              <Github size={15} /> Github
+              <Github size={14} /> Github
             </a>
           </div>
         </div>
       </nav>
 
-      {/* 移动端抽屉菜单 (恢复所有功能) */}
+      {/* 移动端侧边抽屉菜单 */}
       <div className={`fixed inset-0 z-[110] transition-opacity duration-500 md:hidden ${isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        {/* 背景遮罩 */}
         <div onClick={() => setIsMenuOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-md" />
-        <div className={`absolute top-0 left-0 w-[85%] max-w-[320px] h-full bg-black/80 backdrop-blur-2xl border-r border-white/10 transition-transform duration-500 ease-out flex flex-col p-12 pt-32 gap-10 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-          <div className="text-[10px] tracking-[0.5em] text-white/40 uppercase mb-4 border-b border-white/10 pb-4 font-mono">Control_Center</div>
+        
+        {/* 菜单内容 */}
+        <div className={`absolute top-0 left-0 w-[80%] max-w-[300px] h-full bg-black/90 backdrop-blur-2xl border-r border-white/10 transition-transform duration-500 ease-out flex flex-col p-10 pt-24 gap-8 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="text-[9px] tracking-[0.5em] text-white/30 uppercase mb-4 border-b border-white/5 pb-4 font-mono">Control_Center</div>
           
-          <Link to="/" className="text-xl font-bold tracking-[0.3em] text-white hover:text-cyan-400 uppercase">Home</Link>
+          <Link to="/" className="text-xl font-bold tracking-[0.3em] text-white uppercase active:text-cyan-400">Home</Link>
           
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
             <button 
               onClick={() => setIsModelsSubMenuOpen(!isModelsSubMenuOpen)} 
               className="text-xl font-bold tracking-[0.3em] flex items-center gap-3 text-white uppercase text-left"
@@ -435,14 +487,21 @@ const NavBar = () => {
               Models <ChevronDown size={18} className={isModelsSubMenuOpen ? 'rotate-180' : ''} />
             </button>
             {isModelsSubMenuOpen && (
-              <div className="flex flex-col gap-6 pl-5 border-l border-cyan-500/40 py-2">
-                <Link to="/models/black-hole" className="text-base font-mono tracking-widest text-cyan-400 uppercase">// Black_Hole</Link>
+              <div className="flex flex-col gap-5 pl-4 border-l border-cyan-500/30 py-2">
+                <Link to="/models/black-hole" className="text-sm font-mono tracking-widest text-cyan-400 uppercase">// Black_Hole</Link>
               </div>
             )}
           </div>
           
-          <Link to="/lab" className="text-xl font-bold tracking-[0.3em] text-white hover:text-cyan-400 uppercase">Lab</Link>
-          <a href="https://github.com/Xiaobai1100" target="_blank" className="text-xl font-bold tracking-[0.3em] text-white hover:text-cyan-400 uppercase">Github</a>
+          <Link to="/lab" className="text-xl font-bold tracking-[0.3em] text-white uppercase active:text-cyan-400">Lab</Link>
+          <a href="https://github.com/Xiaobai1100" target="_blank" className="text-xl font-bold tracking-[0.3em] text-white uppercase active:text-cyan-400">Github</a>
+          
+          <button 
+            onClick={() => setIsMenuOpen(false)} 
+            className="mt-auto mb-10 text-[10px] tracking-[0.4em] text-cyan-400 border border-cyan-400/30 px-4 py-3 uppercase active:bg-cyan-400/10"
+          >
+            Close_Menu
+          </button>
         </div>
       </div>
     </>
@@ -526,9 +585,9 @@ const App = () => (
       {POSTS.map(post => (
         <Route key={post.id} path={`/logs/${post.id}`} element={<post.component />} />
       ))}
-      // App.jsx 底部
+      
+      {/* 404 路由必须放在最后 */}
       <Route path="*" element={<NotFound />} />
-	</Routes>
+    </Routes>
   </Router>
 );
-export default App;
