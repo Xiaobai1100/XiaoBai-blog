@@ -278,6 +278,11 @@
 
     <!-- SHADER: CORRECTED RELATIVISTIC VISUALIZATION -->
 	<script type="x-shader/x-vertex" id="disk-vs">
+		// 自动兼容：如果是移动端则使用中精度，否则高精度
+		#ifdef GL_ES
+		precision mediump float;
+		#endif
+
 		uniform float massScale;
 		uniform float lensingStrength; 
 
@@ -290,32 +295,23 @@
 		void main() {
 			vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
 			float rPhys = length(position.xyz);
-			float rsPhys = massScale * 3.0; // 視界半徑
+			float rsPhys = massScale * 3.0;
 
-			// 1. 強化引力紅移 (視覺補償)
-			// 在正上方，多普勒效應很弱，所以必須依賴引力紅移的顏色變化
+			// 加上 0.001 防止分母为 0 导致手机黑屏
 			float gFactor = sqrt(clamp(1.0 - rsPhys / (rPhys + 0.001), 0.0, 1.0));
-			
-			// 2. 顏色邏輯：從正常的橙色 -> 明亮的白熱 -> 深沉的血紅
-			vec3 normalColor = customColor;
-			vec3 hotEdge = vec3(1.0, 0.9, 0.6);   // 接近視界時因壓縮而發白
-			vec3 bloodRed = vec3(0.5, 0.01, 0.0); // 最終紅移色
-			
-			// 使用 smoothstep 製造更劇烈的顏色階梯
-			vec3 colorMix = mix(bloodRed, normalColor, smoothstep(0.0, 0.2, gFactor));
-			// 在 1.05Rs 到 1.2Rs 之間製造一個「光環」效果
-			colorMix = mix(hotEdge, colorMix, smoothstep(0.0, 0.1, gFactor - 0.05));
 
-			// 3. 多普勒集束 (在俯視時依然保留)
 			vec3 velDir = normalize(vec3(-position.z, 0.0, position.x));
 			vec3 velView = normalize(normalMatrix * velDir);
 			vec3 viewDir = normalize(-mvPosition.xyz);
 			float beaming = pow(1.0 + 0.5 * dot(velView, viewDir), 3.0);
 
-			vColor = colorMix * beaming * (gFactor + 0.1); 
+			vec3 deepRed = vec3(0.6, 0.02, 0.0);
+			float colorShift = pow(1.0 - gFactor, 2.5);
+			vec3 diskColor = mix(customColor, deepRed, colorShift);
+
+			vColor = diskColor * beaming * (gFactor + 0.15);
 			vAlpha = alpha;
 
-			// 4. 透鏡扭曲
 			if (lensingStrength > 0.01) {
 				float r = length(mvPosition.xy);
 				float rs = massScale * 12.0; 
@@ -325,9 +321,12 @@
 			}
 
 			gl_Position = projectionMatrix * mvPosition;
-			// 增大粒子在視界附近的視覺尺寸，增加「粘稠感」
-			float sizeBoost = 1.0 + (1.0 - gFactor) * 2.0;
-			gl_PointSize = size * sizeBoost * (0.3 + massScale * 0.4) * (900.0 / -mvPosition.z);
+			// 电脑端保持原样，手机端由于精度问题点会变小，这里做个补偿
+			#ifdef GL_ES
+			gl_PointSize = size * (1.1 + massScale * 0.1) * (900.0 / -mvPosition.z);
+			#else
+			gl_PointSize = size * (1.0 + massScale * 0.1) * (900.0 / -mvPosition.z);
+			#endif
 		}
 	</script>
 
@@ -418,12 +417,16 @@ function init() {
     camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 60, 200);
 
-    renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x000000);
-    container.appendChild(renderer.domElement);
-
+	renderer = new THREE.WebGLRenderer({ 
+		antialias: !/Android|iPhone|iPad/i.test(navigator.userAgent), // 电脑开启抗锯齿，手机关闭
+		powerPreference: "high-performance",
+		precision: "highp" // 默认高精度，Shader 内部会做手机兼容
+	});
+	const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+	renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.5) : window.devicePixelRatio);
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	container.appendChild(renderer.domElement);
+	
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
@@ -450,24 +453,17 @@ function createBlackHoleCore() {
     universeGroup.add(blackHole);
 }
 function createUnifiedSystem() {
-    const positions = [];
-    const colors = [];
-    const sizes = [];
-    const alphas = [];
-    const phases = [];      
-    const radii = [];        
-    const yOffsets = [];     
-    const speeds = [];       
-    const originalY = [];    
-    const targetAlpha = []; 
-    const randomSeed = [];  
-    const infallMod = [];    
+    const isMobile = /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    // 电脑端 30万，手机端 8万（手机真的跑不动30万，会崩溃）
+    const count = isMobile ? 80000 : 300000; 
+    
+    const positions = [], colors = [], sizes = [], alphas = [];
+    const phases = [], radii = [], yOffsets = [], speeds = [];
+    const originalY = [], targetAlpha = [], randomSeed = [], infallMod = [];
 
-    for (let i = 0; i < CONFIG.particleCount; i++) {
-        // 初始半径设为 5000 确保开场看不见，等待 animate 触发重生
+    for (let i = 0; i < count; i++) {
         const initR = 5000.0; 
         const angle = Math.random() * Math.PI * 2;
-        
         radii.push(initR);
         phases.push(angle);
         positions.push(0, 0, 0); 
@@ -475,7 +471,6 @@ function createUnifiedSystem() {
         sizes.push(Math.random() * 0.5 + 0.5); 
         alphas.push(0.0);
         targetAlpha.push(0.0); 
-
         const spread = (Math.random() - 0.5) * 2.0; 
         yOffsets.push(spread);
         originalY.push(spread);
@@ -490,7 +485,12 @@ function createUnifiedSystem() {
     geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
     geometry.setAttribute('alpha', new THREE.Float32BufferAttribute(alphas, 1));
 
-    geometry.userData = { phases, radii, yOffsets, speeds, originalY, targetAlpha, randomSeed, infallMod };
+    // 存入真正生成的数量
+    geometry.userData = { 
+        phases, radii, yOffsets, speeds, originalY, 
+        targetAlpha, randomSeed, infallMod, 
+        count: count 
+    };
 
     const material = new THREE.ShaderMaterial({
         uniforms: {
@@ -776,7 +776,8 @@ function animate() {
     const uData = system.geometry.userData;
 
     // --- 5. 核心粒子循环 ---
-    for (let i = 0; i < CONFIG.particleCount; i++) {
+	const currentCount = system.geometry.userData.count; 
+	for (let i = 0; i < currentCount; i++) {
         const i3 = i * 3;
         let r = uData.radii[i];
         let phase = uData.phases[i];
