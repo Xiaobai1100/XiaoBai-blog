@@ -428,7 +428,7 @@ const NavBar = () => {
               <div className="absolute left-1/2 -translate-x-1/2 top-full hidden group-hover:block min-w-[160px] pt-2">
                 <div className="bg-black/95 border border-white/10 backdrop-blur-xl flex flex-col p-1">
                   <Link to="/models/black-hole" className="px-4 py-3 text-[11px] text-white/40 hover:text-cyan-400 hover:bg-white/5 transition-all text-center">
-                    // Black_Hole
+                    Black_Hole
                   </Link>
                 </div>
               </div>
