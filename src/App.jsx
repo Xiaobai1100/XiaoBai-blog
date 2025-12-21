@@ -8,32 +8,43 @@ import { POSTS } from './config/posts';
 
 /**
  * =================================================================
- * 1. 核心组件：经典引力透镜版黑洞 (恢复视觉冲击力)
+ * 1. 核心组件：经典引力透镜版黑洞 
  * =================================================================
  */
+
 export const BlackHoleBackground = () => {
   const containerRef = useRef(null);
+  const pulseState = useRef({ factor: 0.0, active: false });
 
   useEffect(() => {
     if (!containerRef.current) return;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
-    camera.position.set(0, 50, 200);
+    
+    // 1. 动态计算初始半径：根据屏幕宽度决定吸积盘的大小
+    const getAdaptiveRadius = () => {
+      const width = window.innerWidth;
+      // 这里的逻辑是：宽度越大，分布越广，保证边缘始终在视野外
+      return Math.max(250, width / 4); 
+    };
 
-    const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance", alpha: true });
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 4000);
+    camera.position.set(0, 50, 250);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     containerRef.current.appendChild(renderer.domElement);
 
-    const CONFIG = {
-      particleCount: 100000, 
-      rs: 3.5, // 史瓦西半径
-      baseSpeed: 0.8,
-      colAccretion: new THREE.Color(0xffaa33)
-    };
+	const CONFIG = {
+	  particleCount: 140000, // 稍微增加到14万，视觉更饱满
+	  rs: 3.5, 
+	  baseSpeed: 0.8,
+	  diskInner: 15.0,
+	  diskOuter: Math.max(300, window.innerWidth / 3.5), 
+	};
 
-    // 奇异点（核心黑球）
+    // 奇异点
     const blackHole = new THREE.Mesh(
       new THREE.SphereGeometry(CONFIG.rs * 2.6, 64, 64),
       new THREE.MeshBasicMaterial({ color: 0x000000 })
@@ -43,78 +54,158 @@ export const BlackHoleBackground = () => {
     const geometry = new THREE.BufferGeometry();
     const pos = new Float32Array(CONFIG.particleCount * 3);
     const alphas = new Float32Array(CONFIG.particleCount);
-    const uData = { radii: new Float32Array(CONFIG.particleCount), phases: new Float32Array(CONFIG.particleCount), yOffsets: new Float32Array(CONFIG.particleCount) };
+    const uData = { 
+      radii: new Float32Array(CONFIG.particleCount), 
+      phases: new Float32Array(CONFIG.particleCount),
+      yOffsets: new Float32Array(CONFIG.particleCount),
+      randomSpeeds: new Float32Array(CONFIG.particleCount) 
+    };
 
+    // 填充粒子数据
     for (let i = 0; i < CONFIG.particleCount; i++) {
-      uData.radii[i] = 12.0 + Math.pow(Math.random(), 1.2) * 80.0;
+      uData.radii[i] = CONFIG.diskInner + Math.pow(Math.random(), 1.5) * CONFIG.diskOuter;
       uData.phases[i] = Math.random() * Math.PI * 2;
-      uData.yOffsets[i] = (Math.random() - 0.5) * (uData.radii[i] * 0.05);
-      alphas[i] = Math.random() * 0.6 + 0.2;
+      uData.yOffsets[i] = (Math.random() - 0.5) * (uData.radii[i] * 0.03);
+      uData.randomSpeeds[i] = 0.8 + Math.random() * 0.4;
+      alphas[i] = Math.random() * 0.5 + 0.1;
     }
 
     geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
 
-    const material = new THREE.ShaderMaterial({
-      uniforms: { rs: { value: CONFIG.rs } },
-      vertexShader: `
-        uniform float rs;
-        attribute float alpha;
-        varying float vAlpha;
-        varying vec3 vColor;
-        void main() {
-          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          
-          // --- 核心：老版本的强力弯曲逻辑 ---
-          float b = length(mvPosition.xy); 
-          float rsScreen = rs * 12.0; 
-          
-          // 这里的公式调整为：更激进的非线性偏移，产生明显的光子环
-          if (b > 0.1) {
-            float deflection = (3.0 * rsScreen / b) + pow(rsScreen / b, 4.0) * 15.0;
-            mvPosition.xy += normalize(mvPosition.xy) * deflection;
-          }
-          
-          gl_Position = projectionMatrix * mvPosition;
-          
-          // 根据距离调整点的大小
-          float r = length(position.xz);
-          gl_PointSize = (2.0 + 8.0/r) * (800.0 / -mvPosition.z);
-          
-          vAlpha = alpha;
-          // 颜色梯度：越靠近黑洞越偏向白热化，越远越偏向橙红
-          vColor = mix(vec3(1.0, 0.4, 0.1), vec3(1.0, 0.9, 0.6), 5.0/r);
-        }
-      `,
-      fragmentShader: `
-        varying float vAlpha;
-        varying vec3 vColor;
-        void main() {
-          float d = length(gl_PointCoord - 0.5);
-          if (d > 0.5) discard;
-          gl_FragColor = vec4(vColor, vAlpha * pow(1.0 - d*2.0, 2.0));
-        }
-      `,
-      blending: THREE.AdditiveBlending, depthWrite: false, transparent: true
-    });
+	const material = new THREE.ShaderMaterial({
+	  uniforms: { 
+		rs: { value: CONFIG.rs },
+		explosion: { value: 0.0 },
+		// 引入亮度增强系数
+		glowBoost: { value: window.devicePixelRatio > 1 ? 2.0 : 1.2 } 
+	  },
+	  vertexShader: `
+		uniform float rs;
+		uniform float explosion;
+		uniform float glowBoost;
+		attribute float alpha;
+		varying float vAlpha;
+		varying vec3 vColor;
+		
+		void main() {
+		  vec3 p = position;
+		  if (explosion > 0.0) {
+			p.xyz += normalize(p.xyz) * explosion * 200.0;
+		  }
+		  vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
+		  float b = length(mvPosition.xy); 
+		  float rsScreen = rs * 12.0; 
+		  
+		  if (b > 0.1) {
+			float deflection = (3.5 * rsScreen / b) + pow(rsScreen / b, 4.0) * 20.0;
+			mvPosition.xy += normalize(mvPosition.xy) * deflection;
+		  }
+		  
+		  gl_Position = projectionMatrix * mvPosition;
+		  
+		  // 【关键修改 1】：提升基础大小到 1.5，并乘以 glowBoost 适配高分屏
+		  float r = length(position.xz);
+		  float baseSize = (0.5 + 6.0 / r) * glowBoost;
+		  gl_PointSize = baseSize * (1200.0 / -mvPosition.z);
+		  
+		  vAlpha = alpha * (1.2 - explosion * 0.7); 
+		  
+		  // 【关键修改 2】：颜色对比度增强，内圈更白热化，整体更亮
+		  vec3 innerCol = vec3(1.0, 0.95, 0.8); // 白热色
+		  vec3 outerCol = vec3(1.0, 0.5, 0.1);  // 炽橙色
+		  vColor = mix(outerCol, innerCol, pow(10.0/r, 0.7));
+		}
+	  `,
+	  fragmentShader: `
+		varying float vAlpha;
+		varying vec3 vColor;
+		void main() {
+		  float d = length(gl_PointCoord - 0.5);
+		  if (d > 0.5) discard;
+		  
+		  // 【关键修改 3】：改用指数增强的径向渐变，让粒子中心极亮，边缘有柔和光晕
+		  float radial = pow(1.0 - d * 2.0, 1.5);
+		  // 增加一个核心亮度叠加
+		  float core = pow(1.0 - d * 2.0, 10.0) * 2.0;
+		  
+		  gl_FragColor = vec4(vColor, vAlpha * (radial + core));
+		}
+	  `,
+	  blending: THREE.AdditiveBlending,
+	  depthWrite: false,
+	  transparent: true
+	});
 
     const system = new THREE.Points(geometry, material);
     scene.add(system);
 
-    const clock = new THREE.Clock();
+    // --- 处理窗口缩放自适应 ---
+    const onWindowResize = () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      
+      // 当窗口变大时，我们可以通过 scale 来让粒子系统铺满，而不需要重算 12 万个粒子的半径（性能更好）
+      const newOuter = getAdaptiveRadius();
+      const scaleFactor = newOuter / CONFIG.diskOuter;
+      system.scale.set(scaleFactor, 1, scaleFactor);
+    };
+    window.addEventListener('resize', onWindowResize);
+
+    const handlePulse = () => { pulseState.current.active = true; };
+    window.addEventListener('singularity-pulse', handlePulse);
+
+	const clock = new THREE.Clock();
     let frameId;
-    const animate = () => {
+    
+    // 增加一个记录爆发停留时间的变量
+    let holdTimer = 0; 
+    let isHolding = false;
+	
+	const animate = () => {
       frameId = requestAnimationFrame(animate);
       const delta = clock.getDelta();
       const positions = geometry.attributes.position.array;
+      
+      // --- 改良版彩蛋动画：解离 -> 停留 -> 拉回 ---
+      if (pulseState.current.active) {
+        // 1. 解离过程 (向外飞散)
+        pulseState.current.factor += (1.0 - pulseState.current.factor) * 0.15; // 稍微调快了一点点，爆发感更强
+        
+        // 当飞散接近极限时，进入停留阶段
+        if (pulseState.current.factor > 0.96) {
+          pulseState.current.factor = 1.0;
+          pulseState.current.active = false; // 结束爆发阶段
+          isHolding = true;                  // 开启停留锁
+          holdTimer = 0;                     // 重置计时器
+        }
+      } else if (isHolding) {
+        // 2. 停留阶段 (停留 1 秒)
+        holdTimer += delta;
+        if (holdTimer >= 1.0) {              // 1.0 代表 1 秒，你可以根据需要调成 1.5 等
+          isHolding = false;                 // 结束停留，进入下一步的拉回
+        }
+      } else {
+        // 3. 拉回过程 (快速归位)
+        pulseState.current.factor *= 0.88;    // 稍微调大了一点阻尼，让收缩更有力量感
+      }
+
+      // 更新 Shader 中的解离变量
+      material.uniforms.explosion.value = pulseState.current.factor;
 
       for (let i = 0; i < CONFIG.particleCount; i++) {
-        // 经典的开普勒运动
-        uData.phases[i] += Math.sqrt(400.0 / Math.pow(uData.radii[i], 1.5)) * CONFIG.baseSpeed * delta;
-        positions[i*3] = Math.cos(uData.phases[i]) * uData.radii[i];
-        positions[i*3+1] = uData.yOffsets[i];
-        positions[i*3+2] = Math.sin(uData.phases[i]) * uData.radii[i];
+        const i3 = i * 3;
+        // 旋转速度逻辑：解离和停留时几乎静止，增加“时空冻结”的视觉感
+        const speedFactor = CONFIG.baseSpeed * (1.0 - Math.pow(pulseState.current.factor, 0.5) * 0.9);
+        
+        uData.phases[i] += Math.sqrt(400.0 / Math.pow(uData.radii[i], 1.5)) * speedFactor * delta * uData.randomSpeeds[i];
+        
+        positions[i3] = Math.cos(uData.phases[i]) * uData.radii[i];
+        positions[i3+1] = uData.yOffsets[i];
+        positions[i3+2] = Math.sin(uData.phases[i]) * uData.radii[i];
       }
+      
       geometry.attributes.position.needsUpdate = true;
       renderer.render(scene, camera);
     };
@@ -122,6 +213,8 @@ export const BlackHoleBackground = () => {
 
     return () => {
       cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', onWindowResize);
+      window.removeEventListener('singularity-pulse', handlePulse);
       renderer.dispose();
     };
   }, []);
@@ -252,6 +345,7 @@ const NavBar = () => {
   const [isGlowing, setIsGlowing] = useState(false);
   const location = useLocation();
 
+  // 路由变化时自动关闭移动端菜单
   useEffect(() => setIsMenuOpen(false), [location]);
 
   const triggerPulse = () => {
@@ -264,52 +358,80 @@ const NavBar = () => {
     <>
       <nav className="fixed top-0 left-0 w-full p-8 z-[100] text-white mix-blend-difference pointer-events-none">
         <div className="flex justify-between items-center max-w-7xl mx-auto">
-          <div className="flex items-center gap-4 cursor-pointer group pointer-events-auto select-none">
+          
+          {/* 左侧区域：Logo + 标题 */}
+          <div className="flex items-center gap-4 pointer-events-auto select-none">
+            {/* 1. Terminal 图标彩蛋 */}
             <div 
               onClick={triggerPulse}
-              className={`w-10 h-10 flex items-center justify-center border transition-all duration-300 
-                ${isGlowing ? 'bg-cyan-400 border-cyan-400 shadow-[0_0_50px_#22d3ee] scale-110' : 'border-white group-hover:bg-white group-hover:text-black'}
+              className={`w-10 h-10 flex items-center justify-center border transition-all duration-300 cursor-pointer
+                ${isGlowing ? 'bg-cyan-400 border-cyan-400 shadow-[0_0_50px_#22d3ee] scale-110' : 'border-white hover:bg-white hover:text-black'}
               `}
             >
               <Terminal size={20} className={isGlowing ? 'text-black' : ''} />
             </div>
             
-            {/* 针对手机端微调标题尺寸 */}
-            <div onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex flex-col">
+            {/* 2. 点击返回首页的标题 */}
+            <Link 
+              to="/" 
+              className="flex flex-col cursor-pointer hover:opacity-70 transition-opacity active:scale-95"
+            >
               <span className="text-lg md:text-xl font-bold tracking-widest leading-none uppercase">XiaoBai</span>
               <span className="text-[9px] md:text-[11px] tracking-[0.3em] opacity-60">SAMA</span>
-            </div>
+            </Link>
             
-            <div onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden ml-2 text-cyan-400">
+            {/* 移动端菜单开关 */}
+            <div onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden ml-2 text-cyan-400 cursor-pointer pointer-events-auto">
               {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </div>
           </div>
 
+          {/* 右侧区域：桌面端功能菜单 (恢复所有功能) */}
           <div className="hidden md:flex gap-12 text-sm font-mono tracking-widest items-center pointer-events-auto uppercase font-bold">
             <Link to="/" className="hover:text-cyan-400 transition-colors">Home</Link>
+            
+            {/* Models 下拉菜单 */}
             <div className="relative group h-full">
-              <button className="flex items-center gap-1 hover:text-cyan-400 transition-colors py-4">Models <ChevronDown size={14} /></button>
+              <button className="flex items-center gap-1 hover:text-cyan-400 transition-colors py-4">
+                Models <ChevronDown size={14} />
+              </button>
               <div className="absolute left-1/2 -translate-x-1/2 top-full hidden group-hover:block min-w-[200px] pt-0">
                 <div className="bg-black/95 border border-white/10 backdrop-blur-xl flex flex-col p-1 shadow-2xl">
-                  <Link to="/models/black-hole" className="px-4 py-4 text-white/70 hover:text-cyan-400 hover:bg-white/5 transition-all text-left">// Black_Hole</Link>
+                  <Link to="/models/black-hole" className="px-4 py-4 text-white/70 hover:text-cyan-400 hover:bg-white/5 transition-all text-left">
+                    // Black_Hole
+                  </Link>
                 </div>
               </div>
             </div>
+
             <Link to="/lab" className="hover:text-cyan-400 transition-colors">Lab</Link>
-            <a href="https://github.com/Xiaobai1100" target="_blank" rel="noreferrer" className="border border-white/20 px-6 py-2.5 hover:bg-white hover:text-black transition-all flex items-center gap-2">
+            
+            {/* 恢复 GitHub 真实链接 */}
+            <a 
+              href="https://github.com/Xiaobai1100" 
+              target="_blank" 
+              rel="noreferrer" 
+              className="border border-white/20 px-6 py-2.5 hover:bg-white hover:text-black transition-all flex items-center gap-2"
+            >
               <Github size={15} /> Github
             </a>
           </div>
         </div>
       </nav>
 
+      {/* 移动端抽屉菜单 (恢复所有功能) */}
       <div className={`fixed inset-0 z-[110] transition-opacity duration-500 md:hidden ${isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div onClick={() => setIsMenuOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-md" />
         <div className={`absolute top-0 left-0 w-[85%] max-w-[320px] h-full bg-black/80 backdrop-blur-2xl border-r border-white/10 transition-transform duration-500 ease-out flex flex-col p-12 pt-32 gap-10 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="text-[10px] tracking-[0.5em] text-white/40 uppercase mb-4 border-b border-white/10 pb-4 font-mono">Control_Center</div>
+          
           <Link to="/" className="text-xl font-bold tracking-[0.3em] text-white hover:text-cyan-400 uppercase">Home</Link>
+          
           <div className="flex flex-col gap-6">
-            <button onClick={() => setIsModelsSubMenuOpen(!isModelsSubMenuOpen)} className="text-xl font-bold tracking-[0.3em] flex items-center gap-3 text-white uppercase text-left">
+            <button 
+              onClick={() => setIsModelsSubMenuOpen(!isModelsSubMenuOpen)} 
+              className="text-xl font-bold tracking-[0.3em] flex items-center gap-3 text-white uppercase text-left"
+            >
               Models <ChevronDown size={18} className={isModelsSubMenuOpen ? 'rotate-180' : ''} />
             </button>
             {isModelsSubMenuOpen && (
@@ -318,10 +440,62 @@ const NavBar = () => {
               </div>
             )}
           </div>
+          
           <Link to="/lab" className="text-xl font-bold tracking-[0.3em] text-white hover:text-cyan-400 uppercase">Lab</Link>
+          <a href="https://github.com/Xiaobai1100" target="_blank" className="text-xl font-bold tracking-[0.3em] text-white hover:text-cyan-400 uppercase">Github</a>
         </div>
       </div>
     </>
+  );
+};
+
+/**
+ * =================================================================
+ * 5. 页面组件：404 Signal_Lost (时空崩溃界面)
+ * =================================================================
+ */
+
+const NotFound = () => {
+  return (
+    <div className="relative w-full h-screen bg-black overflow-hidden flex items-center justify-center text-white font-mono">
+      {/* 背景：黑白去色，高对比度，轻微模糊 */}
+      <div className="absolute inset-0 z-0 opacity-40 grayscale-[100%] contrast-[150%] brightness-[70%] blur-[3px]">
+        <BlackHoleBackground />
+      </div>
+
+      {/* 故障装饰：噪点与扫描线 */}
+      <div className="absolute inset-0 z-10 pointer-events-none opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+      <div className="absolute inset-0 z-10 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.3)_50%)] bg-[length:100%_4px]"></div>
+
+      <div className="relative z-20 text-center px-6">
+        <div className="inline-block border border-white/20 bg-white/5 px-4 py-1 mb-10 rounded-sm">
+          <span className="text-white/40 text-[9px] tracking-[0.4em] uppercase">
+            Signal_Interrupted // 404
+          </span>
+        </div>
+        
+        <h1 className="text-6xl md:text-8xl font-light mb-8 tracking-[0.2em] uppercase text-white/90">
+          Void<span className="opacity-20">Space</span>
+        </h1>
+        
+        <div className="max-w-md mx-auto space-y-2 font-mono text-[10px] tracking-[0.2em] uppercase text-white/30 mb-12">
+          <p>Target_Coordinates: Beyond_Observation</p>
+          <p>Transmission_Status: Null_Response</p>
+        </div>
+
+        <Link 
+          to="/" 
+          className="inline-flex items-center gap-3 border border-white/20 px-10 py-4 text-white/80 font-bold tracking-[0.2em] hover:bg-white hover:text-black transition-all uppercase active:scale-95"
+        >
+          Reset_Connection <ArrowRight size={18} />
+        </Link>
+      </div>
+
+      <div className="absolute bottom-8 w-full flex justify-between px-10 text-[8px] tracking-[0.5em] text-white/10 uppercase">
+        <span>Sector: Unknown</span>
+        <span>Reality_Sync: Failed</span>
+      </div>
+    </div>
   );
 };
 
@@ -335,9 +509,9 @@ const App = () => (
       {POSTS.map(post => (
         <Route key={post.id} path={`/logs/${post.id}`} element={<post.component />} />
       ))}
-      
-      <Route path="*" element={<div className="h-screen bg-black text-white flex ...">404: Signal_Lost</div>} />
-    </Routes>
+      // App.jsx 底部
+      <Route path="*" element={<NotFound />} />
+	</Routes>
   </Router>
 );
 export default App;
