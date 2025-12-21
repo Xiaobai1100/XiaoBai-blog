@@ -96,57 +96,56 @@ export const BlackHoleBackground = () => {
     geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
 
-    const material = new THREE.ShaderMaterial({
-      uniforms: { 
-        rs: { value: CONFIG.rs },
-        explosion: { value: 0.0 },
-        glowBoost: { value: window.devicePixelRatio > 1 ? 2.0 : 1.2 } 
-      },
-      vertexShader: `
-        uniform float rs;
-        uniform float explosion;
-        uniform float glowBoost;
-        attribute float alpha;
-        varying float vAlpha;
-        varying vec3 vColor;
-        void main() {
-          vec3 p = position;
-          if (explosion > 0.0) {
-            p.xyz += normalize(p.xyz) * explosion * 220.0;
-          }
-          vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
-          float b = length(mvPosition.xy); 
-          float rsScreen = rs * 12.0; 
-          
-          if (b > 0.1) {
-            float deflection = (3.5 * rsScreen / b) + pow(rsScreen / b, 4.0) * 20.0;
-            mvPosition.xy += normalize(mvPosition.xy) * deflection;
-          }
-          
-          gl_Position = projectionMatrix * mvPosition;
-          
-          float r = length(position.xz);
-          // 粒子尺寸：基础 1.0 + 距离补偿
-          float baseSize = (1.0 + 6.0 / r) * glowBoost;
-          gl_PointSize = baseSize * (1200.0 / -mvPosition.z);
-          
-          vAlpha = alpha * (1.2 - explosion * 0.7); 
-          vColor = mix(vec3(1.0, 0.5, 0.1), vec3(1.0, 0.95, 0.8), pow(10.0/r, 0.7));
-        }
-      `,
-      fragmentShader: `
-        varying float vAlpha;
-        varying vec3 vColor;
-        void main() {
-          float d = length(gl_PointCoord - 0.5);
-          if (d > 0.5) discard;
-          float radial = pow(1.0 - d * 2.0, 1.5);
-          float core = pow(1.0 - d * 2.0, 10.0) * 2.0;
-          gl_FragColor = vec4(vColor, vAlpha * (radial + core));
-        }
-      `,
-      blending: THREE.AdditiveBlending, depthWrite: false, transparent: true
-    });
+	const material = new THREE.ShaderMaterial({
+	  uniforms: { 
+		rs: { value: CONFIG.rs },
+		explosion: { value: 0.0 },
+		glowBoost: { value: isMobile ? 0.5 : (window.devicePixelRatio > 1 ? 1.8 : 1.2) } 
+	  },
+	  vertexShader: `
+		uniform float rs;
+		uniform float explosion;
+		uniform float glowBoost;
+		attribute float alpha;
+		varying float vAlpha;
+		varying vec3 vColor;
+		void main() {
+		  vec3 p = position;
+		  if (explosion > 0.0) {
+			p.xyz += normalize(p.xyz) * explosion * 220.0;
+		  }
+		  vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
+		  float b = length(mvPosition.xy); 
+		  float rsScreen = rs * 12.0; 
+		  
+		  if (b > 0.1) {
+			float deflection = (3.5 * rsScreen / b) + pow(rsScreen / b, 4.0) * 20.0;
+			mvPosition.xy += normalize(mvPosition.xy) * deflection;
+		  }
+		  
+		  gl_Position = projectionMatrix * mvPosition;
+		  
+		  float r = length(position.xz);
+		  float baseSize = (0.5 + 3.0 / r) * glowBoost;
+		  gl_PointSize = baseSize * (1000.0 / -mvPosition.z);
+		  
+		  vAlpha = alpha * (1.2 - explosion * 0.7); 
+		  vColor = mix(vec3(1.0, 0.5, 0.1), vec3(1.0, 0.95, 0.8), pow(10.0/r, 0.7));
+		}
+	  `,
+	  fragmentShader: `
+		varying float vAlpha;
+		varying vec3 vColor;
+		void main() {
+		  float d = length(gl_PointCoord - 0.5);
+		  if (d > 0.5) discard;
+		  float radial = pow(1.0 - d * 2.0, 1.5);
+		  float core = pow(1.0 - d * 2.0, 10.0) * 2.0;
+		  gl_FragColor = vec4(vColor, vAlpha * (radial + core));
+		}
+	  `,
+	  blending: THREE.AdditiveBlending, depthWrite: false, transparent: true
+	});
 
     const system = new THREE.Points(geometry, material);
     scene.add(system);
