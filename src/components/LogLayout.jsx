@@ -101,7 +101,7 @@ const LogLayout = ({ title, category, date, children, isError = false }) => {
                   ${isVoid ? 'border-white/10 group-hover:border-white' : 'border-cyan-500/30 group-hover:border-white group-hover:bg-white/10'}`}>
                   <ArrowRight className="rotate-180" size={14} />
                 </div>
-                {isVoid ? 'Reset_Connection' : 'Return_to_Archive'}
+                {isVoid ? 'Reset_Connection' : 'Return'}
               </Link>
             </footer>
 
