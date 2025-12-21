@@ -8,128 +8,109 @@ import { POSTS } from './config/posts';
 
 /**
  * =================================================================
- * 1. 核心组件：Einstein Lensing Edition (性能优化版)
+ * 1. 核心组件：经典引力透镜版黑洞 (恢复视觉冲击力)
  * =================================================================
  */
 export const BlackHoleBackground = () => {
   const containerRef = useRef(null);
-  const stateRef = useRef({ mass: 1.0, simSpeed: 1.0, gyro: { x: 0, y: 0 } });
 
   useEffect(() => {
     if (!containerRef.current) return;
 
     const scene = new THREE.Scene();
-    const universeGroup = new THREE.Group();
-    scene.add(universeGroup);
-
     const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
-    camera.position.set(0, 60, 220);
+    camera.position.set(0, 50, 200);
 
-    const renderer = new THREE.WebGLRenderer({ 
-      antialias: false, 
-      powerPreference: "high-performance", 
-      alpha: true 
-    });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // 限制像素比以提升性能
+    const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance", alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     containerRef.current.appendChild(renderer.domElement);
 
     const CONFIG = {
-      particleCount: 60000, // 降低粒子数至6万，保证绝对流畅
-      rs: 2.0,
-      baseSpeed: 0.6,
+      particleCount: 100000, 
+      rs: 3.5, // 史瓦西半径
+      baseSpeed: 0.8,
       colAccretion: new THREE.Color(0xffaa33)
     };
 
+    // 奇异点（核心黑球）
     const blackHole = new THREE.Mesh(
-      new THREE.SphereGeometry(1.9, 64, 64),
+      new THREE.SphereGeometry(CONFIG.rs * 2.6, 64, 64),
       new THREE.MeshBasicMaterial({ color: 0x000000 })
     );
-    universeGroup.add(blackHole);
+    scene.add(blackHole);
 
     const geometry = new THREE.BufferGeometry();
     const pos = new Float32Array(CONFIG.particleCount * 3);
     const alphas = new Float32Array(CONFIG.particleCount);
-    const colors = new Float32Array(CONFIG.particleCount * 3);
     const uData = { radii: new Float32Array(CONFIG.particleCount), phases: new Float32Array(CONFIG.particleCount), yOffsets: new Float32Array(CONFIG.particleCount) };
 
     for (let i = 0; i < CONFIG.particleCount; i++) {
-      uData.radii[i] = 10.0 + Math.random() * 90.0;
+      uData.radii[i] = 12.0 + Math.pow(Math.random(), 1.2) * 80.0;
       uData.phases[i] = Math.random() * Math.PI * 2;
-      uData.yOffsets[i] = (Math.random() - 0.5) * (uData.radii[i] * 0.04);
-      alphas[i] = Math.random() * 0.5 + 0.2;
-      
-      colors[i*3] = CONFIG.colAccretion.r;
-      colors[i*3+1] = CONFIG.colAccretion.g;
-      colors[i*3+2] = CONFIG.colAccretion.b;
+      uData.yOffsets[i] = (Math.random() - 0.5) * (uData.radii[i] * 0.05);
+      alphas[i] = Math.random() * 0.6 + 0.2;
     }
 
     geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
-    geometry.setAttribute('customColor', new THREE.BufferAttribute(colors, 3));
 
     const material = new THREE.ShaderMaterial({
-      uniforms: { massScale: { value: 1.0 }, lensingStrength: { value: 1.0 } },
+      uniforms: { rs: { value: CONFIG.rs } },
       vertexShader: `
-        uniform float massScale;
-        uniform float lensingStrength;
+        uniform float rs;
         attribute float alpha;
-        attribute vec3 customColor;
-        varying vec3 vColor;
         varying float vAlpha;
+        varying vec3 vColor;
         void main() {
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          float rPhys = length(position.xyz);
           
-          // 相对论红移：靠近中心变暗、变红
-          float rsPhys = massScale * 3.0;
-          float gShift = sqrt(clamp(1.0 - rsPhys / (rPhys + 0.1), 0.0, 1.0));
+          // --- 核心：老版本的强力弯曲逻辑 ---
+          float b = length(mvPosition.xy); 
+          float rsScreen = rs * 12.0; 
           
-          // 多普勒效应：模拟吸积盘一侧亮一侧暗
-          vec3 velDir = normalize(vec3(-position.z, 0.0, position.x));
-          vec3 velView = normalize(normalMatrix * velDir);
-          float beaming = pow(1.0 + 0.5 * dot(velView, normalize(-mvPosition.xyz)), 2.0);
+          // 这里的公式调整为：更激进的非线性偏移，产生明显的光子环
+          if (b > 0.1) {
+            float deflection = (3.0 * rsScreen / b) + pow(rsScreen / b, 4.0) * 15.0;
+            mvPosition.xy += normalize(mvPosition.xy) * deflection;
+          }
           
-          vColor = customColor * beaming * (gShift + 0.1);
-          vAlpha = alpha;
-
-          // --- 核心：爱因斯坦光线偏转模拟 ---
-          float rScreen = length(mvPosition.xy);
-          float rsScreen = massScale * 15.0; // 放大透镜范围
-          float b = max(rScreen, 0.1);
-          // 二次项模拟光子环
-          float deflection = (2.5 * rsScreen / b) + (10.0 * rsScreen * rsScreen / (b * b));
-          mvPosition.xy += normalize(mvPosition.xy) * deflection * lensingStrength;
-
           gl_Position = projectionMatrix * mvPosition;
-          gl_PointSize = (2.0 + (10.0 / rPhys)) * (800.0 / -mvPosition.z);
+          
+          // 根据距离调整点的大小
+          float r = length(position.xz);
+          gl_PointSize = (2.0 + 8.0/r) * (800.0 / -mvPosition.z);
+          
+          vAlpha = alpha;
+          // 颜色梯度：越靠近黑洞越偏向白热化，越远越偏向橙红
+          vColor = mix(vec3(1.0, 0.4, 0.1), vec3(1.0, 0.9, 0.6), 5.0/r);
         }
       `,
       fragmentShader: `
-        varying vec3 vColor;
         varying float vAlpha;
+        varying vec3 vColor;
         void main() {
-          float dist = length(gl_PointCoord - 0.5);
-          if (dist > 0.5) discard;
-          gl_FragColor = vec4(vColor, vAlpha * pow(1.0 - dist * 2.0, 2.0));
+          float d = length(gl_PointCoord - 0.5);
+          if (d > 0.5) discard;
+          gl_FragColor = vec4(vColor, vAlpha * pow(1.0 - d*2.0, 2.0));
         }
       `,
       blending: THREE.AdditiveBlending, depthWrite: false, transparent: true
     });
 
     const system = new THREE.Points(geometry, material);
-    universeGroup.add(system);
+    scene.add(system);
 
     const clock = new THREE.Clock();
     let frameId;
     const animate = () => {
       frameId = requestAnimationFrame(animate);
-      const delta = clock.getDelta() * stateRef.current.simSpeed;
+      const delta = clock.getDelta();
       const positions = geometry.attributes.position.array;
 
       for (let i = 0; i < CONFIG.particleCount; i++) {
-        // 开普勒运动：内圈快外圈慢
-        uData.phases[i] += Math.sqrt(300.0 / Math.pow(uData.radii[i], 1.5)) * CONFIG.baseSpeed * delta;
+        // 经典的开普勒运动
+        uData.phases[i] += Math.sqrt(400.0 / Math.pow(uData.radii[i], 1.5)) * CONFIG.baseSpeed * delta;
         positions[i*3] = Math.cos(uData.phases[i]) * uData.radii[i];
         positions[i*3+1] = uData.yOffsets[i];
         positions[i*3+2] = Math.sin(uData.phases[i]) * uData.radii[i];
@@ -147,6 +128,7 @@ export const BlackHoleBackground = () => {
 
   return <div ref={containerRef} className="absolute inset-0 bg-black z-0" />;
 };
+
 /**
  * =================================================================
  * 2. 页面组件：Home 首页
