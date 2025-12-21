@@ -8,7 +8,7 @@ import { POSTS } from './config/posts';
 
 /**
  * =================================================================
- * 1. 核心组件：BlackHoleBackground v2.0 (物理复刻 Gargantua)
+ * 1. 核心组件：Einstein Lensing Edition (性能优化版)
  * =================================================================
  */
 export const BlackHoleBackground = () => {
@@ -19,105 +19,134 @@ export const BlackHoleBackground = () => {
     if (!containerRef.current) return;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 2000);
-    camera.position.set(0, 40, 180); // 调整视角，稍微俯视更能看清环
+    const universeGroup = new THREE.Group();
+    scene.add(universeGroup);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera.position.set(0, 60, 220);
+
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: false, 
+      powerPreference: "high-performance", 
+      alpha: true 
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // 限制像素比以提升性能
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     containerRef.current.appendChild(renderer.domElement);
 
     const CONFIG = {
-      particleCount: 120000,
-      rs: 3.0,          // 史瓦西半径
-      diskInner: 9.0,   // 吸积盘内径 (3 * rs)
-      diskOuter: 100.0,
+      particleCount: 60000, // 降低粒子数至6万，保证绝对流畅
+      rs: 2.0,
+      baseSpeed: 0.6,
+      colAccretion: new THREE.Color(0xffaa33)
     };
+
+    const blackHole = new THREE.Mesh(
+      new THREE.SphereGeometry(1.9, 64, 64),
+      new THREE.MeshBasicMaterial({ color: 0x000000 })
+    );
+    universeGroup.add(blackHole);
 
     const geometry = new THREE.BufferGeometry();
     const pos = new Float32Array(CONFIG.particleCount * 3);
-    const uData = { radii: new Float32Array(CONFIG.particleCount), phases: new Float32Array(CONFIG.particleCount) };
+    const alphas = new Float32Array(CONFIG.particleCount);
+    const colors = new Float32Array(CONFIG.particleCount * 3);
+    const uData = { radii: new Float32Array(CONFIG.particleCount), phases: new Float32Array(CONFIG.particleCount), yOffsets: new Float32Array(CONFIG.particleCount) };
 
     for (let i = 0; i < CONFIG.particleCount; i++) {
-      uData.radii[i] = CONFIG.diskInner + Math.pow(Math.random(), 1.5) * (CONFIG.diskOuter - CONFIG.diskInner);
+      uData.radii[i] = 10.0 + Math.random() * 90.0;
       uData.phases[i] = Math.random() * Math.PI * 2;
-      pos[i*3] = Math.cos(uData.phases[i]) * uData.radii[i];
-      pos[i*3+1] = (Math.random() - 0.5) * 0.5; // 吸积盘非常薄
-      pos[i*3+2] = Math.sin(uData.phases[i]) * uData.radii[i];
+      uData.yOffsets[i] = (Math.random() - 0.5) * (uData.radii[i] * 0.04);
+      alphas[i] = Math.random() * 0.5 + 0.2;
+      
+      colors[i*3] = CONFIG.colAccretion.r;
+      colors[i*3+1] = CONFIG.colAccretion.g;
+      colors[i*3+2] = CONFIG.colAccretion.b;
     }
+
     geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
+    geometry.setAttribute('customColor', new THREE.BufferAttribute(colors, 3));
 
     const material = new THREE.ShaderMaterial({
-      uniforms: { time: { value: 0 }, rs: { value: CONFIG.rs } },
+      uniforms: { massScale: { value: 1.0 }, lensingStrength: { value: 1.0 } },
       vertexShader: `
-        uniform float rs;
-        varying float vOpacity;
+        uniform float massScale;
+        uniform float lensingStrength;
+        attribute float alpha;
+        attribute vec3 customColor;
+        varying vec3 vColor;
+        varying float vAlpha;
         void main() {
-            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            float r = length(position.xz);
-            
-            // --- 引力透镜核心逻辑 ---
-            // b 是光线通过的冲击参数，这里简化模拟
-            float b = length(mvPosition.xy); 
-            float rsScreen = rs * 10.0; // 屏幕空间的投影半径
-            
-            // 爱因斯坦环偏转公式简化：越接近 rsScreen，偏移越大
-            // 产生环绕黑洞的“二次成像”效果
-            if (b > 0.1) {
-                float deflection = (2.0 * rsScreen / b) + pow(rsScreen / b, 3.0) * 20.0;
-                mvPosition.xy += normalize(mvPosition.xy) * deflection;
-            }
-            
-            gl_Position = projectionMatrix * mvPosition;
-            gl_PointSize = (r < 15.0 ? 2.5 : 1.5) * (800.0 / -mvPosition.z);
-            
-            // 多普勒效应模拟：左侧亮，右侧暗 (假设逆时针旋转)
-            float doppler = dot(normalize(vec3(-position.z, 0.0, position.x)), vec3(1,0,0));
-            vOpacity = clamp(0.3 + doppler * 0.5, 0.1, 1.0);
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          float rPhys = length(position.xyz);
+          
+          // 相对论红移：靠近中心变暗、变红
+          float rsPhys = massScale * 3.0;
+          float gShift = sqrt(clamp(1.0 - rsPhys / (rPhys + 0.1), 0.0, 1.0));
+          
+          // 多普勒效应：模拟吸积盘一侧亮一侧暗
+          vec3 velDir = normalize(vec3(-position.z, 0.0, position.x));
+          vec3 velView = normalize(normalMatrix * velDir);
+          float beaming = pow(1.0 + 0.5 * dot(velView, normalize(-mvPosition.xyz)), 2.0);
+          
+          vColor = customColor * beaming * (gShift + 0.1);
+          vAlpha = alpha;
+
+          // --- 核心：爱因斯坦光线偏转模拟 ---
+          float rScreen = length(mvPosition.xy);
+          float rsScreen = massScale * 15.0; // 放大透镜范围
+          float b = max(rScreen, 0.1);
+          // 二次项模拟光子环
+          float deflection = (2.5 * rsScreen / b) + (10.0 * rsScreen * rsScreen / (b * b));
+          mvPosition.xy += normalize(mvPosition.xy) * deflection * lensingStrength;
+
+          gl_Position = projectionMatrix * mvPosition;
+          gl_PointSize = (2.0 + (10.0 / rPhys)) * (800.0 / -mvPosition.z);
         }
       `,
       fragmentShader: `
-        varying float vOpacity;
+        varying vec3 vColor;
+        varying float vAlpha;
         void main() {
-            float d = length(gl_PointCoord - 0.5);
-            if (d > 0.5) discard;
-            // 边缘羽化，模拟热辐射粒子
-            gl_FragColor = vec4(1.0, 0.7, 0.3, vOpacity * pow(1.0 - d*2.0, 2.0));
+          float dist = length(gl_PointCoord - 0.5);
+          if (dist > 0.5) discard;
+          gl_FragColor = vec4(vColor, vAlpha * pow(1.0 - dist * 2.0, 2.0));
         }
       `,
-      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
+      blending: THREE.AdditiveBlending, depthWrite: false, transparent: true
     });
 
     const system = new THREE.Points(geometry, material);
-    scene.add(system);
-
-    // 核心黑体
-    const singulairty = new THREE.Mesh(
-      new THREE.SphereGeometry(CONFIG.rs * 2.8, 32, 32), 
-      new THREE.MeshBasicMaterial({ color: 0x000000 })
-    );
-    scene.add(singulairty);
+    universeGroup.add(system);
 
     const clock = new THREE.Clock();
+    let frameId;
     const animate = () => {
-      const delta = clock.getDelta();
+      frameId = requestAnimationFrame(animate);
+      const delta = clock.getDelta() * stateRef.current.simSpeed;
       const positions = geometry.attributes.position.array;
+
       for (let i = 0; i < CONFIG.particleCount; i++) {
-        // 物理轨道速度：越近越快
-        uData.phases[i] += Math.sqrt(200.0 / Math.pow(uData.radii[i], 1.5)) * delta;
+        // 开普勒运动：内圈快外圈慢
+        uData.phases[i] += Math.sqrt(300.0 / Math.pow(uData.radii[i], 1.5)) * CONFIG.baseSpeed * delta;
         positions[i*3] = Math.cos(uData.phases[i]) * uData.radii[i];
+        positions[i*3+1] = uData.yOffsets[i];
         positions[i*3+2] = Math.sin(uData.phases[i]) * uData.radii[i];
       }
       geometry.attributes.position.needsUpdate = true;
       renderer.render(scene, camera);
-      requestAnimationFrame(animate);
     };
     animate();
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      renderer.dispose();
+    };
   }, []);
 
   return <div ref={containerRef} className="absolute inset-0 bg-black z-0" />;
 };
-
 /**
  * =================================================================
  * 2. 页面组件：Home 首页
