@@ -392,41 +392,42 @@ const NavBar = () => {
       >
         <div className="flex justify-between items-center max-w-7xl mx-auto font-mono uppercase">
           
-          {/* 左侧：Logo & Title */}
+          {/* 左侧：Logo & Title (略大一号) */}
           <div className="flex items-center gap-4 pointer-events-auto select-none">
             <div 
               onClick={triggerPulse}
-              className={`w-9 h-9 flex items-center justify-center border transition-all duration-300 cursor-pointer
-                ${isGlowing ? 'bg-cyan-400 border-cyan-400 shadow-[0_0_30px_#22d3ee]' : 'border-white/50 hover:border-white hover:bg-white hover:text-black'}
+              className={`w-10 h-10 flex items-center justify-center border transition-all duration-300 cursor-pointer
+                ${isGlowing ? 'bg-cyan-400 border-cyan-400 shadow-[0_0_30px_#22d3ee]' : 'border-white hover:bg-white hover:text-black'}
               `}
             >
-              <Terminal size={18} className={isGlowing ? 'text-black' : ''} />
+              <Terminal size={20} className={isGlowing ? 'text-black' : ''} />
             </div>
             
             <Link to="/" className="flex flex-col group active:scale-95 transition-transform">
-              <span className="text-sm md:text-base tracking-[0.2em] leading-none font-black">XiaoBai</span>
-              <span className="text-[8px] tracking-[0.3em] opacity-40">SAMA</span>
+              {/* 这里是 text-xl (20px)，比右侧大 */}
+              <span className="text-xl md:text-2xl tracking-[0.2em] leading-none font-black">XiaoBai</span>
+              <span className="text-[10px] tracking-[0.3em] opacity-40">SAMA</span>
             </Link>
             
             <div 
               onClick={() => setIsMenuOpen(!isMenuOpen)} 
-              className="md:hidden ml-1 text-white/70 cursor-pointer pointer-events-auto p-2"
+              className="md:hidden ml-1 text-white cursor-pointer pointer-events-auto p-2"
             >
-              {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </div>
           </div>
 
-          {/* 右侧：桌面端菜单 (精致小字号) */}
-          <div className="hidden md:flex gap-10 items-center pointer-events-auto text-[13px] tracking-[0.3em] font-medium">
+          {/* 右侧：桌面端菜单 (标准精致字号，比标题小一号) */}
+          <div className="hidden md:flex gap-10 items-center pointer-events-auto text-sm tracking-[0.3em] font-bold">
             <Link to="/" className="hover:text-cyan-400 transition-colors">Home</Link>
             
             <div className="relative group">
               <button className="flex items-center gap-1 hover:text-cyan-400 transition-colors py-4">
-                Models <ChevronDown size={12} />
+                Models <ChevronDown size={14} />
               </button>
               <div className="absolute left-1/2 -translate-x-1/2 top-full hidden group-hover:block min-w-[160px] pt-2">
                 <div className="bg-black/95 border border-white/10 backdrop-blur-xl flex flex-col p-1">
-                  <Link to="/models/black-hole" className="px-4 py-3 text-[11px] text-white/40 hover:text-cyan-400 hover:bg-white/5 transition-all">
+                  <Link to="/models/black-hole" className="px-4 py-3 text-[11px] text-white/40 hover:text-cyan-400 hover:bg-white/5 transition-all text-center">
                     // Black_Hole
                   </Link>
                 </div>
@@ -439,39 +440,39 @@ const NavBar = () => {
               href="https://github.com/Xiaobai1100" 
               target="_blank" 
               rel="noreferrer" 
-              className="border border-white/20 px-5 py-1.5 hover:bg-white hover:text-black transition-all flex items-center gap-2"
+              className="border border-white/30 px-5 py-1.5 hover:bg-white hover:text-black transition-all flex items-center gap-2"
             >
-              <Github size={14} /> Github
+              <Github size={16} /> Github
             </a>
           </div>
         </div>
       </nav>
 
-      {/* 移动端抽屉 (极致缩小) */}
+      {/* 移动端抽屉 (保持精致缩小版) */}
       <div className={`fixed inset-0 z-[110] transition-opacity duration-500 md:hidden ${isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div onClick={() => setIsMenuOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
         
-        <div className={`absolute top-0 left-0 w-[70%] max-w-[260px] h-full bg-black/90 backdrop-blur-2xl border-r border-white/5 transition-transform duration-500 ease-out flex flex-col p-8 pt-24 gap-6 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className={`absolute top-0 left-0 w-[70%] max-w-[260px] h-full bg-black/95 backdrop-blur-2xl border-r border-white/5 transition-transform duration-500 ease-out flex flex-col p-8 pt-24 gap-6 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="text-[8px] tracking-[0.4em] text-white/20 uppercase mb-2 border-b border-white/5 pb-3 font-mono">Navigation</div>
           
-          <Link to="/" className="text-sm tracking-[0.2em] text-white/80 uppercase">Home</Link>
+          <Link to="/" className="text-sm tracking-[0.2em] text-white uppercase font-black">Home</Link>
           
           <div className="flex flex-col gap-4">
             <button 
               onClick={() => setIsModelsSubMenuOpen(!isModelsSubMenuOpen)} 
-              className="text-sm tracking-[0.2em] flex items-center gap-2 text-white/80 uppercase text-left"
+              className="text-sm tracking-[0.2em] flex items-center gap-2 text-white uppercase text-left font-black"
             >
-              Models <ChevronDown size={14} className={isModelsSubMenuOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
+              Models <ChevronDown size={14} className={isModelsSubMenuOpen ? 'rotate-180' : ''} />
             </button>
             {isModelsSubMenuOpen && (
               <div className="flex flex-col gap-4 pl-4 border-l border-white/10 py-1">
-                <Link to="/models/black-hole" className="text-[11px] tracking-[0.2em] text-cyan-400/70 uppercase">/ Black_Hole</Link>
+                <Link to="/models/black-hole" className="text-[11px] tracking-[0.2em] text-cyan-400/80 uppercase">/ Black_Hole</Link>
               </div>
             )}
           </div>
           
-          <Link to="/lab" className="text-sm tracking-[0.2em] text-white/80 uppercase">Lab</Link>
-          <a href="https://github.com/Xiaobai1100" target="_blank" className="text-sm tracking-[0.2em] text-white/80 uppercase">Github</a>
+          <Link to="/lab" className="text-sm tracking-[0.2em] text-white uppercase font-black">Lab</Link>
+          <a href="https://github.com/Xiaobai1100" target="_blank" className="text-sm tracking-[0.2em] text-white uppercase font-black">Github</a>
         </div>
       </div>
     </>
