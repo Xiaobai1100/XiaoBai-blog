@@ -197,17 +197,18 @@ const Home = () => {
     return () => window.removeEventListener('singularity-pulse', onPulse);
   }, []);
 
-  const ArticleCard = ({ title, category, date }) => (
-    <div className="group relative bg-white/5 border border-white/10 p-8 hover:border-cyan-500/50 hover:bg-white/10 transition-all duration-300 cursor-pointer overflow-hidden backdrop-blur-md">
-      <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 text-cyan-500"><Zap size={20} /></div>
-      <div className="text-cyan-500/80 text-[10px] font-mono tracking-widest mb-3 uppercase">{category}</div>
-      <h3 className="text-2xl font-bold text-white mb-4 leading-tight group-hover:text-cyan-100 transition-colors uppercase">{title}</h3>
-      <div className="text-white/40 text-xs font-mono flex items-center gap-2">
-        <span>{date}</span><span className="w-4 h-[1px] bg-white/20" /><span>READ_LOG</span>
-      </div>
-    </div>
-  );
-
+	// 找到 Home 组件内部的 ArticleCard 定义并修改
+	const ArticleCard = ({ title, category, date }) => (
+	  <div className="group relative bg-white/5 border border-white/10 p-8 hover:border-cyan-500/50 hover:bg-white/10 transition-all duration-300 cursor-pointer overflow-hidden backdrop-blur-md pointer-events-auto">
+		<div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 text-cyan-500"><Zap size={20} /></div>
+		<div className="text-cyan-500/80 text-[10px] font-mono tracking-widest mb-3 uppercase">{category}</div>
+		<h3 className="text-2xl font-bold text-white mb-4 leading-tight group-hover:text-cyan-100 transition-colors uppercase">{title}</h3>
+		<div className="text-white/40 text-xs font-mono flex items-center gap-2">
+		  <span>{date}</span><span className="w-4 h-[1px] bg-white/20" /><span>READ_LOG</span>
+		</div>
+	  </div>
+	);
+	
   return (
     <div className="relative w-full min-h-screen bg-black overflow-x-hidden text-white">
       <style>{`
@@ -252,17 +253,19 @@ const Home = () => {
         </div>
       </main>
       
-      <section className="relative z-10 bg-black/30 backdrop-blur-xl py-32 px-6 border-t border-white/5">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-bold tracking-tighter uppercase opacity-60 mb-16">Logs</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <ArticleCard title="The visualization of black hole" category="Simulation" date="DEC 20" />
-            <Link to="/logs/about-blog" className="pointer-events-auto">
-			  <ArticleCard title="About this blog" category="WebGL" date="DEC 21" />
-			</Link>
-          </div>
-        </div>
-      </section>
+		<section className="relative z-10 bg-black/30 backdrop-blur-xl py-32 px-6 border-t border-white/5">
+		  <div className="max-w-7xl mx-auto">
+			<h2 className="text-4xl font-bold tracking-tighter uppercase opacity-60 mb-16">Logs</h2>
+			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+			  <ArticleCard title="The visualization of black hole" category="Simulation" date="DEC 20" />
+			  
+			  {/* 使用 block 让 Link 变成块级元素，包裹住整个卡片 */}
+			  <Link to="/logs/about-blog" className="pointer-events-auto block">
+				<ArticleCard title="About this blog" category="WebGL" date="DEC 21" />
+			  </Link>
+			</div>
+		  </div>
+		</section>
     </div>
   );
 };
@@ -362,12 +365,17 @@ const NavBar = () => {
   );
 };
 
+// 找到文件最末尾的 App 并替换为这个版本
 const App = () => (
   <Router>
     <NavBar />
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/models/black-hole" element={<BlackHoleModel />} />
+      
+      {/* 这里的路由必须存在，跳转才不会 404 */}
+      <Route path="/logs/about-blog" element={<AboutBlog />} />
+      
       <Route path="*" element={<div className="h-screen bg-black text-white flex items-center justify-center font-mono uppercase tracking-widest">404: Signal_Lost</div>} />
     </Routes>
   </Router>
