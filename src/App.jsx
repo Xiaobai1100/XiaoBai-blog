@@ -348,7 +348,6 @@ const NavBar = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  // 1. 滚动隐藏逻辑
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -385,109 +384,99 @@ const NavBar = () => {
 
   return (
     <>
-      {/* 主导航栏容器 */}
       <nav 
-        className={`fixed top-0 left-0 w-full p-6 md:p-10 z-[100] text-white mix-blend-difference pointer-events-none 
+        className={`fixed top-0 left-0 w-full p-6 md:p-8 z-[100] text-white mix-blend-difference pointer-events-none 
           transition-all duration-500 ease-in-out
           ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}
         `}
       >
-        <div className="flex justify-between items-center max-w-7xl mx-auto font-black uppercase">
+        <div className="flex justify-between items-center max-w-7xl mx-auto font-mono uppercase">
           
           {/* 左侧：Logo & Title */}
-          <div className="flex items-center gap-5 pointer-events-auto select-none">
+          <div className="flex items-center gap-4 pointer-events-auto select-none">
             <div 
               onClick={triggerPulse}
-              className={`w-12 h-12 flex items-center justify-center border-2 transition-all duration-300 cursor-pointer
-                ${isGlowing ? 'bg-cyan-400 border-cyan-400 shadow-[0_0_50px_#22d3ee] scale-110' : 'border-white hover:bg-white hover:text-black'}
+              className={`w-9 h-9 flex items-center justify-center border transition-all duration-300 cursor-pointer
+                ${isGlowing ? 'bg-cyan-400 border-cyan-400 shadow-[0_0_30px_#22d3ee]' : 'border-white/50 hover:border-white hover:bg-white hover:text-black'}
               `}
             >
-              <Terminal size={24} className={isGlowing ? 'text-black' : ''} />
+              <Terminal size={18} className={isGlowing ? 'text-black' : ''} />
             </div>
             
-            <Link to="/" className="flex flex-col group transition-opacity active:scale-95">
-              <span className="text-xl md:text-2xl tracking-widest leading-none">XiaoBai</span>
-              <span className="text-[10px] tracking-[0.4em] opacity-60">SAMA</span>
+            <Link to="/" className="flex flex-col group active:scale-95 transition-transform">
+              <span className="text-sm md:text-base tracking-[0.2em] leading-none font-black">XiaoBai</span>
+              <span className="text-[8px] tracking-[0.3em] opacity-40">SAMA</span>
             </Link>
             
-            {/* 手机端汉堡按钮 */}
             <div 
               onClick={() => setIsMenuOpen(!isMenuOpen)} 
-              className="md:hidden ml-2 text-white cursor-pointer pointer-events-auto p-2"
+              className="md:hidden ml-1 text-white/70 cursor-pointer pointer-events-auto p-2"
             >
-              {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
+              {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </div>
           </div>
 
-          {/* 右侧：桌面端菜单 (字号同步放大为 text-lg) */}
-          <div className="hidden md:flex gap-12 items-center pointer-events-auto">
-            <Link to="/" className="text-lg tracking-[0.2em] hover:text-cyan-400 transition-colors">Home</Link>
+          {/* 右侧：桌面端菜单 (精致小字号) */}
+          <div className="hidden md:flex gap-10 items-center pointer-events-auto text-[13px] tracking-[0.3em] font-medium">
+            <Link to="/" className="hover:text-cyan-400 transition-colors">Home</Link>
             
             <div className="relative group">
-              <button className="text-lg tracking-[0.2em] flex items-center gap-1 hover:text-cyan-400 transition-colors py-4">
-                Models <ChevronDown size={18} />
+              <button className="flex items-center gap-1 hover:text-cyan-400 transition-colors py-4">
+                Models <ChevronDown size={12} />
               </button>
-              <div className="absolute left-1/2 -translate-x-1/2 top-full hidden group-hover:block min-w-[200px] pt-2">
+              <div className="absolute left-1/2 -translate-x-1/2 top-full hidden group-hover:block min-w-[160px] pt-2">
                 <div className="bg-black/95 border border-white/10 backdrop-blur-xl flex flex-col p-1">
-                  <Link to="/models/black-hole" className="px-6 py-4 text-sm tracking-[0.2em] text-white/50 hover:text-cyan-400 hover:bg-white/5 transition-all text-left">
+                  <Link to="/models/black-hole" className="px-4 py-3 text-[11px] text-white/40 hover:text-cyan-400 hover:bg-white/5 transition-all">
                     // Black_Hole
                   </Link>
                 </div>
               </div>
             </div>
 
-            <Link to="/lab" className="text-lg tracking-[0.2em] hover:text-cyan-400 transition-colors">Lab</Link>
+            <Link to="/lab" className="hover:text-cyan-400 transition-colors">Lab</Link>
             
             <a 
               href="https://github.com/Xiaobai1100" 
               target="_blank" 
               rel="noreferrer" 
-              className="border-2 border-white px-8 py-2 text-lg tracking-[0.2em] hover:bg-white hover:text-black transition-all flex items-center gap-3"
+              className="border border-white/20 px-5 py-1.5 hover:bg-white hover:text-black transition-all flex items-center gap-2"
             >
-              <Github size={20} /> Github
+              <Github size={14} /> Github
             </a>
           </div>
         </div>
       </nav>
 
-      {/* 移动端侧边抽屉 (字号同步优化) */}
+      {/* 移动端抽屉 (极致缩小) */}
       <div className={`fixed inset-0 z-[110] transition-opacity duration-500 md:hidden ${isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        <div onClick={() => setIsMenuOpen(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+        <div onClick={() => setIsMenuOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
         
-        <div className={`absolute top-0 left-0 w-[80%] max-w-[320px] h-full bg-black/95 backdrop-blur-2xl border-r border-white/10 transition-transform duration-500 ease-out flex flex-col p-10 pt-32 gap-10 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-          <div className="text-[10px] tracking-[0.5em] text-white/20 uppercase mb-4 border-b border-white/5 pb-4 font-mono">Control_Center</div>
+        <div className={`absolute top-0 left-0 w-[70%] max-w-[260px] h-full bg-black/90 backdrop-blur-2xl border-r border-white/5 transition-transform duration-500 ease-out flex flex-col p-8 pt-24 gap-6 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="text-[8px] tracking-[0.4em] text-white/20 uppercase mb-2 border-b border-white/5 pb-3 font-mono">Navigation</div>
           
-          <Link to="/" className="text-2xl font-black tracking-widest text-white uppercase active:text-cyan-400">Home</Link>
+          <Link to="/" className="text-sm tracking-[0.2em] text-white/80 uppercase">Home</Link>
           
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
             <button 
               onClick={() => setIsModelsSubMenuOpen(!isModelsSubMenuOpen)} 
-              className="text-2xl font-black tracking-widest flex items-center gap-3 text-white uppercase text-left"
+              className="text-sm tracking-[0.2em] flex items-center gap-2 text-white/80 uppercase text-left"
             >
-              Models <ChevronDown size={24} className={isModelsSubMenuOpen ? 'rotate-180' : ''} />
+              Models <ChevronDown size={14} className={isModelsSubMenuOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
             </button>
             {isModelsSubMenuOpen && (
-              <div className="flex flex-col gap-6 pl-5 border-l-2 border-cyan-500/50 py-2">
-                <Link to="/models/black-hole" className="text-lg font-bold tracking-widest text-cyan-400 uppercase">// Black_Hole</Link>
+              <div className="flex flex-col gap-4 pl-4 border-l border-white/10 py-1">
+                <Link to="/models/black-hole" className="text-[11px] tracking-[0.2em] text-cyan-400/70 uppercase">/ Black_Hole</Link>
               </div>
             )}
           </div>
           
-          <Link to="/lab" className="text-2xl font-black tracking-widest text-white uppercase active:text-cyan-400">Lab</Link>
-          <a href="https://github.com/Xiaobai1100" target="_blank" className="text-2xl font-black tracking-widest text-white uppercase active:text-cyan-400">Github</a>
-          
-          <button 
-            onClick={() => setIsMenuOpen(false)} 
-            className="mt-auto mb-10 text-xs tracking-[0.4em] text-cyan-400 border-2 border-cyan-400 px-6 py-4 uppercase active:bg-cyan-400/20 font-black"
-          >
-            Close_Terminal
-          </button>
+          <Link to="/lab" className="text-sm tracking-[0.2em] text-white/80 uppercase">Lab</Link>
+          <a href="https://github.com/Xiaobai1100" target="_blank" className="text-sm tracking-[0.2em] text-white/80 uppercase">Github</a>
         </div>
       </div>
     </>
   );
 };
-
 /**
  * =================================================================
  * 5. 页面组件：404 Signal_Lost 
