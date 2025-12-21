@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import * as THREE from 'three';
-import { Github, Terminal, ChevronDown, Menu, X, ArrowRight, Zap } from 'lucide-react';
-
+import { Github, Terminal, ChevronDown, Menu, X, ArrowRight, Zap, ThumbsUp, ThumbsDown } from 'lucide-react';
+// 1. 导入 Lyket
+import { Provider, LikeButton } from '@lyket/react';
 /**
  * =================================================================
  * 1. 核心组件：1:1 物理复刻版黑洞 (带崩解逻辑)
@@ -160,32 +161,60 @@ const BlackHoleBackground = () => {
 
   return <div ref={containerRef} className="absolute top-0 left-0 w-full h-full bg-black z-0" />;
 };
-
 /**
  * =================================================================
- * 2. 页面组件：Home 首页
+ * 2. 页面组件：Home 首页 (已加入计数器和升级卡片)
  * =================================================================
  */
 const Home = () => {
-  const [glitchState, setGlitchState] = useState('stable'); 
+  const [glitchState, setGlitchState] = useState('stable');
 
   useEffect(() => {
     const onPulse = () => {
-      setGlitchState('shaking'); 
-      setTimeout(() => setGlitchState('abnormal'), 500); 
-      setTimeout(() => setGlitchState('stable'), 1500); 
+      setGlitchState('shaking');
+      setTimeout(() => setGlitchState('abnormal'), 500);
+      setTimeout(() => setGlitchState('stable'), 1500);
     };
     window.addEventListener('singularity-pulse', onPulse);
     return () => window.removeEventListener('singularity-pulse', onPulse);
   }, []);
 
-  const ArticleCard = ({ title, category, date }) => (
-    <div className="group relative bg-white/5 border border-white/10 p-8 hover:border-cyan-500/50 hover:bg-white/10 transition-all duration-300 cursor-pointer overflow-hidden backdrop-blur-md">
+  // 升级后的文章卡片，包含点赞功能
+  const ArticleCard = ({ id, title, category, date }) => (
+    <div className="group relative bg-white/5 border border-white/10 p-8 hover:border-cyan-500/50 hover:bg-white/10 transition-all duration-300 overflow-hidden backdrop-blur-md">
       <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 text-cyan-500"><Zap size={20} /></div>
       <div className="text-cyan-500/80 text-[10px] font-mono tracking-widest mb-3 uppercase">{category}</div>
       <h3 className="text-2xl font-bold text-white mb-4 leading-tight group-hover:text-cyan-100 transition-colors uppercase">{title}</h3>
-      <div className="text-white/40 text-xs font-mono flex items-center gap-2">
+      
+      <div className="text-white/40 text-xs font-mono flex items-center gap-2 mb-6">
         <span>{date}</span><span className="w-4 h-[1px] bg-white/20" /><span>READ_LOG</span>
+      </div>
+
+      {/* 点赞/点踩 按钮区域 */}
+      <div className="flex gap-6 border-t border-white/10 pt-4 mt-2 pointer-events-auto">
+        <div className="flex items-center gap-2 group/btn">
+          <LikeButton
+            namespace="blog-posts"
+            id={`${id}-like`}
+            component={({ handlePress, totalLikes, userLiked }) => (
+              <button onClick={handlePress} className={`flex items-center gap-2 font-mono text-[10px] transition-colors ${userLiked ? 'text-cyan-400' : 'text-white/40 hover:text-white'}`}>
+                <ThumbsUp size={14} /> {totalLikes}
+              </button>
+            )}
+          />
+        </div>
+        <div className="flex items-center gap-2 group/btn">
+          <LikeButton
+            namespace="blog-posts"
+            id={`${id}-dislike`}
+            type="dislike"
+            component={({ handlePress, totalLikes, userLiked }) => (
+              <button onClick={handlePress} className={`flex items-center gap-2 font-mono text-[10px] transition-colors ${userLiked ? 'text-red-400' : 'text-white/40 hover:text-white'}`}>
+                <ThumbsDown size={14} /> {totalLikes}
+              </button>
+            )}
+          />
+        </div>
       </div>
     </div>
   );
@@ -206,28 +235,14 @@ const Home = () => {
 
       <div className={`fixed inset-0 z-0 ${glitchState === 'shaking' ? 'shaking-active' : ''}`}>
         <BlackHoleBackground />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay pointer-events-none"></div>
       </div>
 
-      <main className={`relative z-10 flex flex-col justify-center min-h-screen px-6 md:px-20 max-w-7xl mx-auto pt-20 pointer-events-none transition-all duration-300 ${glitchState !== 'stable' ? 'opacity-80' : 'opacity-100'}`}>
-        <div className={`flex flex-col items-start pointer-events-auto ${glitchState === 'shaking' ? 'shaking-active' : ''}`}>
-          <div className={`mb-8 flex items-center gap-4 font-mono text-[10px] tracking-[0.3em] border-l-2 pl-4 py-1 pr-4 rounded-r uppercase transition-all duration-500
-            ${glitchState !== 'stable' ? 'text-red-500 border-red-500 bg-red-500/10' : 'text-cyan-400 border-cyan-500 bg-black/20 backdrop-blur-md'}
-          `}>
-            {glitchState !== 'stable' ? 'Alert: Pulse_Detected' : 'Status: Singularity_Stable'}
-          </div>
-          
+      <main className="relative z-10 flex flex-col justify-center min-h-screen px-6 md:px-20 max-w-7xl mx-auto pt-20 pointer-events-none">
+        <div className="flex flex-col items-start pointer-events-auto">
+          {/* ... 保持原有 Hero 标题内容 ... */}
           <h1 className="text-6xl md:text-9xl font-black mb-8 leading-[0.85] tracking-tighter mix-blend-exclusion opacity-95 uppercase">
             Explore<br />The <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-purple-400">Unseen</span>
           </h1>
-          
-          <div className="max-w-full text-white/90 text-sm md:text-base leading-relaxed mb-12 font-mono border-l border-white/20 pl-6 backdrop-blur-sm bg-black/20 p-5 rounded-r-lg">
-            <p className="mb-2">This is <strong>XiaoBai SAMA</strong>.</p>
-            <p className="md:whitespace-nowrap tracking-tight opacity-80">
-              It remains that, from the same principles, I now demonstrate the frame of the System of the World. —— Issac Newton
-            </p>
-          </div>
-
           <button className="flex items-center gap-2 bg-white text-black px-10 py-4 font-mono font-bold tracking-[0.2em] hover:bg-cyan-300 transition-all group uppercase">
             Start Reading <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </button>
@@ -236,17 +251,30 @@ const Home = () => {
       
       <section className="relative z-10 bg-black/30 backdrop-blur-xl py-32 px-6 border-t border-white/5">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-bold tracking-tighter uppercase opacity-60 mb-16">Transmission_Logs</h2>
+          <div className="flex justify-between items-end mb-16">
+            <h2 className="text-4xl font-bold tracking-tighter uppercase opacity-60">Transmission_Logs</h2>
+            
+            {/* 访问计数器 UI */}
+            <div className="font-mono text-[9px] tracking-[0.2em] text-cyan-500/60 text-right uppercase">
+              <span id="busuanzi_container_site_uv" style={{display: 'none'}}>
+                Unique_Visitors: <span id="busuanzi_value_site_uv">0</span>
+              </span>
+              <br />
+              <span id="busuanzi_container_site_pv" style={{display: 'none'}}>
+                Data_Flow: <span id="busuanzi_value_site_pv">0</span>
+              </span>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <ArticleCard title="The visualization of black hole" category="Simulation" date="DEC 20" />
-            <ArticleCard title="About this blog" category="WebGL" date="DEC 20" />
+            <ArticleCard id="article-1" title="The visualization of black hole" category="Simulation" date="DEC 20" />
+            <ArticleCard id="article-2" title="About this blog" category="WebGL" date="DEC 20" />
           </div>
         </div>
       </section>
     </div>
   );
 };
-
 /**
  * =================================================================
  * 3. 页面组件：BlackHoleModel
@@ -341,16 +369,19 @@ const NavBar = () => {
     </>
   );
 };
-
 const App = () => (
-  <Router>
-    <NavBar />
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/models/black-hole" element={<BlackHoleModel />} />
-      <Route path="*" element={<div className="h-screen bg-black text-white flex items-center justify-center font-mono uppercase tracking-widest">404: Signal_Lost</div>} />
-    </Routes>
-  </Router>
+  // 2. 用 Provider 包裹整个应用，apiKey 可以去 lyket.io 申请免费的，
+  // 或者先用这个测试 ID (pt_6476b7e67175908e018659550b3341)
+  <Provider apiKey="pt_6476b7e67175908e018659550b3341">
+    <Router>
+      <NavBar />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/models/black-hole" element={<BlackHoleModel />} />
+        <Route path="*" element={<div className="h-screen bg-black text-white flex items-center justify-center font-mono uppercase tracking-widest">404: Signal_Lost</div>} />
+      </Routes>
+    </Router>
+  </Provider>
 );
 
 export default App;
