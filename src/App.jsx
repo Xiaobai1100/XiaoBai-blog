@@ -13,203 +13,111 @@ import { POSTS } from './config/posts';
  */
 export const BlackHoleBackground = () => {
   const containerRef = useRef(null);
-  const stateRef = useRef({
-    mass: 1.0,
-    simSpeed: 1.0,
-    lensingCurrent: 1.0,
-    isExploding: false,
-    explosionFactor: 0.0,
-    gyro: { x: 0, y: 0 }
-  });
+  const stateRef = useRef({ mass: 1.0, simSpeed: 1.0, gyro: { x: 0, y: 0 } });
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // --- 初始化环境 ---
     const scene = new THREE.Scene();
-    const universeGroup = new THREE.Group();
-    scene.add(universeGroup);
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera.position.set(0, 40, 180); // 调整视角，稍微俯视更能看清环
 
-    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
-    camera.position.set(0, 60, 220);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance", alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     containerRef.current.appendChild(renderer.domElement);
 
-    // --- 物理常量配置 ---
     const CONFIG = {
-      particleCount: 80000, // 适配React性能，设为8万粒子
-      horizonRadius: 2.0,
-      iscoRadius: 6.0,
-      baseSpeed: 0.4,
-      colAccretion: new THREE.Color(0xffaa33)
+      particleCount: 120000,
+      rs: 3.0,          // 史瓦西半径
+      diskInner: 9.0,   // 吸积盘内径 (3 * rs)
+      diskOuter: 100.0,
     };
 
-    // --- 核心视界 ---
-    const blackHole = new THREE.Mesh(
-      new THREE.SphereGeometry(1.9, 64, 64),
-      new THREE.MeshBasicMaterial({ color: 0x000000 })
-    );
-    universeGroup.add(blackHole);
-
-    // --- 粒子系统数据初始化 ---
     const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(CONFIG.particleCount * 3);
-    const colors = new Float32Array(CONFIG.particleCount * 3);
-    const alphas = new Float32Array(CONFIG.particleCount);
-    const sizes = new Float32Array(CONFIG.particleCount);
-    
-    const uData = {
-      radii: new Float32Array(CONFIG.particleCount),
-      phases: new Float32Array(CONFIG.particleCount),
-      yOffsets: new Float32Array(CONFIG.particleCount),
-      speeds: new Float32Array(CONFIG.particleCount),
-      infallMod: new Float32Array(CONFIG.particleCount)
-    };
+    const pos = new Float32Array(CONFIG.particleCount * 3);
+    const uData = { radii: new Float32Array(CONFIG.particleCount), phases: new Float32Array(CONFIG.particleCount) };
 
     for (let i = 0; i < CONFIG.particleCount; i++) {
-      uData.radii[i] = 10.0 + Math.random() * 80.0;
+      uData.radii[i] = CONFIG.diskInner + Math.pow(Math.random(), 1.5) * (CONFIG.diskOuter - CONFIG.diskInner);
       uData.phases[i] = Math.random() * Math.PI * 2;
-      uData.yOffsets[i] = (Math.random() - 0.5) * (uData.radii[i] * 0.05);
-      uData.speeds[i] = Math.random() * 0.2 + 0.9;
-      uData.infallMod[i] = 0.8 + Math.random() * 0.4;
-      
-      sizes[i] = Math.random() * 0.8 + 0.4;
-      alphas[i] = 0.0;
-      colors[i*3] = CONFIG.colAccretion.r;
-      colors[i*3+1] = CONFIG.colAccretion.g;
-      colors[i*3+2] = CONFIG.colAccretion.b;
+      pos[i*3] = Math.cos(uData.phases[i]) * uData.radii[i];
+      pos[i*3+1] = (Math.random() - 0.5) * 0.5; // 吸积盘非常薄
+      pos[i*3+2] = Math.sin(uData.phases[i]) * uData.radii[i];
     }
+    geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
 
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('customColor', new THREE.BufferAttribute(colors, 3));
-    geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
-    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-
-    // --- 物理 Shader ---
     const material = new THREE.ShaderMaterial({
-      uniforms: { 
-        massScale: { value: 1.0 }, 
-        lensingStrength: { value: 1.0 } 
-      },
+      uniforms: { time: { value: 0 }, rs: { value: CONFIG.rs } },
       vertexShader: `
-        uniform float massScale;
-        uniform float lensingStrength;
-        attribute float size;
-        attribute float alpha;
-        attribute vec3 customColor;
-        varying vec3 vColor;
-        varying float vAlpha;
+        uniform float rs;
+        varying float vOpacity;
         void main() {
-          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          float rPhys = length(position.xyz);
-          float rsPhys = massScale * 3.0;
-          float gFactor = sqrt(clamp(1.0 - rsPhys / (rPhys + 0.01), 0.0, 1.0));
-          vec3 velDir = normalize(vec3(-position.z, 0.0, position.x));
-          vec3 velView = normalize(normalMatrix * velDir);
-          float beaming = pow(1.0 + 0.5 * dot(velView, normalize(-mvPosition.xyz)), 3.0);
-          vColor = customColor * beaming * (gFactor + 0.2);
-          vAlpha = alpha;
-          float rScreen = length(mvPosition.xy);
-          float rsScreen = massScale * 12.0;
-          float b = max(rScreen, 0.1);
-          float deflection = (2.0 * rsScreen / b) + (15.0 * rsScreen * rsScreen / (b * b));
-          mvPosition.xy += normalize(mvPosition.xy) * deflection * lensingStrength;
-          gl_Position = projectionMatrix * mvPosition;
-          gl_PointSize = size * (1000.0 / -mvPosition.z);
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            float r = length(position.xz);
+            
+            // --- 引力透镜核心逻辑 ---
+            // b 是光线通过的冲击参数，这里简化模拟
+            float b = length(mvPosition.xy); 
+            float rsScreen = rs * 10.0; // 屏幕空间的投影半径
+            
+            // 爱因斯坦环偏转公式简化：越接近 rsScreen，偏移越大
+            // 产生环绕黑洞的“二次成像”效果
+            if (b > 0.1) {
+                float deflection = (2.0 * rsScreen / b) + pow(rsScreen / b, 3.0) * 20.0;
+                mvPosition.xy += normalize(mvPosition.xy) * deflection;
+            }
+            
+            gl_Position = projectionMatrix * mvPosition;
+            gl_PointSize = (r < 15.0 ? 2.5 : 1.5) * (800.0 / -mvPosition.z);
+            
+            // 多普勒效应模拟：左侧亮，右侧暗 (假设逆时针旋转)
+            float doppler = dot(normalize(vec3(-position.z, 0.0, position.x)), vec3(1,0,0));
+            vOpacity = clamp(0.3 + doppler * 0.5, 0.1, 1.0);
         }
       `,
       fragmentShader: `
-        varying vec3 vColor;
-        varying float vAlpha;
+        varying float vOpacity;
         void main() {
-          float dist = length(gl_PointCoord - 0.5);
-          if (dist > 0.5) discard;
-          gl_FragColor = vec4(vColor, vAlpha * pow(1.0 - dist * 2.0, 2.0));
+            float d = length(gl_PointCoord - 0.5);
+            if (d > 0.5) discard;
+            // 边缘羽化，模拟热辐射粒子
+            gl_FragColor = vec4(1.0, 0.7, 0.3, vOpacity * pow(1.0 - d*2.0, 2.0));
         }
       `,
-      blending: THREE.AdditiveBlending, depthWrite: false, transparent: true
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
     });
 
     const system = new THREE.Points(geometry, material);
-    universeGroup.add(system);
+    scene.add(system);
 
-    // --- 动画循环 ---
+    // 核心黑体
+    const singulairty = new THREE.Mesh(
+      new THREE.SphereGeometry(CONFIG.rs * 2.8, 32, 32), 
+      new THREE.MeshBasicMaterial({ color: 0x000000 })
+    );
+    scene.add(singulairty);
+
     const clock = new THREE.Clock();
-    let frameId;
-
     const animate = () => {
-      frameId = requestAnimationFrame(animate);
       const delta = clock.getDelta();
-      const time = clock.getElapsedTime();
-      const st = stateRef.current;
-
-      // 陀螺仪平滑
-      universeGroup.rotation.x += (st.gyro.x - universeGroup.rotation.x) * 0.05;
-      universeGroup.rotation.y += (st.gyro.y - universeGroup.rotation.y) * 0.05;
-
-      const posAttr = geometry.attributes.position.array;
-      const alphaAttr = geometry.attributes.alpha.array;
-      const currentRs = CONFIG.horizonRadius * st.mass;
-
+      const positions = geometry.attributes.position.array;
       for (let i = 0; i < CONFIG.particleCount; i++) {
-        let r = uData.radii[i];
-        let phase = uData.phases[i];
-
-        // 吞噬检测
-        if (r < currentRs * 1.01) {
-          r = 40.0 + Math.random() * 60.0;
-          alphaAttr[i] = 0.0;
-        }
-
-        // 相对论时间膨胀因子
-        let dilation = r > currentRs ? Math.sqrt(1.0 - (currentRs / r)) : 0;
-        
-        // 物理轨道步进
-        const vOrbital = Math.sqrt((500.0 * st.mass) / r);
-        phase += vOrbital * Math.max(dilation, 0.1) * CONFIG.baseSpeed * uData.speeds[i] * delta * 0.5;
-        
-        // 径向吸积 (越靠近 ISCO 越快)
-        const vr = (r > currentRs * 3.0) ? -2.0 / Math.sqrt(r) : -15.0;
-        r += vr * (dilation * dilation) * delta * st.simSpeed;
-
-        posAttr[i*3] = Math.cos(phase) * r;
-        posAttr[i*3+1] = uData.yOffsets[i];
-        posAttr[i*3+2] = Math.sin(phase) * r;
-
-        // 亮度渐入
-        if (alphaAttr[i] < 0.8) alphaAttr[i] += delta * 0.2;
-
-        uData.radii[i] = r;
-        uData.phases[i] = phase;
+        // 物理轨道速度：越近越快
+        uData.phases[i] += Math.sqrt(200.0 / Math.pow(uData.radii[i], 1.5)) * delta;
+        positions[i*3] = Math.cos(uData.phases[i]) * uData.radii[i];
+        positions[i*3+2] = Math.sin(uData.phases[i]) * uData.radii[i];
       }
-
       geometry.attributes.position.needsUpdate = true;
-      geometry.attributes.alpha.needsUpdate = true;
-      
-      material.uniforms.massScale.value = st.mass;
-      blackHole.scale.setScalar(currentRs);
-      
       renderer.render(scene, camera);
+      requestAnimationFrame(animate);
     };
-
     animate();
-
-    // 监听事件 (可选，用于交互)
-    const onPulse = () => { st.simSpeed = 5.0; setTimeout(()=> st.simSpeed = 1.0, 1000); };
-    window.addEventListener('singularity-pulse', onPulse);
-
-    return () => {
-      cancelAnimationFrame(frameId);
-      window.removeEventListener('singularity-pulse', onPulse);
-      renderer.dispose();
-    };
   }, []);
 
-  return <div ref={containerRef} className="absolute top-0 left-0 w-full h-full bg-black z-0" />;
+  return <div ref={containerRef} className="absolute inset-0 bg-black z-0" />;
 };
+
 /**
  * =================================================================
  * 2. 页面组件：Home 首页
