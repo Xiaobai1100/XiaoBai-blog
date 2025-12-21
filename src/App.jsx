@@ -11,40 +11,60 @@ import { POSTS } from './config/posts';
  * 1. 核心组件：经典引力透镜版黑洞 
  * =================================================================
  */
+import React, { useEffect, useRef } from 'react';
+import * as THREE from 'three';
 
+/**
+ * =================================================================
+ * 核心组件：BlackHoleBackground v4.0 (自适应 + 陀螺仪 + 增强视觉)
+ * =================================================================
+ */
 export const BlackHoleBackground = () => {
   const containerRef = useRef(null);
   const pulseState = useRef({ factor: 0.0, active: false });
+  const gyroRef = useRef({ x: 0, y: 0 }); // 用于存储陀螺仪实时偏移
 
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // --- 陀螺仪监听 (默认直接开启) ---
+    const handleOrientation = (e) => {
+      // beta: 俯仰角 (-180 to 180), gamma: 翻滚角 (-90 to 90)
+      const x = (e.beta || 0) / 90; 
+      const y = (e.gamma || 0) / 90;
+      gyroRef.current = { x: x * 0.4, y: y * 0.4 };
+    };
+    window.addEventListener('deviceorientation', handleOrientation);
+
+    // --- 初始化 Three.js 环境 ---
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
     const scene = new THREE.Scene();
     
-    // 1. 动态计算初始半径：根据屏幕宽度决定吸积盘的大小
+    // 动态计算初始分布半径
     const getAdaptiveRadius = () => {
       const width = window.innerWidth;
-      // 这里的逻辑是：宽度越大，分布越广，保证边缘始终在视野外
-      return Math.max(250, width / 4); 
+      return Math.max(300, width / 3.5); 
     };
 
     const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 4000);
-    camera.position.set(0, 50, 250);
+    // 手机端视角略微拉远，获得更好的全景感
+    camera.position.set(0, isMobile ? 70 : 50, 250);
 
     const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // 手机端限制像素比以保帧率，PC端全开
+    renderer.setPixelRatio(isMobile ? 1.5 : Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     containerRef.current.appendChild(renderer.domElement);
 
-	const CONFIG = {
-	  particleCount: 140000, // 稍微增加到14万，视觉更饱满
-	  rs: 3.5, 
-	  baseSpeed: 0.8,
-	  diskInner: 15.0,
-	  diskOuter: Math.max(300, window.innerWidth / 3.5), 
-	};
+    const CONFIG = {
+      particleCount: 140000, 
+      rs: 3.5, 
+      baseSpeed: 0.8,
+      diskInner: 15.0,
+      diskOuter: getAdaptiveRadius(), 
+    };
 
-    // 奇异点
+    // 奇异点（核心黑球）
     const blackHole = new THREE.Mesh(
       new THREE.SphereGeometry(CONFIG.rs * 2.6, 64, 64),
       new THREE.MeshBasicMaterial({ color: 0x000000 })
@@ -61,11 +81,10 @@ export const BlackHoleBackground = () => {
       randomSpeeds: new Float32Array(CONFIG.particleCount) 
     };
 
-    // 填充粒子数据
     for (let i = 0; i < CONFIG.particleCount; i++) {
       uData.radii[i] = CONFIG.diskInner + Math.pow(Math.random(), 1.5) * CONFIG.diskOuter;
       uData.phases[i] = Math.random() * Math.PI * 2;
-      uData.yOffsets[i] = (Math.random() - 0.5) * (uData.radii[i] * 0.03);
+      uData.yOffsets[i] = (Math.random() - 0.5) * (uData.radii[i] * (isMobile ? 0.04 : 0.03));
       uData.randomSpeeds[i] = 0.8 + Math.random() * 0.4;
       alphas[i] = Math.random() * 0.5 + 0.1;
     }
@@ -73,80 +92,66 @@ export const BlackHoleBackground = () => {
     geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
 
-	const material = new THREE.ShaderMaterial({
-	  uniforms: { 
-		rs: { value: CONFIG.rs },
-		explosion: { value: 0.0 },
-		// 引入亮度增强系数
-		glowBoost: { value: window.devicePixelRatio > 1 ? 2.0 : 1.2 } 
-	  },
-	  vertexShader: `
-		uniform float rs;
-		uniform float explosion;
-		uniform float glowBoost;
-		attribute float alpha;
-		varying float vAlpha;
-		varying vec3 vColor;
-		
-		void main() {
-		  vec3 p = position;
-		  if (explosion > 0.0) {
-			p.xyz += normalize(p.xyz) * explosion * 200.0;
-		  }
-		  vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
-		  float b = length(mvPosition.xy); 
-		  float rsScreen = rs * 12.0; 
-		  
-		  if (b > 0.1) {
-			float deflection = (3.5 * rsScreen / b) + pow(rsScreen / b, 4.0) * 20.0;
-			mvPosition.xy += normalize(mvPosition.xy) * deflection;
-		  }
-		  
-		  gl_Position = projectionMatrix * mvPosition;
-		  
-		  // 【关键修改 1】：提升基础大小到 1.5，并乘以 glowBoost 适配高分屏
-		  float r = length(position.xz);
-		  float baseSize = (0.5 + 6.0 / r) * glowBoost;
-		  gl_PointSize = baseSize * (1200.0 / -mvPosition.z);
-		  
-		  vAlpha = alpha * (1.2 - explosion * 0.7); 
-		  
-		  // 【关键修改 2】：颜色对比度增强，内圈更白热化，整体更亮
-		  vec3 innerCol = vec3(1.0, 0.95, 0.8); // 白热色
-		  vec3 outerCol = vec3(1.0, 0.5, 0.1);  // 炽橙色
-		  vColor = mix(outerCol, innerCol, pow(10.0/r, 0.7));
-		}
-	  `,
-	  fragmentShader: `
-		varying float vAlpha;
-		varying vec3 vColor;
-		void main() {
-		  float d = length(gl_PointCoord - 0.5);
-		  if (d > 0.5) discard;
-		  
-		  // 【关键修改 3】：改用指数增强的径向渐变，让粒子中心极亮，边缘有柔和光晕
-		  float radial = pow(1.0 - d * 2.0, 1.5);
-		  // 增加一个核心亮度叠加
-		  float core = pow(1.0 - d * 2.0, 10.0) * 2.0;
-		  
-		  gl_FragColor = vec4(vColor, vAlpha * (radial + core));
-		}
-	  `,
-	  blending: THREE.AdditiveBlending,
-	  depthWrite: false,
-	  transparent: true
-	});
+    const material = new THREE.ShaderMaterial({
+      uniforms: { 
+        rs: { value: CONFIG.rs },
+        explosion: { value: 0.0 },
+        glowBoost: { value: window.devicePixelRatio > 1 ? 2.0 : 1.2 } 
+      },
+      vertexShader: `
+        uniform float rs;
+        uniform float explosion;
+        uniform float glowBoost;
+        attribute float alpha;
+        varying float vAlpha;
+        varying vec3 vColor;
+        void main() {
+          vec3 p = position;
+          if (explosion > 0.0) {
+            p.xyz += normalize(p.xyz) * explosion * 220.0;
+          }
+          vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
+          float b = length(mvPosition.xy); 
+          float rsScreen = rs * 12.0; 
+          
+          if (b > 0.1) {
+            float deflection = (3.5 * rsScreen / b) + pow(rsScreen / b, 4.0) * 20.0;
+            mvPosition.xy += normalize(mvPosition.xy) * deflection;
+          }
+          
+          gl_Position = projectionMatrix * mvPosition;
+          
+          float r = length(position.xz);
+          // 粒子尺寸：基础 1.0 + 距离补偿
+          float baseSize = (1.0 + 6.0 / r) * glowBoost;
+          gl_PointSize = baseSize * (1200.0 / -mvPosition.z);
+          
+          vAlpha = alpha * (1.2 - explosion * 0.7); 
+          vColor = mix(vec3(1.0, 0.5, 0.1), vec3(1.0, 0.95, 0.8), pow(10.0/r, 0.7));
+        }
+      `,
+      fragmentShader: `
+        varying float vAlpha;
+        varying vec3 vColor;
+        void main() {
+          float d = length(gl_PointCoord - 0.5);
+          if (d > 0.5) discard;
+          float radial = pow(1.0 - d * 2.0, 1.5);
+          float core = pow(1.0 - d * 2.0, 10.0) * 2.0;
+          gl_FragColor = vec4(vColor, vAlpha * (radial + core));
+        }
+      `,
+      blending: THREE.AdditiveBlending, depthWrite: false, transparent: true
+    });
 
     const system = new THREE.Points(geometry, material);
     scene.add(system);
 
-    // --- 处理窗口缩放自适应 ---
+    // --- 窗口自适应逻辑 ---
     const onWindowResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-      
-      // 当窗口变大时，我们可以通过 scale 来让粒子系统铺满，而不需要重算 12 万个粒子的半径（性能更好）
       const newOuter = getAdaptiveRadius();
       const scaleFactor = newOuter / CONFIG.diskOuter;
       system.scale.set(scaleFactor, 1, scaleFactor);
@@ -156,49 +161,40 @@ export const BlackHoleBackground = () => {
     const handlePulse = () => { pulseState.current.active = true; };
     window.addEventListener('singularity-pulse', handlePulse);
 
-	const clock = new THREE.Clock();
+    const clock = new THREE.Clock();
     let frameId;
-    
-    // 增加一个记录爆发停留时间的变量
     let holdTimer = 0; 
     let isHolding = false;
-	
-	const animate = () => {
+
+    const animate = () => {
       frameId = requestAnimationFrame(animate);
       const delta = clock.getDelta();
       const positions = geometry.attributes.position.array;
       
-      // --- 改良版彩蛋动画：解离 -> 停留 -> 拉回 ---
+      // --- 陀螺仪平滑偏移应用 ---
+      scene.rotation.x += (gyroRef.current.x - scene.rotation.x) * 0.05;
+      scene.rotation.y += (gyroRef.current.y - scene.rotation.y) * 0.05;
+
+      // --- 彩蛋状态机 ---
       if (pulseState.current.active) {
-        // 1. 解离过程 (向外飞散)
-        pulseState.current.factor += (1.0 - pulseState.current.factor) * 0.15; // 稍微调快了一点点，爆发感更强
-        
-        // 当飞散接近极限时，进入停留阶段
+        pulseState.current.factor += (1.0 - pulseState.current.factor) * 0.15;
         if (pulseState.current.factor > 0.96) {
           pulseState.current.factor = 1.0;
-          pulseState.current.active = false; // 结束爆发阶段
-          isHolding = true;                  // 开启停留锁
-          holdTimer = 0;                     // 重置计时器
+          pulseState.current.active = false;
+          isHolding = true;
+          holdTimer = 0;
         }
       } else if (isHolding) {
-        // 2. 停留阶段 (停留 1 秒)
         holdTimer += delta;
-        if (holdTimer >= 1.0) {              // 1.0 代表 1 秒，你可以根据需要调成 1.5 等
-          isHolding = false;                 // 结束停留，进入下一步的拉回
-        }
+        if (holdTimer >= 1.0) isHolding = false;
       } else {
-        // 3. 拉回过程 (快速归位)
-        pulseState.current.factor *= 0.88;    // 稍微调大了一点阻尼，让收缩更有力量感
+        pulseState.current.factor *= 0.88;
       }
-
-      // 更新 Shader 中的解离变量
       material.uniforms.explosion.value = pulseState.current.factor;
 
       for (let i = 0; i < CONFIG.particleCount; i++) {
         const i3 = i * 3;
-        // 旋转速度逻辑：解离和停留时几乎静止，增加“时空冻结”的视觉感
         const speedFactor = CONFIG.baseSpeed * (1.0 - Math.pow(pulseState.current.factor, 0.5) * 0.9);
-        
         uData.phases[i] += Math.sqrt(400.0 / Math.pow(uData.radii[i], 1.5)) * speedFactor * delta * uData.randomSpeeds[i];
         
         positions[i3] = Math.cos(uData.phases[i]) * uData.radii[i];
@@ -215,11 +211,12 @@ export const BlackHoleBackground = () => {
       cancelAnimationFrame(frameId);
       window.removeEventListener('resize', onWindowResize);
       window.removeEventListener('singularity-pulse', handlePulse);
+      window.removeEventListener('deviceorientation', handleOrientation);
       renderer.dispose();
     };
   }, []);
 
-  return <div ref={containerRef} className="absolute inset-0 bg-black z-0" />;
+  return <div ref={containerRef} className="absolute inset-0 bg-black z-0 touch-none pointer-events-none" />;
 };
 
 /**
@@ -455,45 +452,62 @@ const NavBar = () => {
  * =================================================================
  */
 
+/**
+ * =================================================================
+ * 5. 页面组件：404 Signal_Lost (手机端自适应版)
+ * =================================================================
+ */
 const NotFound = () => {
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden flex items-center justify-center text-white font-mono">
-      {/* 背景：黑白去色，高对比度，轻微模糊 */}
+      
+      {/* 1. 背景层：黑白去色 + 手机端模糊度微调 */}
       <div className="absolute inset-0 z-0 opacity-40 grayscale-[100%] contrast-[150%] brightness-[70%] blur-[3px]">
-        <BlackHoleBackground />
+        {/* scale-150: 在手机窄屏上放大黑洞，确保吸积盘横向铺满 */}
+        <div className="w-full h-full transform -translate-y-[5%] scale-[1.8] md:scale-125">
+          <BlackHoleBackground />
+        </div>
       </div>
 
-      {/* 故障装饰：噪点与扫描线 */}
-      <div className="absolute inset-0 z-10 pointer-events-none opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
-      <div className="absolute inset-0 z-10 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.3)_50%)] bg-[length:100%_4px]"></div>
+      {/* 2. 干扰层：针对手机端降低噪点强度，防止屏幕显得脏 */}
+      <div className="absolute inset-0 z-10 pointer-events-none opacity-[0.03] md:opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+      
+      {/* 扫描线：手机端间距调细 */}
+      <div className="absolute inset-0 z-10 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.3)_50%)] bg-[length:100%_3px] md:bg-[length:100%_4px]"></div>
 
-      <div className="relative z-20 text-center px-6">
-        <div className="inline-block border border-white/20 bg-white/5 px-4 py-1 mb-10 rounded-sm">
-          <span className="text-white/40 text-[9px] tracking-[0.4em] uppercase">
-            Signal_Interrupted // 404
+      {/* 3. 核心内容容器 */}
+      <div className="relative z-20 text-center px-8 w-full max-w-lg">
+        {/* 错误标签 */}
+        <div className="inline-block border border-white/20 bg-white/5 px-3 py-1 mb-6 md:mb-10 rounded-sm">
+          <span className="text-white/40 text-[8px] md:text-[9px] tracking-[0.3em] md:tracking-[0.4em] uppercase">
+            Signal_Interrupted // 0x404
           </span>
         </div>
         
-        <h1 className="text-6xl md:text-8xl font-light mb-8 tracking-[0.2em] uppercase text-white/90">
-          Void<span className="opacity-20">Space</span>
+        {/* 响应式标题：手机端 4xl, 电脑端 8xl */}
+        <h1 className="text-4xl md:text-8xl font-light mb-6 md:mb-8 tracking-[0.15em] md:tracking-[0.2em] uppercase text-white/90 leading-none">
+          Void <span className="opacity-20 block md:inline mt-2 md:mt-0">Space</span>
         </h1>
         
-        <div className="max-w-md mx-auto space-y-2 font-mono text-[10px] tracking-[0.2em] uppercase text-white/30 mb-12">
-          <p>Target_Coordinates: Beyond_Observation</p>
-          <p>Transmission_Status: Null_Response</p>
+        {/* 响应式描述：调小字号防止折行难看 */}
+        <div className="space-y-2 md:space-y-3 font-mono text-[9px] md:text-[10px] tracking-[0.15em] md:tracking-[0.2em] uppercase text-white/30 mb-10 md:mb-12">
+          <p className="truncate">Target: Beyond_Observation</p>
+          <p>Sync_Status: Null_Response</p>
         </div>
 
+        {/* 响应式按钮：手机端缩减高度 */}
         <Link 
           to="/" 
-          className="inline-flex items-center gap-3 border border-white/20 px-10 py-4 text-white/80 font-bold tracking-[0.2em] hover:bg-white hover:text-black transition-all uppercase active:scale-95"
+          className="inline-flex items-center gap-3 border border-white/20 px-8 md:px-10 py-3 md:py-4 text-white/80 text-xs md:text-sm font-bold tracking-[0.2em] hover:bg-white hover:text-black transition-all uppercase active:scale-95"
         >
-          Reset_Connection <ArrowRight size={18} />
+          Reset_Connection <ArrowRight size={16} />
         </Link>
       </div>
 
-      <div className="absolute bottom-8 w-full flex justify-between px-10 text-[8px] tracking-[0.5em] text-white/10 uppercase">
-        <span>Sector: Unknown</span>
-        <span>Reality_Sync: Failed</span>
+      {/* 4. 底部状态栏：在小屏幕上隐藏部分信息或调小字号 */}
+      <div className="absolute bottom-6 md:bottom-8 w-full flex justify-between px-6 md:px-10 text-[7px] md:text-[8px] tracking-[0.3em] md:tracking-[0.5em] text-white/10 uppercase font-bold">
+        <span>Sector: ERR_UNKN</span>
+        <span>Reality_Sync: FAIL</span>
       </div>
     </div>
   );

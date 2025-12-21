@@ -6,7 +6,7 @@
   background-color: #000;
 }
 
-/* 扫描线效果 */
+/* 1. 扫描线效果优化 */
 body::before {
   content: " ";
   display: block;
@@ -15,20 +15,40 @@ body::before {
   left: 0;
   bottom: 0;
   right: 0;
+  /* 调整：将 z-index 设为 50。
+     确保它在黑洞 (z-0) 之上，但在导航栏和正文内容 (z-100) 之下。
+     这样可以避免扫描线让文字变得模糊，同时依然能盖在背景上。 */
+  z-index: 50; 
   background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
-              linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-  z-index: 100;
+              linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.04));
   background-size: 100% 4px, 3px 100%;
   pointer-events: none;
   opacity: 0.3;
 }
 
-/* 文字微弱辉光 */
+/* 2. 移动端优化：点击高亮消除 */
 * {
+  -webkit-tap-highlight-color: transparent;
+  outline: none !important;
+  /* 保持你的微弱辉光 */
   text-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
 }
 
-/* 隐藏滚动条但保留功能 */
 ::-webkit-scrollbar {
-  display: none;
+  width: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+* {
+  scrollbar-width: none;
+}
+
+/* 4. 解决 iOS 橡皮筋回弹背景变白的问题 */
+html, body {
+  background-color: #000;
+  overscroll-behavior-y: none; /* 禁用下拉刷新等引起页面跳动的行为 */
 }
