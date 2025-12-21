@@ -100,7 +100,7 @@ export const BlackHoleBackground = () => {
 	  uniforms: { 
 		rs: { value: CONFIG.rs },
 		explosion: { value: 0.0 },
-		glowBoost: { value: isMobile ? 0.8 : (window.devicePixelRatio > 1 ? 2.2 : 1.5) } 
+		glowBoost: { value: isMobile ? 1 : (window.devicePixelRatio > 1 ? 2.2 : 1.5) } 
 	  },
 	  vertexShader: `
 		uniform float rs;
@@ -126,7 +126,7 @@ export const BlackHoleBackground = () => {
 		  gl_Position = projectionMatrix * mvPosition;
 		  
 		  float r = length(position.xz);
-		  float baseSize = (1 + 3.5 / r) * glowBoost;
+		  float baseSize = (0.7 + 3.5 / r) * glowBoost;
 		  gl_PointSize = baseSize * (1000.0 / -mvPosition.z);
 		  
 		  vAlpha = alpha * (1.2 - explosion * 0.7); 
