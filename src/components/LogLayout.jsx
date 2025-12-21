@@ -7,25 +7,36 @@ const LogLayout = ({ title, category, date, children, isError = false }) => {
   const isVoid = isError || !children;
 
   return (
-    <div className="relative w-full min-h-screen bg-black text-white overflow-x-hidden font-mono">
+    /* 核心适配：
+       1. 去掉 h-screen 和 overflow，确保全局滚动以激活 NavBar 隐藏
+       2. selection 颜色适配主题
+    */
+    <div className="relative w-full min-h-screen bg-black text-white font-mono selection:bg-cyan-500/30">
       
-      {/* 1. 全局背景层 */}
+      {/* 1. 全局背景层：针对移动端中心点进行垂直重定位 */}
       <div className={`fixed inset-0 z-0 pointer-events-none flex items-center justify-center transition-all duration-1000 
-        ${isVoid ? 'grayscale-[100%] contrast-[150%] brightness-[60%] blur-[4px]' : 'opacity-50'}`}>
-        <div className="w-full h-full transform -translate-y-[5%] md:-translate-y-[10%] scale-[1.8] md:scale-125">
+        ${isVoid ? 'grayscale-[100%] contrast-[150%] brightness-[60%] blur-[4px]' : 'opacity-40'}`}>
+        
+        {/* 关键修正：
+            -translate-y-[20%]: 手机端大幅上提，防止黑洞掉到屏幕下方
+            md:-translate-y-[10%]: 电脑端适度上提，保持大气布局
+            scale-[1.8]: 手机端大比例填充，消除左右黑边
+        */}
+        <div className="w-full h-full transform -translate-y-[20%] md:-translate-y-[10%] scale-[1.8] md:scale-125">
           <BlackHoleBackground />
         </div>
       </div>
 
-      {/* 2. 噪点层 */}
+      {/* 2. 噪点层：增强胶片质感 */}
       <div className={`fixed inset-0 z-10 pointer-events-none transition-opacity duration-1000 
         ${isVoid ? 'opacity-20' : 'opacity-[0.03]'} bg-[url('https://grainy-gradients.vercel.app/noise.svg')]`}>
       </div>
 
-      {/* 3. 内容滚动容器 */}
-      <div className="relative z-20 w-full h-screen overflow-y-auto pt-24 md:pt-32 pb-12 px-4 md:px-6">
+      {/* 3. 内容滚动区：使用自然滚动流 */}
+      <div className="relative z-20 w-full pt-32 pb-20 px-4 md:px-6">
         <div className="max-w-3xl mx-auto">
           
+          {/* 毛玻璃容器：自适应内边距 */}
           <div className={`backdrop-blur-md border transition-all duration-700 
             p-6 sm:p-10 md:p-16 rounded-2xl md:rounded-[2rem] shadow-2xl
             ${isVoid ? 'bg-black/40 border-white/5' : 'bg-white/[0.02] border-white/10'}`}>
@@ -55,12 +66,13 @@ const LogLayout = ({ title, category, date, children, isError = false }) => {
                   </div>
                 </header>
 
-                {/* --- 重点区域 --- */}
-                <article className="prose prose-invert max-w-none text-white/80 leading-relaxed text-sm sm:text-base md:text-lg space-y-6 md:space-y-8">
+                {/* 正文：Tailwind Typography 适配 */}
+                <article className="prose prose-invert max-w-none text-white/80 leading-relaxed text-sm sm:text-base md:text-lg space-y-6 md:space-y-8 prose-img:rounded-xl prose-img:border prose-img:border-white/10">
                   {children}
                 </article>
               </>
             ) : (
+              /* Error Mode: Void Space */
               <div className="text-left py-6 md:py-10">
                 <div className="inline-block border border-white/10 bg-white/5 px-3 py-1 mb-8 rounded-sm">
                   <span className="text-white/30 text-[8px] md:text-[9px] tracking-[0.3em] md:tracking-[0.4em] uppercase flex items-center gap-2">
@@ -89,7 +101,6 @@ const LogLayout = ({ title, category, date, children, isError = false }) => {
                   ${isVoid ? 'border-white/10 group-hover:border-white' : 'border-cyan-500/30 group-hover:border-white group-hover:bg-white/10'}`}>
                   <ArrowRight className="rotate-180" size={14} />
                 </div>
-                {/* 使用插值确保安全渲染文字 */}
                 <span>{isVoid ? 'Reset_Connection' : 'Return'}</span>
               </Link>
             </footer>

@@ -325,43 +325,15 @@ const Home = () => {
 };
 /**
  * =================================================================
- * 3. 页面组件：BlackHoleModel (修复移动端无法打开/显示问题)
+ * 3. 页面组件：BlackHoleModel
  * =================================================================
  */
-const BlackHoleModel = () => {
-  useEffect(() => {
-    // 进入模型页时，确保页面回到顶部，防止导航栏状态异常
-    window.scrollTo(0, 0);
-  }, []);
+const BlackHoleModel = () => (
+  <div className="relative w-full h-screen bg-black overflow-hidden pt-20 md:pt-0">
+    <iframe src="/blackhole.html" title="Black Hole Simulation" className="w-full h-full border-0 block" />
+  </div>
+);
 
-  return (
-    <div className="relative w-full h-screen bg-black overflow-hidden flex items-center justify-center">
-      {/* 1. 直接复用黑洞组件，不再使用 iframe */}
-      <div className="absolute inset-0 z-0 scale-110 md:scale-100">
-        <BlackHoleBackground />
-      </div>
-
-      {/* 2. 增加一层微弱的 UI 装饰，增强“观测模式”的感觉 */}
-      <div className="relative z-10 pointer-events-none w-full h-full flex flex-col justify-between p-6 md:p-12 border-[1px] border-white/5 m-4">
-        <div className="flex justify-between items-start font-mono text-[9px] md:text-[10px] tracking-[0.5em] text-cyan-400/50 uppercase">
-          <span>Observation_Mode: active</span>
-          <span>Target: Gargantua_Prime</span>
-        </div>
-        
-        <div className="flex flex-col gap-2 font-mono text-[8px] text-white/20 uppercase tracking-widest">
-          <p>Singularity_Density: Infinite</p>
-          <p>Event_Horizon: 3.5RS</p>
-          <p>Frame_Dragging: Stabilized</p>
-        </div>
-      </div>
-
-      {/* 3. 提示文字（仅手机端显示，提示可以晃动） */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 md:hidden z-20 animate-pulse text-white/30 text-[9px] tracking-[0.3em] uppercase font-mono">
-        Device_Motion_Enabled
-      </div>
-    </div>
-  );
-};
 /**
  * =================================================================
  * 4. 全局导航栏组件 (NavBar)
@@ -603,9 +575,22 @@ const NotFound = () => {
   );
 };
 
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    // 立即跳转到顶部
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+};
+
 const App = () => (
   <Router>
+    {/* 必须放在 Router 内部，NavBar 上方 */}
+    <ScrollToTop /> 
+    
     <NavBar />
+    
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/models/black-hole" element={<BlackHoleModel />} />
@@ -614,9 +599,10 @@ const App = () => (
         <Route key={post.id} path={`/logs/${post.id}`} element={<post.component />} />
       ))}
       
-      {/* 404 路由必须放在最后 */}
+      {/* 404 路由 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   </Router>
 );
+
 export default App;
