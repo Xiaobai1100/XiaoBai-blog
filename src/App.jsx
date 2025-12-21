@@ -126,7 +126,7 @@ export const BlackHoleBackground = () => {
 		  gl_Position = projectionMatrix * mvPosition;
 		  
 		  float r = length(position.xz);
-		  float baseSize = (0.5 + 2.5 / r) * glowBoost;
+		  float baseSize = (0.7 + 2.5 / r) * glowBoost;
 		  gl_PointSize = baseSize * (1000.0 / -mvPosition.z);
 		  
 		  vAlpha = alpha * (1.2 - explosion * 0.7); 
