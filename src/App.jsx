@@ -1,32 +1,18 @@
+// 1. 所有的 import 放在最上面
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import * as THREE from 'three';
 import { Github, Terminal, ChevronDown, Menu, X, ArrowRight, Zap } from 'lucide-react';
-
-import AboutBlog from './pages/AboutBlog'; // 导入文章
-
-const App = () => (
-  <Router>
-    <NavBar />
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/models/black-hole" element={<BlackHoleModel />} />
-      
-      {/* 每一篇文章配一个路由 */}
-      <Route path="/logs/about-blog" element={<AboutBlog />} />
-      
-      <Route path="*" element={<div className="h-screen bg-black text-white flex items-center justify-center font-mono uppercase tracking-widest">404: Signal_Lost</div>} />
-    </Routes>
-  </Router>
-);
-
+import AboutBlog from './pages/AboutBlog';
+import { POSTS } from './config/posts';
 
 /**
  * =================================================================
  * 1. 核心组件：1:1 物理复刻版黑洞 (带崩解逻辑)
  * =================================================================
  */
-const BlackHoleBackground = () => {
+ 
+export const BlackHoleBackground = () => {
   const containerRef = useRef(null);
   const pulseRef = useRef({ active: false, startTime: 0, phase: 'idle' });
   const gyroRef = useRef({ x: 0, y: 0 });
@@ -185,30 +171,30 @@ const BlackHoleBackground = () => {
  * =================================================================
  */
 const Home = () => {
-  const [glitchState, setGlitchState] = useState('stable'); 
+  const [glitchState, setGlitchState] = useState('stable');
 
   useEffect(() => {
     const onPulse = () => {
-      setGlitchState('shaking'); 
-      setTimeout(() => setGlitchState('abnormal'), 500); 
-      setTimeout(() => setGlitchState('stable'), 1500); 
+      setGlitchState('shaking');
+      setTimeout(() => setGlitchState('abnormal'), 500);
+      setTimeout(() => setGlitchState('stable'), 1500);
     };
     window.addEventListener('singularity-pulse', onPulse);
     return () => window.removeEventListener('singularity-pulse', onPulse);
   }, []);
 
-	// 找到 Home 组件内部的 ArticleCard 定义并修改
-	const ArticleCard = ({ title, category, date }) => (
-	  <div className="group relative bg-white/5 border border-white/10 p-8 hover:border-cyan-500/50 hover:bg-white/10 transition-all duration-300 cursor-pointer overflow-hidden backdrop-blur-md pointer-events-auto">
-		<div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 text-cyan-500"><Zap size={20} /></div>
-		<div className="text-cyan-500/80 text-[10px] font-mono tracking-widest mb-3 uppercase">{category}</div>
-		<h3 className="text-2xl font-bold text-white mb-4 leading-tight group-hover:text-cyan-100 transition-colors uppercase">{title}</h3>
-		<div className="text-white/40 text-xs font-mono flex items-center gap-2">
-		  <span>{date}</span><span className="w-4 h-[1px] bg-white/20" /><span>READ_LOG</span>
-		</div>
-	  </div>
-	);
-	
+  // 内部 ArticleCard 组件保持不变
+  const ArticleCard = ({ title, category, date }) => (
+    <div className="group relative bg-white/5 border border-white/10 p-8 hover:border-cyan-500/50 hover:bg-white/10 transition-all duration-300 cursor-pointer overflow-hidden backdrop-blur-md pointer-events-auto">
+      <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 text-cyan-500"><Zap size={20} /></div>
+      <div className="text-cyan-500/80 text-[10px] font-mono tracking-widest mb-3 uppercase">{category}</div>
+      <h3 className="text-2xl font-bold text-white mb-4 leading-tight group-hover:text-cyan-100 transition-colors uppercase">{title}</h3>
+      <div className="text-white/40 text-xs font-mono flex items-center gap-2">
+        <span>{date}</span><span className="w-4 h-[1px] bg-white/20" /><span>READ_LOG</span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="relative w-full min-h-screen bg-black overflow-x-hidden text-white">
       <style>{`
@@ -253,23 +239,33 @@ const Home = () => {
         </div>
       </main>
       
-		<section className="relative z-10 bg-black/30 backdrop-blur-xl py-32 px-6 border-t border-white/5">
-		  <div className="max-w-7xl mx-auto">
-			<h2 className="text-4xl font-bold tracking-tighter uppercase opacity-60 mb-16">Logs</h2>
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-			  <ArticleCard title="The visualization of black hole" category="Simulation" date="DEC 20" />
-			  
-			  {/* 使用 block 让 Link 变成块级元素，包裹住整个卡片 */}
-			  <Link to="/logs/about-blog" className="pointer-events-auto block">
-				<ArticleCard title="About this blog" category="WebGL" date="DEC 21" />
-			  </Link>
-			</div>
-		  </div>
-		</section>
+      {/* 自动生成的 Logs 区域 */}
+      <section className="relative z-10 bg-black/30 backdrop-blur-xl py-32 px-6 border-t border-white/5">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-4xl font-bold tracking-tighter uppercase opacity-60 mb-16">Logs</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            
+            {/* 核心改动：循环遍历 POSTS 数组 */}
+            {POSTS.map((post) => (
+              <Link 
+                key={post.id} 
+                to={`/logs/${post.id}`} 
+                className="pointer-events-auto block"
+              >
+                <ArticleCard 
+                  title={post.title} 
+                  category={post.category} 
+                  date={post.date} 
+                />
+              </Link>
+            ))}
+
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
-
 /**
  * =================================================================
  * 3. 页面组件：BlackHoleModel
@@ -365,7 +361,6 @@ const NavBar = () => {
   );
 };
 
-// 找到文件最末尾的 App 并替换为这个版本
 const App = () => (
   <Router>
     <NavBar />
@@ -373,12 +368,12 @@ const App = () => (
       <Route path="/" element={<Home />} />
       <Route path="/models/black-hole" element={<BlackHoleModel />} />
       
-      {/* 这里的路由必须存在，跳转才不会 404 */}
-      <Route path="/logs/about-blog" element={<AboutBlog />} />
+      {POSTS.map(post => (
+        <Route key={post.id} path={`/logs/${post.id}`} element={<post.component />} />
+      ))}
       
-      <Route path="*" element={<div className="h-screen bg-black text-white flex items-center justify-center font-mono uppercase tracking-widest">404: Signal_Lost</div>} />
+      <Route path="*" element={<div className="h-screen bg-black text-white flex ...">404: Signal_Lost</div>} />
     </Routes>
   </Router>
 );
-
 export default App;
