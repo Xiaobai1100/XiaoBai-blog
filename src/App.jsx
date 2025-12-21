@@ -3,6 +3,24 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react
 import * as THREE from 'three';
 import { Github, Terminal, ChevronDown, Menu, X, ArrowRight, Zap } from 'lucide-react';
 
+import AboutBlog from './pages/AboutBlog'; // 导入文章
+
+const App = () => (
+  <Router>
+    <NavBar />
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/models/black-hole" element={<BlackHoleModel />} />
+      
+      {/* 每一篇文章配一个路由 */}
+      <Route path="/logs/about-blog" element={<AboutBlog />} />
+      
+      <Route path="*" element={<div className="h-screen bg-black text-white flex items-center justify-center font-mono uppercase tracking-widest">404: Signal_Lost</div>} />
+    </Routes>
+  </Router>
+);
+
+
 /**
  * =================================================================
  * 1. 核心组件：1:1 物理复刻版黑洞 (带崩解逻辑)
@@ -236,10 +254,12 @@ const Home = () => {
       
       <section className="relative z-10 bg-black/30 backdrop-blur-xl py-32 px-6 border-t border-white/5">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-bold tracking-tighter uppercase opacity-60 mb-16">Transmission_Logs</h2>
+          <h2 className="text-4xl font-bold tracking-tighter uppercase opacity-60 mb-16">Logs</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <ArticleCard title="The visualization of black hole" category="Simulation" date="DEC 20" />
-            <ArticleCard title="About this blog" category="WebGL" date="DEC 20" />
+            <Link to="/logs/about-blog" className="pointer-events-auto">
+			  <ArticleCard title="About this blog" category="WebGL" date="DEC 21" />
+			</Link>
           </div>
         </div>
       </section>
