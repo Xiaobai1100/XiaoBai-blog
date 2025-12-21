@@ -13,8 +13,10 @@ import {
 } from 'lucide-react';
 
 // 导入你的页面组件
+import LogsPage from './pages/LogsPage';
 import AboutBlog from './pages/AboutBlog';
-import { POSTS } from './config/posts';
+import {POSTS} from './config/posts';
+export { POSTS }; // 显式重新导出，让 LogsPage 能搜到
 
 // 后面直接开始写 export const BlackHoleBackground = ...
 
@@ -290,9 +292,12 @@ const Home = () => {
             </p>
           </div>
 
-          <button className="flex items-center gap-2 bg-white text-black px-10 py-4 font-mono font-bold tracking-[0.2em] hover:bg-cyan-300 transition-all group uppercase">
-            Start Reading <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-          </button>
+			<Link 
+			  to="/logs" 
+			  className="px-10 py-4 border border-white text-white tracking-[0.4em] uppercase hover:bg-white hover:text-black transition-all duration-500 font-black text-sm"
+			>
+			  Start Reading	
+			</Link>
         </div>
       </main>
       
@@ -557,6 +562,7 @@ const App = () => (
     
     <Routes>
       <Route path="/" element={<Home />} />
+	  <Route path="/logs" element={<LogsPage />} />
       <Route path="/models/black-hole" element={<BlackHoleModel />} />
       
       {POSTS.map(post => (
