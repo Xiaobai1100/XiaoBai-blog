@@ -1,9 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
-import LogLayout from '../components/LogLayout';
 
 // =========================================================
-// 🛡️ 静态资源隔离区 (100% 绝对安全)
-// 彻底解决 JS 模板字符串导致 ${n+1} 被误认为变量的致命 Bug
+// ⚠️ 注意：在你本地项目中，请【解除】下一行的注释，并【删除】下方的 LogLayout 常量！
+// =========================================================
+// import LogLayout from '../components/LogLayout';
+
+// (下方的内联 LogLayout 仅为防止在此处的预览环境报错，你复制到本地时可以删掉这块)
+const LogLayout = ({ title, category, date, children }) => (
+  <div className="min-h-screen bg-[#0d1117] text-white p-4 md:p-8 selection:bg-cyan-500/30">
+    <div className="max-w-5xl mx-auto">
+      <header className="mb-12 border-b border-white/10 pb-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+          <div>
+            <div className="text-cyan-400 text-[10px] tracking-[0.3em] uppercase mb-2 font-mono">Category: {category}</div>
+            <h1 className="text-2xl md:text-3xl font-black tracking-widest uppercase font-mono">{title}</h1>
+          </div>
+          <div className="text-white/40 font-mono text-sm tracking-widest">{date}</div>
+        </div>
+      </header>
+      <main>{children}</main>
+    </div>
+  </div>
+);
+
+// =========================================================
+// 🛡️ 静态资源隔离区
 // =========================================================
 const FORMULAS = {
   stability: "|x_{n+1} - x^*| \\approx |f'(x^*)| \\cdot |x_n - x^*|",
@@ -11,7 +32,6 @@ const FORMULAS = {
   schwarzian: "Sf(x) = \\frac{f'''(x)}{f'(x)} - \\frac{3}{2} \\left( \\frac{f''(x)}{f'(x)} \\right)^2 < 0"
 };
 
-// 放弃使用反引号，改用数组拼接，彻底杜绝 ${n+1} 触发 JS 变量解析崩溃
 const PYTHON_CODE = [
   "import numpy as np",
   "import matplotlib.pyplot as plt",
@@ -37,7 +57,7 @@ const PYTHON_CODE = [
   "        ",
   "    ax.set_title(f'Cobweb Plot: r={r}, x0={x0}')",
   "    ax.set_xlabel('$x_n$')",
-  "    ax.set_ylabel('$x_{n+1}$') # 这里的 {n+1} 曾是导致页面黑屏的元凶",
+  "    ax.set_ylabel('$x_{n+1}$') ",
   "    ax.set_xlim(0, 1)",
   "    ax.set_ylim(0, 1)",
   "    ax.grid(True, linestyle='--', alpha=0.5)",
@@ -113,7 +133,7 @@ class ErrorBoundary extends React.Component {
 }
 
 // =========================================================
-// 组件: 交互式混沌实验室 (性能优化版)
+// 组件: 交互式混沌实验室
 // =========================================================
 const ChaosLab = () => {
   const [r, setR] = useState(3.0);
@@ -306,7 +326,8 @@ const ChaosLogContent = () => {
         <section className="space-y-4">
           <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">1. Local Stability & Fixed Points</h3>
           <p>
-            Consider the iterative map $x_{n+1} = f(x_n)$. A state $x^*$ is defined as a fixed point if $f(x^*) = x^*$. 
+            {/* 🛑 所有这里的花括号都被字符串安全包裹，防止 React 把 {n+1} 当变量计算！ */}
+            Consider the iterative map {"$x_{n+1} = f(x_n)$"}. A state {"$x^*$"} is defined as a fixed point if {"$f(x^*) = x^*$"}. 
             The behavior of trajectories in its infinitesimal neighborhood is governed by the linearized derivative:
           </p>
           
@@ -315,11 +336,11 @@ const ChaosLogContent = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs tracking-widest">
             <div className="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded">
               <span className="text-cyan-400 font-black block mb-1">STABLE ATTRACTOR</span>
-              If $|f'(x^*)| &lt; 1$, initial perturbations decay geometrically.
+              If {"$|f'(x^*)| < 1$"}, initial perturbations decay geometrically.
             </div>
             <div className="p-4 bg-pink-500/5 border border-pink-500/20 rounded">
               <span className="text-pink-400 font-black block mb-1">UNSTABLE REPELLOR</span>
-              If $|f'(x^*)| &gt; 1$, local fluctuations amplify exponentially.
+              If {"$|f'(x^*)| > 1$"}, local fluctuations amplify exponentially.
             </div>
           </div>
         </section>
@@ -327,8 +348,8 @@ const ChaosLogContent = () => {
         <section className="space-y-4">
           <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">2. Iterative Lab: The Logistic Cascade</h3>
           <p>
-            The Logistic Map $x_{n+1} = r x_n (1 - x_n)$ exemplifies the bifurcation route to chaos. Interact with 
-            the parameter $r$ to witness the "Cobweb" spiral transition from stability to periodic orbits:
+            The Logistic Map {"$x_{n+1} = r x_n (1 - x_n)$"} exemplifies the bifurcation route to chaos. Interact with 
+            the parameter {"$r$"} to witness the "Cobweb" spiral transition from stability to periodic orbits:
           </p>
           <ChaosLab />
         </section>
@@ -337,14 +358,14 @@ const ChaosLogContent = () => {
           <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">3. Python Simulation & Visualization</h3>
           <p>
             To rigorously analyze the transition mappings, we can utilize `numpy` and `matplotlib` to render both 
-            the cobweb iterations and their corresponding time-series behavior across different parameters $r$.
+            the cobweb iterations and their corresponding time-series behavior across different parameters {"$r$"}.
           </p>
           
           <CodeBlock code={PYTHON_CODE} />
           
           <p>
             The execution of this simulation yields the following visualizations, clearly demonstrating the phase 
-            shifts from stable fixed points ($r=2.8$) to 2-cycles ($r=3.2$), and ultimately to aperiodic chaos ($r=3.9$).
+            shifts from stable fixed points ({"$r=2.8$"}) to 2-cycles ({"$r=3.2$"}), and ultimately to aperiodic chaos ({"$r=3.9$"}).
           </p>
           <figure className="my-8 overflow-hidden rounded-xl border border-white/10 shadow-2xl bg-white/5">
             <img 
@@ -362,8 +383,8 @@ const ChaosLogContent = () => {
         <section className="space-y-6">
           <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">4. Universal Scaling (Feigenbaum Constant)</h3>
           <p>
-            In the period-doubling regime, the intervals between successive bifurcations $r_n$ converge following a specific, 
-            universal ratio. This is the **Feigenbaum Constant** $\delta$:
+            In the period-doubling regime, the intervals between successive bifurcations {"$r_n$"} converge following a specific, 
+            universal ratio. This is the **Feigenbaum Constant** {"$\\delta$"}:
           </p>
           
           <MathDisplay tex={FORMULAS.feigenbaum} />
@@ -390,7 +411,7 @@ const ChaosLogContent = () => {
         <section className="space-y-4">
           <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">5. The Schwarzian Derivative Criterion</h3>
           <p>
-            A map $f$ must satisfy a global curvature constraint to exhibit a stable period-doubling cascade, 
+            A map {"$f$"} must satisfy a global curvature constraint to exhibit a stable period-doubling cascade, 
             known as the <strong>Schwarzian Derivative</strong>:
           </p>
           
