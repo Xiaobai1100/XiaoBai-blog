@@ -1,6 +1,6 @@
 import AboutBlog from '../pages/AboutBlog'; 
 import ChristmasLog from '../pages/ChristmasLog';
-import ChaosLog_1 from '../pages/ChaosLog';
+import ChaosLog_1 from '../pages/ChaosLog_1';
 
 export const POSTS = [
 
@@ -10,7 +10,7 @@ title: 'SIGNAL_RECEIVED: DYNAMICS_FIXED_POINTS_TO_CHAOS',
 category: 'RESEARCH',
 date: '2025-12-25',
 description: 'From fixed points to the Feigenbaum constant: exploring the beauty of non-linear dynamics.',
-component: ChaosLog // 关键：指向你刚刚写的组件
+component: ChaosLog_1 // 关键：指向你刚刚写的组件
 },
   
 {
