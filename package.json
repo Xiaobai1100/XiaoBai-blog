@@ -12,9 +12,11 @@
   "dependencies": {
     "@lyket/react": "^2.1.0",
     "framer-motion": "^12.23.26",
+    "katex": "^0.16.43",
     "lucide-react": "^0.562.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-katex": "^3.1.0",
     "react-router-dom": "^7.11.0",
     "three": "^0.182.0"
   },
