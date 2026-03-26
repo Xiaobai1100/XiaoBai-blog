@@ -5,28 +5,8 @@ import React, { useState, useEffect, useRef } from 'react';
 // 这是为了确保你在本地和 Vercel 部署时，图片和布局能正常打包加载。
 // =========================================================
 import LogLayout from '../components/LogLayout';
-import figure1 from '../components/Figure_1.png';
-import figure2 from '../components/Figure_2.png';
-
-// (下方的临时变量和组件仅为防止在此处的预览环境报错，你复制到本地时可以删掉)
-const figure1 = "https://images.unsplash.com/photo-1550684376-efcbd6e3f031?auto=format&fit=crop&q=80&w=800"; 
-const figure2 = "https://images.unsplash.com/photo-1516259762381-22954d7d3ad2?auto=format&fit=crop&q=80&w=800"; 
-const LogLayout = ({ title, category, date, children }) => (
-  <div className="min-h-screen bg-[#0d1117] text-white p-4 md:p-8 selection:bg-cyan-500/30">
-    <div className="max-w-5xl mx-auto">
-      <header className="mb-12 border-b border-white/10 pb-6">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
-          <div>
-            <div className="text-cyan-400 text-[10px] tracking-[0.3em] uppercase mb-2 font-mono">Category: {category}</div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-widest uppercase font-mono">{title}</h1>
-          </div>
-          <div className="text-white/40 font-mono text-sm tracking-widest">{date}</div>
-        </div>
-      </header>
-      <main>{children}</main>
-    </div>
-  </div>
-);
+import figure1 from '../assets/Figure_1.png';
+import figure2 from '../assets/Figure_2.png';
 
 // =========================================================
 // 🛡️ 静态资源隔离区
