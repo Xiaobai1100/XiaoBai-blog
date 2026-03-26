@@ -5,8 +5,8 @@ import React, { useState, useEffect, useRef } from 'react';
 // 这是为了确保你在本地和 Vercel 部署时，图片和布局能正常打包加载。
 // =========================================================
 import LogLayout from '../components/LogLayout';
-import figure1 from '../assets/Figure_1.png';
-import figure2 from '../assets/Figure_2.png';
+import figure1 from '../components/Figure_1.png';
+import figure2 from '../components/Figure_2.png';
 
 // (下方的临时变量和组件仅为防止在此处的预览环境报错，你复制到本地时可以删掉)
 const figure1 = "https://images.unsplash.com/photo-1550684376-efcbd6e3f031?auto=format&fit=crop&q=80&w=800"; 
