@@ -1,6 +1,6 @@
 import AboutBlog from '../pages/AboutBlog'; 
 import ChristmasLog from '../pages/ChristmasLog';
-import ChaosLog from '../pages/ChaosLog';
+import ChaosLog_1 from '../pages/ChaosLog';
 
 export const POSTS = [
 
