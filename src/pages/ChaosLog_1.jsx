@@ -165,7 +165,7 @@ const CodeBlock = ({ code }) => (
   </div>
 );
 
-const ChaosLog = () => {
+const ChaosLog_1 = () => {
   const [katexReady, setKatexReady] = useState(false);
 
   useEffect(() => {
@@ -400,4 +400,4 @@ plt.show()`;
   );
 };
 
-export default ChaosLog;
+export default ChaosLog_1;

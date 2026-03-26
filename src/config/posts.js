@@ -15,7 +15,7 @@ component: ChaosLog_1 // 关键：指向你刚刚写的组件
   
 {
 id: 'christmas-2025',
-title: 'SIGNAL_RECEIVED: MERRY_CHRISTMAS_2025',
+title: 'MERRY_CHRISTMAS_2025',
 category: 'EVENT',
 date: '2025-12-25',
 component: ChristmasLog // 引用刚才导入的组件
