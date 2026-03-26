@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // =========================================================
-// ⚠️ 注意：在你本地项目中，请【解除】下一行的注释，并【删除】下方的 LogLayout 常量！
+// ⚠️ 注意：在你本地项目中，请【解除】下方三行代码的注释！
+// 这是为了确保你在本地和 Vercel 部署时，图片和布局能正常打包加载。
 // =========================================================
-// import LogLayout from '../components/LogLayout';
+import LogLayout from '../components/LogLayout';
+import figure1 from '../assets/Figure_1.png';
+import figure2 from '../assets/Figure_2.png';
 
-// (下方的内联 LogLayout 仅为防止在此处的预览环境报错，你复制到本地时可以删掉这块)
+// (下方的临时变量和组件仅为防止在此处的预览环境报错，你复制到本地时可以删掉)
+const figure1 = "https://images.unsplash.com/photo-1550684376-efcbd6e3f031?auto=format&fit=crop&q=80&w=800"; 
+const figure2 = "https://images.unsplash.com/photo-1516259762381-22954d7d3ad2?auto=format&fit=crop&q=80&w=800"; 
 const LogLayout = ({ title, category, date, children }) => (
   <div className="min-h-screen bg-[#0d1117] text-white p-4 md:p-8 selection:bg-cyan-500/30">
     <div className="max-w-5xl mx-auto">
@@ -247,36 +252,37 @@ const ChaosLab = () => {
 };
 
 // =========================================================
-// 组件: 最安全的无状态数学渲染器
+// 组件: 最安全的无状态数学渲染器 (用于独立段落块)
 // =========================================================
-const MathDisplay = ({ tex }) => {
+const MathDisplay = ({ tex, katexReady }) => {
   const container = useRef(null);
-
   useEffect(() => {
-    const renderMath = () => {
-      if (window.katex && container.current) {
-        try {
-          window.katex.render(tex, container.current, { throwOnError: false, displayMode: true });
-        } catch (e) {
-          console.error("KaTeX Render Error:", e);
-        }
+    if (katexReady && window.katex && container.current) {
+      try {
+        window.katex.render(tex, container.current, { throwOnError: false, displayMode: true });
+      } catch (e) {
+        console.error("KaTeX Render Error:", e);
       }
-    };
-
-    if (window.katex) {
-      renderMath();
-    } else {
-      const interval = setInterval(() => {
-        if (window.katex) {
-          clearInterval(interval);
-          renderMath();
-        }
-      }, 300);
-      return () => clearInterval(interval);
     }
-  }, [tex]);
+  }, [tex, katexReady]);
+  return <div ref={container} className="my-8 py-6 bg-white/[0.02] rounded-xl border border-white/5 shadow-inner overflow-x-auto text-center"></div>;
+};
 
-  return <div ref={container} className="my-8 py-6 bg-white/[0.02] rounded-xl border border-white/5 shadow-inner overflow-x-auto text-center">{tex}</div>;
+// =========================================================
+// 组件: 行内公式渲染器 (精美渲染 $r_n$, $f$ 等数学符号)
+// =========================================================
+const InlineMath = ({ tex, katexReady }) => {
+  const container = useRef(null);
+  useEffect(() => {
+    if (katexReady && window.katex && container.current) {
+      try {
+        window.katex.render(tex, container.current, { throwOnError: false, displayMode: false });
+      } catch (e) {
+        console.error("KaTeX Inline Error:", e);
+      }
+    }
+  }, [tex, katexReady]);
+  return <span ref={container} className="mx-1 font-serif text-cyan-200/90">{`$${tex}$`}</span>;
 };
 
 // =========================================================
@@ -297,6 +303,8 @@ const CodeBlock = ({ code }) => (
 // 页面主逻辑
 // =========================================================
 const ChaosLogContent = () => {
+  const [katexReady, setKatexReady] = useState(false);
+
   useEffect(() => {
     if (!document.getElementById('katex-cdn-css')) {
       const link = document.createElement('link');
@@ -304,10 +312,13 @@ const ChaosLogContent = () => {
       link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
       document.head.appendChild(link);
     }
-    if (!document.getElementById('katex-cdn-js')) {
+    if (window.katex) {
+      setKatexReady(true);
+    } else if (!document.getElementById('katex-cdn-js')) {
       const script = document.createElement('script');
       script.id = 'katex-cdn-js';
       script.src = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+      script.onload = () => setKatexReady(true);
       document.head.appendChild(script);
     }
   }, []);
@@ -326,21 +337,20 @@ const ChaosLogContent = () => {
         <section className="space-y-4">
           <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">1. Local Stability & Fixed Points</h3>
           <p>
-            {/* 🛑 所有这里的花括号都被字符串安全包裹，防止 React 把 {n+1} 当变量计算！ */}
-            Consider the iterative map {"$x_{n+1} = f(x_n)$"}. A state {"$x^*$"} is defined as a fixed point if {"$f(x^*) = x^*$"}. 
+            Consider the iterative map <InlineMath tex="x_{n+1} = f(x_n)" katexReady={katexReady} />. A state <InlineMath tex="x^*" katexReady={katexReady} /> is defined as a fixed point if <InlineMath tex="f(x^*) = x^*" katexReady={katexReady} />. 
             The behavior of trajectories in its infinitesimal neighborhood is governed by the linearized derivative:
           </p>
           
-          <MathDisplay tex={FORMULAS.stability} />
+          <MathDisplay tex={FORMULAS.stability} katexReady={katexReady} />
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs tracking-widest">
             <div className="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded">
               <span className="text-cyan-400 font-black block mb-1">STABLE ATTRACTOR</span>
-              If {"$|f'(x^*)| < 1$"}, initial perturbations decay geometrically.
+              If <InlineMath tex="|f'(x^*)| < 1" katexReady={katexReady} />, initial perturbations decay geometrically.
             </div>
             <div className="p-4 bg-pink-500/5 border border-pink-500/20 rounded">
               <span className="text-pink-400 font-black block mb-1">UNSTABLE REPELLOR</span>
-              If {"$|f'(x^*)| > 1$"}, local fluctuations amplify exponentially.
+              If <InlineMath tex="|f'(x^*)| > 1" katexReady={katexReady} />, local fluctuations amplify exponentially.
             </div>
           </div>
         </section>
@@ -348,8 +358,8 @@ const ChaosLogContent = () => {
         <section className="space-y-4">
           <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">2. Iterative Lab: The Logistic Cascade</h3>
           <p>
-            The Logistic Map {"$x_{n+1} = r x_n (1 - x_n)$"} exemplifies the bifurcation route to chaos. Interact with 
-            the parameter {"$r$"} to witness the "Cobweb" spiral transition from stability to periodic orbits:
+            The Logistic Map <InlineMath tex="x_{n+1} = r x_n (1 - x_n)" katexReady={katexReady} /> exemplifies the bifurcation route to chaos. Interact with 
+            the parameter <InlineMath tex="r" katexReady={katexReady} /> to witness the "Cobweb" spiral transition from stability to periodic orbits:
           </p>
           <ChaosLab />
         </section>
@@ -358,19 +368,18 @@ const ChaosLogContent = () => {
           <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">3. Python Simulation & Visualization</h3>
           <p>
             To rigorously analyze the transition mappings, we can utilize `numpy` and `matplotlib` to render both 
-            the cobweb iterations and their corresponding time-series behavior across different parameters {"$r$"}.
+            the cobweb iterations and their corresponding time-series behavior across different parameters <InlineMath tex="r" katexReady={katexReady} />.
           </p>
           
           <CodeBlock code={PYTHON_CODE} />
           
           <p>
             The execution of this simulation yields the following visualizations, clearly demonstrating the phase 
-            shifts from stable fixed points ({"$r=2.8$"}) to 2-cycles ({"$r=3.2$"}), and ultimately to aperiodic chaos ({"$r=3.9$"}).
+            shifts from stable fixed points (<InlineMath tex="r=2.8" katexReady={katexReady} />) to 2-cycles (<InlineMath tex="r=3.2" katexReady={katexReady} />), and ultimately to aperiodic chaos (<InlineMath tex="r=3.9" katexReady={katexReady} />).
           </p>
           <figure className="my-8 overflow-hidden rounded-xl border border-white/10 shadow-2xl bg-white/5">
             <img 
-              src="/Figure_1.png" 
-              onError={(e) => { e.target.onerror = null; e.target.src = "/Figure_1.jpg" }}
+              src={figure1} 
               alt="Cobweb and Time Series Plot" 
               className="w-full object-cover opacity-90 hover:opacity-100 transition-opacity"
             />
@@ -383,11 +392,11 @@ const ChaosLogContent = () => {
         <section className="space-y-6">
           <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">4. Universal Scaling (Feigenbaum Constant)</h3>
           <p>
-            In the period-doubling regime, the intervals between successive bifurcations {"$r_n$"} converge following a specific, 
-            universal ratio. This is the **Feigenbaum Constant** {"$\\delta$"}:
+            In the period-doubling regime, the intervals between successive bifurcations <InlineMath tex="r_n" katexReady={katexReady} /> converge following a specific, 
+            universal ratio. This is the **Feigenbaum Constant** <InlineMath tex="\delta" katexReady={katexReady} />:
           </p>
           
-          <MathDisplay tex={FORMULAS.feigenbaum} />
+          <MathDisplay tex={FORMULAS.feigenbaum} katexReady={katexReady} />
           
           <p>
             This universality is a profound <strong>Serendipity</strong>: any unimodal map with a quadratic maximum 
@@ -396,8 +405,7 @@ const ChaosLogContent = () => {
           </p>
           <figure className="my-8 overflow-hidden rounded-xl border border-white/10 shadow-2xl bg-white/5">
             <img 
-              src="/Figure_2.png" 
-              onError={(e) => { e.target.onerror = null; e.target.src = "/Figure_2.jpg" }}
+              src={figure2} 
               alt="Bifurcation Diagram" 
               className="w-full object-cover opacity-90 hover:opacity-100 transition-opacity invert hue-rotate-180"
               style={{ filter: "invert(1) hue-rotate(180deg) contrast(1.2)" }} 
@@ -411,11 +419,11 @@ const ChaosLogContent = () => {
         <section className="space-y-4">
           <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">5. The Schwarzian Derivative Criterion</h3>
           <p>
-            A map {"$f$"} must satisfy a global curvature constraint to exhibit a stable period-doubling cascade, 
+            A map <InlineMath tex="f" katexReady={katexReady} /> must satisfy a global curvature constraint to exhibit a stable period-doubling cascade, 
             known as the <strong>Schwarzian Derivative</strong>:
           </p>
           
-          <MathDisplay tex={FORMULAS.schwarzian} />
+          <MathDisplay tex={FORMULAS.schwarzian} katexReady={katexReady} />
           
           <p className="opacity-50 text-xs italic bg-white/5 p-4 border-l-2 border-white/20">
             // This negative Schwarzian derivative ensures that the map has at most one stable periodic orbit, 
@@ -437,7 +445,6 @@ const ChaosLogContent = () => {
   );
 };
 
-// 使用 ErrorBoundary 严密包裹
 export default function ChaosLogWrapped() {
   return (
     <ErrorBoundary>
