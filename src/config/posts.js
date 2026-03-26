@@ -3,7 +3,7 @@ import ChristmasLog from '../pages/ChristmasLog';
 import ChaosLog_1 from '../pages/ChaosLog_1';
 
 export const POSTS = [
-
+ 
 {
 id: 'chaos-dynamics', // 路由使用的 ID
 title: 'SIGNAL_RECEIVED: DYNAMICS_FIXED_POINTS_TO_CHAOS',
