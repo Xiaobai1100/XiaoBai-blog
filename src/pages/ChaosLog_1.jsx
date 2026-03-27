@@ -284,7 +284,7 @@ const ChaosLogContent = () => {
   }, []);
 
   return (
-    <LogLayout title="FROM_FIXED_POINTS_TO_CHAOS: THE_AESTHETICS_AND_SCIENCE_OF_DYNAMICAL_SYSTEMS" category="RESEARCH" date="2026-03-26">
+    <LogLayout title="CHAOS 1: INTRO_OF_DYNAMICAL_SYSTEMS" category="RESEARCH" date="2026-03-26">
       <div className="space-y-12 font-mono text-white/80 text-sm md:text-base leading-relaxed max-w-5xl mx-auto pb-20">
         
         <section className="space-y-4">
@@ -296,7 +296,7 @@ const ChaosLogContent = () => {
         </section>
 
         <section className="space-y-4">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">1. Dynamical Systems Classification: Discrete vs. Continuous</h3>
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">1. Dynamical Systems: Discrete vs. Continuous</h3>
           <p>Dynamical systems are primarily categorized into two major classes:</p>
           <ul className="list-disc list-inside space-y-2 text-white/70 ml-4">
             <li><strong>Discrete Systems (Iterative Maps):</strong> Described by iterative mappings <InlineMath tex="x_{n+1} = f(x_n)" katexReady={katexReady} />.</li>
@@ -306,7 +306,7 @@ const ChaosLogContent = () => {
         </section>
 
         <section className="space-y-4">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">2. Fixed Points and Stability: Linearization Analysis</h3>
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">2. Fixed Points an& Stability</h3>
           <p>
             <strong>Definition:</strong> If a point satisfies <InlineMath tex="f(x^*) = x^*" katexReady={katexReady} />, then <InlineMath tex="x^*" katexReady={katexReady} /> is called a <em>Fixed Point</em>.
           </p>
@@ -330,7 +330,7 @@ const ChaosLogContent = () => {
         </section>
 
         <section className="space-y-4">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">3. Classic Case: The Evolution of the Logistic Map</h3>
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">3. Classic Case: Logistic Map</h3>
           <p>
             The equation for the Logistic Map is given by:
           </p>
@@ -360,7 +360,7 @@ const ChaosLogContent = () => {
         </section>
 
         <section className="space-y-6">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">4. Periodic Orbits and the Feigenbaum Constant</h3>
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">4. Period Doubling and the Feigenbaum Constant</h3>
           <p>
             For a <InlineMath tex="2^n" katexReady={katexReady} />-cycle, its stability is determined by the chain rule of the composite function:
           </p>
@@ -383,7 +383,7 @@ const ChaosLogContent = () => {
         </section>
 
         <section className="space-y-6">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">5. Visualization: Cobweb Plots and Bifurcation Diagrams</h3>
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">5. Cobweb Plots and Bifurcation Diagrams</h3>
           <p>
             We can intuitively observe this mathematical transition using Python code.
           </p>
@@ -415,7 +415,7 @@ const ChaosLogContent = () => {
         </section>
 
         <section className="space-y-4">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">6. Mathematical Advanced: Schwarzian Derivative & Constant Verification</h3>
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">6. Schwarzian Derivative & Constant Verification</h3>
           <p>
             Why are certain functions guaranteed to undergo a period-doubling cascade and ultimately yield the universal constant <InlineMath tex="\delta" katexReady={katexReady} />? The critical condition for this mathematical guarantee lies within the <strong>Schwarzian Derivative</strong>:
           </p>
