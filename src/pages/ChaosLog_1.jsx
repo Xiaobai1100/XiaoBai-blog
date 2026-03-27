@@ -9,79 +9,59 @@ import figure1 from '../assets/Figure_1.png';
 import figure2 from '../assets/Figure_2.png';
 
 // =========================================================
-// 🛡️ 静态资源隔离区
+// 🛡️ 静态资源隔离区 (完全防爆机制)
 // =========================================================
 const FORMULAS = {
-  stability: "|x_{n+1} - x^*| \\approx |f'(x^*)| \\cdot |x_n - x^*|",
+  linearization: "f(x) \\approx f(x^*) + f'(x^*)(x - x^*) \\implies x_{n+1} - x^* \\approx f'(x^*)(x_n - x^*)",
+  logistic: "x_{n+1} = rx_n(1 - x_n), \\quad x \\in [0, 1]",
+  chainRule: "(f^{(2^n)})'(x) = f'(x_1) \\cdot f'(x_2) \\cdots f'(x_{2^n})",
   feigenbaum: "\\delta = \\lim_{n \\to \\infty} \\frac{r_n - r_{n-1}}{r_{n+1} - r_n} \\approx 4.6692016...",
-  schwarzian: "Sf(x) = \\frac{f'''(x)}{f'(x)} - \\frac{3}{2} \\left( \\frac{f''(x)}{f'(x)} \\right)^2 < 0"
+  schwarzian: "D_{sch} f(x) = \\left( \\frac{f''(x)}{f'(x)} \\right)' - \\frac{1}{2} \\left( \\frac{f''(x)}{f'(x)} \\right)^2 < 0"
 };
 
 const PYTHON_CODE = [
   "import numpy as np",
   "import matplotlib.pyplot as plt",
   "",
-  "# 1. Define Logistic Map Function",
-  "def f(x, r):",
+  "def logistic(r, x):",
   "    return r * x * (1 - x)",
   "",
-  "# 2. Cobweb Plot Generator",
-  "def plot_cobweb(ax, r, x0, iterations=100):",
-  "    x_range = np.linspace(0, 1, 500)",
-  "    ax.plot(x_range, x_range, 'k--', alpha=0.5, label='y=x')",
-  "    ax.plot(x_range, f(x_range, r), 'r', lw=2, label=f'f(x), r={r}')",
+  "# 1. Bifurcation Diagram",
+  "def plot_bifurcation():",
+  "    n = 10000",
+  "    r = np.linspace(2.5, 4.0, n)",
+  "    iterations = 1000",
+  "    last = 100",
+  "    x = 1e-5 * np.ones(n)",
   "    ",
-  "    x = x0",
-  "    trajectory = [x]",
-  "    for _ in range(iterations):",
-  "        y = f(x, r)",
-  "        ax.plot([x, x], [x, y], 'b', lw=1, alpha=0.3)",
-  "        ax.plot([x, y], [y, y], 'b', lw=1, alpha=0.3)",
-  "        x = y",
-  "        trajectory.append(x)",
-  "        ",
-  "    ax.set_title(f'Cobweb Plot: r={r}, x0={x0}')",
-  "    ax.set_xlabel('$x_n$')",
-  "    ax.set_ylabel('$x_{n+1}$') ",
-  "    ax.set_xlim(0, 1)",
-  "    ax.set_ylim(0, 1)",
-  "    ax.grid(True, linestyle='--', alpha=0.5)",
-  "    return trajectory",
+  "    plt.figure(figsize=(10, 6))",
+  "    for i in range(iterations):",
+  "        x = logistic(r, x)",
+  "        if i >= (iterations - last):",
+  "            plt.plot(r, x, ',k', alpha=0.25)",
+  "    plt.title('Bifurcation Diagram of Logistic Map')",
+  "    plt.xlabel('r')",
+  "    plt.ylabel('x')",
+  "    plt.show()",
   "",
-  "# 3. Setup Subplots",
-  "fig, axes = plt.subplots(3, 2, figsize=(12, 14), gridspec_kw={'width_ratios': [2, 1]})",
-  "plt.subplots_adjust(hspace=0.4)",
-  "",
-  "r_values = [2.8, 3.2, 3.9]",
-  "x0 = 0.1",
-  "iters = 80",
-  "",
-  "for i, r in enumerate(r_values):",
-  "    ax_cobweb = axes[i, 0]",
-  "    traj = plot_cobweb(ax_cobweb, r, x0, iters)",
-  "    if i == 0:",
-  "        ax_cobweb.legend(loc='upper left')",
-  "        ",
-  "    ax_time = axes[i, 1]",
-  "    ax_time.plot(traj, 'g.-', lw=1, alpha=0.6)",
-  "    ax_time.set_title(f'Time Series: r={r}')",
-  "    ax_time.set_xlabel('Iteration (n)')",
-  "    ax_time.set_ylabel('$x_n$')",
-  "    ax_time.set_xlim(0, iters)",
-  "    ax_time.set_ylim(0, 1)",
-  "    ax_time.grid(True, linestyle='--', alpha=0.5)",
+  "# 2. Cobweb Plot",
+  "def plot_cobweb(r, x0=0.1, iters=50):",
+  "    x = np.linspace(0, 1, 100)",
+  "    plt.figure(figsize=(6, 6))",
+  "    plt.plot(x, logistic(r, x), 'r', label='f(x)')",
+  "    plt.plot(x, x, 'k--', label='y=x')",
   "    ",
-  "    if r == 2.8:",
-  "        meanings = 'Fixed Point (Stable)'",
-  "    elif r == 3.2:",
-  "        meanings = '2-Cycle (Stable)'",
-  "    else:",
-  "        meanings = 'Chaos (Aperiodic)'",
-  "        ",
-  "    ax_time.text(0.5, 0.05, meanings, color='maroon', fontweight='bold', transform=ax_time.transAxes, ha='center')",
+  "    cur_x = x0",
+  "    for _ in range(iters):",
+  "        y = logistic(r, cur_x)",
+  "        plt.plot([cur_x, cur_x], [cur_x, y], 'b', alpha=0.3)",
+  "        plt.plot([cur_x, y], [y, y], 'b', alpha=0.3)",
+  "        cur_x = y",
+  "    plt.title(f'Cobweb Plot (r={r})')",
+  "    plt.show()",
   "",
-  "plt.tight_layout()",
-  "plt.show()"
+  "plot_bifurcation()",
+  "plot_cobweb(r=3.9)"
 ].join('\n');
 
 // =========================================================
@@ -232,7 +212,7 @@ const ChaosLab = () => {
 };
 
 // =========================================================
-// 组件: 最安全的无状态数学渲染器 (用于独立段落块)
+// 组件: 最安全的无状态数学渲染器
 // =========================================================
 const MathDisplay = ({ tex, katexReady }) => {
   const container = useRef(null);
@@ -249,7 +229,7 @@ const MathDisplay = ({ tex, katexReady }) => {
 };
 
 // =========================================================
-// 组件: 行内公式渲染器 (精美渲染 $r_n$, $f$ 等数学符号)
+// 组件: 行内公式渲染器
 // =========================================================
 const InlineMath = ({ tex, katexReady }) => {
   const container = useRef(null);
@@ -304,85 +284,112 @@ const ChaosLogContent = () => {
   }, []);
 
   return (
-    <LogLayout title="DYNAMICAL_SYSTEMS: THE_TOPOLOGY_OF_CHAOS" category="RESEARCH" date="2026-03-26">
+    <LogLayout title="FROM_FIXED_POINTS_TO_CHAOS: THE_AESTHETICS_AND_SCIENCE_OF_DYNAMICAL_SYSTEMS" category="RESEARCH" date="2026-03-26">
       <div className="space-y-12 font-mono text-white/80 text-sm md:text-base leading-relaxed max-w-5xl mx-auto pb-20">
         
         <section className="space-y-4">
           <p>
-            The emergence of complexity from deceptively simple recursive rules represents a fundamental shift in mathematical physics. 
-            By analyzing discrete maps, we observe how deterministic systems transition from stable equilibria into bounded chaos.
+            In non-linear dynamics, a deceptively simple rule can often breed immensely complex behavior. 
+            This log explores the core theories of dynamical systems, starting from fundamental fixed points 
+            and journeying step-by-step into the profound mysteries of Chaos.
           </p>
         </section>
 
         <section className="space-y-4">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">1. Local Stability & Fixed Points</h3>
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">1. Dynamical Systems Classification: Discrete vs. Continuous</h3>
+          <p>Dynamical systems are primarily categorized into two major classes:</p>
+          <ul className="list-disc list-inside space-y-2 text-white/70 ml-4">
+            <li><strong>Discrete Systems (Iterative Maps):</strong> Described by iterative mappings <InlineMath tex="x_{n+1} = f(x_n)" katexReady={katexReady} />.</li>
+            <li><strong>Continuous Systems:</strong> Described by Differential Equations.</li>
+          </ul>
+          <p className="mt-4">The core focus of this log will be exclusively on discrete iterative maps.</p>
+        </section>
+
+        <section className="space-y-4">
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">2. Fixed Points and Stability: Linearization Analysis</h3>
           <p>
-            Consider the iterative map <InlineMath tex="x_{n+1} = f(x_n)" katexReady={katexReady} />. A state <InlineMath tex="x^*" katexReady={katexReady} /> is defined as a fixed point if <InlineMath tex="f(x^*) = x^*" katexReady={katexReady} />. 
-            The behavior of trajectories in its infinitesimal neighborhood is governed by the linearized derivative:
+            <strong>Definition:</strong> If a point satisfies <InlineMath tex="f(x^*) = x^*" katexReady={katexReady} />, then <InlineMath tex="x^*" katexReady={katexReady} /> is called a <em>Fixed Point</em>.
+          </p>
+          <p>
+            <strong>Stability Criterion:</strong> We want to investigate: if the initial value slightly deviates from <InlineMath tex="x^*" katexReady={katexReady} />, will the system return to it or escape? By applying linearization approximation:
           </p>
           
-          <MathDisplay tex={FORMULAS.stability} katexReady={katexReady} />
+          <MathDisplay tex={FORMULAS.linearization} katexReady={katexReady} />
           
+          <p className="font-bold text-white mt-4">Conclusion:</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs tracking-widest">
             <div className="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded">
-              <span className="text-cyan-400 font-black block mb-1">STABLE ATTRACTOR</span>
-              If <InlineMath tex="|f'(x^*)| < 1" katexReady={katexReady} />, initial perturbations decay geometrically.
+              <span className="text-cyan-400 font-black block mb-1">STABLE (ATTRACTOR)</span>
+              If <InlineMath tex="|f'(x^*)| < 1" katexReady={katexReady} />, the fixed point is stable.
             </div>
             <div className="p-4 bg-pink-500/5 border border-pink-500/20 rounded">
-              <span className="text-pink-400 font-black block mb-1">UNSTABLE REPELLOR</span>
-              If <InlineMath tex="|f'(x^*)| > 1" katexReady={katexReady} />, local fluctuations amplify exponentially.
+              <span className="text-pink-400 font-black block mb-1">UNSTABLE (REPELLOR)</span>
+              If <InlineMath tex="|f'(x^*)| > 1" katexReady={katexReady} />, the fixed point is unstable.
             </div>
           </div>
         </section>
 
         <section className="space-y-4">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">2. Iterative Lab: The Logistic Cascade</h3>
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">3. Classic Case: The Evolution of the Logistic Map</h3>
           <p>
-            The Logistic Map <InlineMath tex="x_{n+1} = r x_n (1 - x_n)" katexReady={katexReady} /> exemplifies the bifurcation route to chaos. Interact with 
-            the parameter <InlineMath tex="r" katexReady={katexReady} /> to witness the "Cobweb" spiral transition from stability to periodic orbits:
+            The equation for the Logistic Map is given by:
           </p>
+          
+          <MathDisplay tex={FORMULAS.logistic} katexReady={katexReady} />
+          
+          <p>
+            Its derivative is <InlineMath tex="f'(x) = r - 2rx" katexReady={katexReady} />. As the parameter <InlineMath tex="r" katexReady={katexReady} /> increases, the system exhibits distinctly different dynamical characteristics:
+          </p>
+          
+          <ul className="space-y-4 text-white/70 ml-4">
+            <li>
+              <strong className="text-white">Stage 1: Convergence to Zero (<InlineMath tex="r \in [0, 1]" katexReady={katexReady} />)</strong><br/>
+              The only fixed point <InlineMath tex="x^* = 0" katexReady={katexReady} /> is stable. The system will eventually face "extinction".
+            </li>
+            <li>
+              <strong className="text-white">Stage 2: Convergence to Equilibrium (<InlineMath tex="r \in (1, 3]" katexReady={katexReady} />)</strong><br/>
+              <InlineMath tex="x^* = 0" katexReady={katexReady} /> becomes unstable, while a new fixed point <InlineMath tex="x^* = 1 - 1/r" katexReady={katexReady} /> is born and remains stable.
+            </li>
+            <li>
+              <strong className="text-white">Stage 3: Period-Doubling Bifurcation (<InlineMath tex="r > 3" katexReady={katexReady} />)</strong><br/>
+              When <InlineMath tex="r = 3" katexReady={katexReady} />, <InlineMath tex="f'(x^*)" katexReady={katexReady} /> reaches <InlineMath tex="-1" katexReady={katexReady} />, and the fixed point loses stability. The system no longer settles at a single point, but begins to oscillate between two values, forming a 2-cycle. At this point, it satisfies <InlineMath tex="f(f(x)) = x" katexReady={katexReady} />.
+            </li>
+          </ul>
+
           <ChaosLab />
         </section>
 
         <section className="space-y-6">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">3. Python Simulation & Visualization</h3>
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">4. Periodic Orbits and the Feigenbaum Constant</h3>
           <p>
-            To rigorously analyze the transition mappings, we can utilize `numpy` and `matplotlib` to render both 
-            the cobweb iterations and their corresponding time-series behavior across different parameters <InlineMath tex="r" katexReady={katexReady} />.
+            For a <InlineMath tex="2^n" katexReady={katexReady} />-cycle, its stability is determined by the chain rule of the composite function:
+          </p>
+          
+          <MathDisplay tex={FORMULAS.chainRule} katexReady={katexReady} />
+          
+          <p>As long as the absolute value of this product is less than 1, the periodic orbit is stable.</p>
+
+          <h4 className="font-bold text-cyan-400 mt-6">The First Feigenbaum Constant</h4>
+          <p>
+            As <InlineMath tex="r" katexReady={katexReady} /> increases, bifurcations occur at an accelerating rate. Let <InlineMath tex="r_n" katexReady={katexReady} /> be the parameter value where the <InlineMath tex="2^n" katexReady={katexReady} />-cycle begins; the convergence ratio approaches a universal constant:
+          </p>
+
+          <MathDisplay tex={FORMULAS.feigenbaum} katexReady={katexReady} />
+
+          <p>
+            <strong>Why is <InlineMath tex="\delta" katexReady={katexReady} /> so profoundly important? (Universality)</strong><br/>
+            Universality is one of the most mesmerizing discoveries in non-linear science. Whether it is the Logistic Map or the Sine Map <InlineMath tex="x_{n+1} = r \sin(\pi x_n)" katexReady={katexReady} />, as long as the function is quadratically continuous at its maximum point, their rhythm of approaching chaos (<InlineMath tex="\delta" katexReady={katexReady} />) is exactly identical!
+          </p>
+        </section>
+
+        <section className="space-y-6">
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">5. Visualization: Cobweb Plots and Bifurcation Diagrams</h3>
+          <p>
+            We can intuitively observe this mathematical transition using Python code.
           </p>
           
           <CodeBlock code={PYTHON_CODE} />
           
-          <p>
-            The execution of this simulation yields the following visualizations, clearly demonstrating the phase 
-            shifts from stable fixed points (<InlineMath tex="r=2.8" katexReady={katexReady} />) to 2-cycles (<InlineMath tex="r=3.2" katexReady={katexReady} />), and ultimately to aperiodic chaos (<InlineMath tex="r=3.9" katexReady={katexReady} />).
-          </p>
-          <figure className="my-8 overflow-hidden rounded-xl border border-white/10 shadow-2xl bg-white/5">
-            <img 
-              src={figure1} 
-              alt="Cobweb and Time Series Plot" 
-              className="w-full object-cover opacity-90 hover:opacity-100 transition-opacity"
-            />
-            <figcaption className="p-4 text-center text-[10px] text-white/40 uppercase tracking-widest font-bold border-t border-white/5">
-              Fig 1. Cobweb Maps and Time Series evolution generated via Python.
-            </figcaption>
-          </figure>
-        </section>
-
-        <section className="space-y-6">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">4. Universal Scaling (Feigenbaum Constant)</h3>
-          <p>
-            In the period-doubling regime, the intervals between successive bifurcations <InlineMath tex="r_n" katexReady={katexReady} /> converge following a specific, 
-            universal ratio. This is the **Feigenbaum Constant** <InlineMath tex="\delta" katexReady={katexReady} />:
-          </p>
-          
-          <MathDisplay tex={FORMULAS.feigenbaum} katexReady={katexReady} />
-          
-          <p>
-            This universality is a profound <strong>Serendipity</strong>: any unimodal map with a quadratic maximum 
-            will reach chaos through the exact same geometric progression. This entire cascade is best visualized 
-            through the Bifurcation Diagram:
-          </p>
           <figure className="my-8 overflow-hidden rounded-xl border border-white/10 shadow-2xl bg-white/5">
             <img 
               src={figure2} 
@@ -391,23 +398,42 @@ const ChaosLogContent = () => {
               style={{ filter: "invert(1) hue-rotate(180deg) contrast(1.2)" }} 
             />
             <figcaption className="p-4 text-center text-[10px] text-white/40 uppercase tracking-widest font-bold border-t border-white/5">
-              Fig 2. Phase Space Map: The Bifurcation Diagram outlining the route to chaos.
+              Fig 1. Bifurcation Diagram outlining the route to chaos.
+            </figcaption>
+          </figure>
+
+          <figure className="my-8 overflow-hidden rounded-xl border border-white/10 shadow-2xl bg-white/5">
+            <img 
+              src={figure1} 
+              alt="Cobweb Plot" 
+              className="w-full object-cover opacity-90 hover:opacity-100 transition-opacity"
+            />
+            <figcaption className="p-4 text-center text-[10px] text-white/40 uppercase tracking-widest font-bold border-t border-white/5">
+              Fig 2. Cobweb Plot mapping dynamic trajectories.
             </figcaption>
           </figure>
         </section>
 
         <section className="space-y-4">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">5. The Schwarzian Derivative Criterion</h3>
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">6. Mathematical Advanced: Schwarzian Derivative & Constant Verification</h3>
           <p>
-            A map <InlineMath tex="f" katexReady={katexReady} /> must satisfy a global curvature constraint to exhibit a stable period-doubling cascade, 
-            known as the <strong>Schwarzian Derivative</strong>:
+            Why are certain functions guaranteed to undergo a period-doubling cascade and ultimately yield the universal constant <InlineMath tex="\delta" katexReady={katexReady} />? The critical condition for this mathematical guarantee lies within the <strong>Schwarzian Derivative</strong>:
           </p>
           
           <MathDisplay tex={FORMULAS.schwarzian} katexReady={katexReady} />
           
-          <p className="opacity-50 text-xs italic bg-white/5 p-4 border-l-2 border-white/20">
-            // This negative Schwarzian derivative ensures that the map has at most one stable periodic orbit, 
-            preventing the coexistence of competing attractors in the cascade.
+          <p className="opacity-70">
+            If a unimodal map maintains a negative Schwarzian derivative across its entire interval, it mathematically ensures that the map possesses <em>at most one</em> stable periodic orbit at any given parameter value. 
+          </p>
+          <p className="bg-white/5 p-4 border-l-2 border-cyan-500/50 text-xs italic">
+            // This is the fundamental verification criterion: A negative Schwarzian derivative prevents the coexistence of competing attractors. When a fixed point loses stability, this condition forces the system to birth a clean, non-competing period-doubled orbit, thereby ensuring the infinite cascade structure necessary to derive the universal Feigenbaum constant <InlineMath tex="\delta \approx 4.669" katexReady={katexReady} />.
+          </p>
+        </section>
+
+        <section className="space-y-4 pt-8">
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">Conclusion</h3>
+          <p className="opacity-80 leading-relaxed">
+            From a simple inequality <InlineMath tex="|f'| < 1" katexReady={katexReady} /> to the universal constant <InlineMath tex="4.669" katexReady={katexReady} />, we witness the hidden order embedded within the chaos of nature. This continuous transition from steady-state to oscillation, and ultimately to chaos, forms the fundamental mathematical cornerstone for understanding real-world complexities such as fluid turbulence, financial market volatility, and biological population evolution.
           </p>
         </section>
 
