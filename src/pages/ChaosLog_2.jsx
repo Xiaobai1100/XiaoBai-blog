@@ -447,9 +447,11 @@ const ChaosLogContinuous = () => {
           <p>
             As the parameter <InlineMath tex="b" katexReady={katexReady} /> increases, the trace <InlineMath tex="\tau" katexReady={katexReady} /> transitions smoothly from negative to positive. At the precise critical threshold:
           </p>
-          <MathDisplay tex={FORMULAS.hopfCritical} katexReady={katexReady} />
+            That is the system have a <strong>Hopf Bifurcation</strong>. The previously stable fixed point abruptly loses stability, birthing a stable and <strong>limit cycle</strong>—what is the mathematical manifestation of the periodic chemical oscillations we observe in the petri dish.
+          </p>
+		  <MathDisplay tex={FORMULAS.hopfCritical} katexReady={katexReady} />
           <p className="bg-white/5 p-4 border-l-2 border-pink-500/50 text-sm italic">
-            The system undergoes a magnificent <strong>Hopf Bifurcation</strong>. The previously stable fixed point abruptly loses stability, birthing a stable <strong>limit cycle</strong>—the mathematical manifestation of the periodic chemical oscillations we observe in the petri dish.
+            By the way, these days I have often been troubled by some disturbances in my life. They used to greatly trouble me until I saw the wheels of a cart, the uneven ground causing them to repeatedly sway and generating oscillation, almost like that limit cycle. What I want to say is that life is the same. It cannot run perfectly along the trajectory, but although it is wobbling, it is still a stable system.
           </p>
         </section>
 
