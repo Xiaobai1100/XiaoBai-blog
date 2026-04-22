@@ -28,7 +28,7 @@ const LogLayout = ({ title, category, date, children }) => (
 // 请确保这些图片放在了 src/assets/ 文件夹下。
 // 即使你暂时没放，下方我也配置了备用链接以防页面崩溃。
 // =========================================================
-import bzReaction from '../assets/Figure_3.jpg';
+import bzReaction from '../assets/Figure_3.png';
 import phasePortrait from '../assets/Figure_4.png';
 import classification from '../assets/Figure_5.png';
 
