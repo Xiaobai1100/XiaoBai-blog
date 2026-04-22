@@ -1,37 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // =========================================================
-// ⚠️ 注意：在你本地项目中，请【解除】下方引入的注释！
+// 1. 正常导入 Layout 组件
 // =========================================================
 import LogLayout from '../components/LogLayout';
 
-// (下方的内联 LogLayout 仅为防止在此处的预览环境报错，你复制到本地时可以删掉这块)
-const LogLayout = ({ title, category, date, children }) => (
-  <div className="min-h-screen bg-[#0d1117] text-white p-4 md:p-8 selection:bg-cyan-500/30">
-    <div className="max-w-5xl mx-auto">
-      <header className="mb-12 border-b border-white/10 pb-6">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
-          <div>
-            <div className="text-cyan-400 text-[10px] tracking-[0.3em] uppercase mb-2 font-mono">Category: {category}</div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-widest uppercase font-mono">{title}</h1>
-          </div>
-          <div className="text-white/40 font-mono text-sm tracking-widest">{date}</div>
-        </div>
-      </header>
-      <main>{children}</main>
-    </div>
-  </div>
-);
-
 // =========================================================
-// 🖼️ 静态图片导入区
-// 请确保这些图片放在了 src/assets/ 文件夹下。
-// 即使你暂时没放，下方我也配置了备用链接以防页面崩溃。
+// 2. 正常导入你放在 assets 文件夹中的本地真实图片
 // =========================================================
 import bzReaction from '../assets/Figure_3.png';
 import phasePortrait from '../assets/Figure_4.png';
 import classification from '../assets/Figure_5.png';
-
 
 // =========================================================
 // 🛡️ 静态资源隔离区 (完全防爆机制，防止 Vercel 编译崩溃)
@@ -43,9 +22,14 @@ const FORMULAS = {
   linearization: "u = x - x^*, \\quad v = y - y^*",
   jacobian: "A = \\begin{pmatrix} \\frac{\\partial f}{\\partial x} & \\frac{\\partial f}{\\partial y} \\\\ \\frac{\\partial g}{\\partial x} & \\frac{\\partial g}{\\partial y} \\end{pmatrix}_{(x^*, y^*)}",
   linSys: "\\begin{pmatrix} \\dot{u} \\\\ \\dot{v} \\end{pmatrix} = A \\begin{pmatrix} u \\\\ v \\end{pmatrix}",
-  bzEq: "\\begin{cases} \\dot{x} = a - x - \\frac{4xy}{1+x^2} \\\\ \\dot{y} = bx \\left(1 - \\frac{y}{1+x^2}\\right) \\end{cases}",
+  bz1: "MA + I_2 \\rightarrow IMA + I^- + H^+; \\quad \\frac{d[I_2]}{dt} = -\\frac{k_{1a}[MA][I_2]}{k_{1b} + [I_2]}",
+  bz2: "ClO_2 + I^- \\rightarrow ClO_2^- + \\frac{1}{2}I_2; \\quad \\frac{d[ClO_2]}{dt} = -k_2 \\frac{[ClO_2]}{[I^-]}",
+  bz3: "ClO_2^- + 4I^- + 4H^+ \\rightarrow Cl^- + 2I_2 + 2H_2O; \\quad \\frac{d[ClO_2^-]}{dt} = -k_{3a}[ClO_2^-][I^-][H^+] - k_{3b}[ClO_2^-][I_2]\\frac{[I^-]}{u + [I^-]^2}",
+  bzEq: "\\dot{x} = a - x - \\frac{4xy}{1+x^2}, \\quad \\dot{y} = bx \\left( 1 - \\frac{y}{1+x^2} \\right)",
   traceDet: "\\tau = \\text{tr}(A) = \\lambda_1 + \\lambda_2, \\quad \\Delta = \\det(A) = \\lambda_1 \\lambda_2",
-  charEq: "\\lambda^2 - \\tau \\lambda + \\Delta = 0 \\implies \\lambda = \\frac{\\tau \\pm \\sqrt{\\tau^2 - 4\\Delta}}{2}"
+  charEq: "\\lambda^2 - \\tau \\lambda + \\Delta = 0",
+  hopfTrace: "\\tau = \\frac{3(x^*)^2 - 5 - bx^*}{1 + (x^*)^2}",
+  hopfCritical: "b_c = \\frac{3a}{5} - \\frac{25}{a}"
 };
 
 // =========================================================
@@ -116,7 +100,6 @@ const InlineMath = ({ tex, katexReady }) => {
 // 组件: 2D 向量场交互式实验室 (Vector Field Lab)
 // =========================================================
 const VectorFieldLab = () => {
-  // Jacobian Matrix Parameters
   const [a, setA] = useState(1);
   const [b, setB] = useState(1);
   const [c, setC] = useState(1);
@@ -124,7 +107,6 @@ const VectorFieldLab = () => {
   
   const canvasRef = useRef(null);
 
-  // Derived properties
   const tr = a + d;
   const det = a * d - b * c;
   const disc = tr * tr - 4 * det;
@@ -143,7 +125,6 @@ const VectorFieldLab = () => {
     }
   }
 
-  // Draw Vector Field
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -153,10 +134,9 @@ const VectorFieldLab = () => {
     
     ctx.clearRect(0, 0, width, height);
 
-    const scale = 20; // grid scale
+    const scale = 20; 
     const center = { x: width / 2, y: height / 2 };
 
-    // Draw Axes
     ctx.strokeStyle = '#ffffff22';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -164,20 +144,16 @@ const VectorFieldLab = () => {
     ctx.moveTo(center.x, 0); ctx.lineTo(center.x, height);
     ctx.stroke();
 
-    // Vector field parameters
-    const step = 25; // pixel spacing between arrows
+    const step = 25; 
     const arrowScale = 4;
 
-    // Helper: draw arrow
     const drawArrow = (x, y, vx, vy) => {
         const mag = Math.sqrt(vx * vx + vy * vy);
         if (mag < 0.01) return;
         
-        // Normalize and scale
         const nvx = (vx / mag) * arrowScale * Math.min(mag, 5);
         const nvy = (vy / mag) * arrowScale * Math.min(mag, 5);
 
-        // Color based on magnitude and direction
         const hue = (Math.atan2(vy, vx) * 180 / Math.PI + 360) % 360;
         const opacity = Math.min(0.3 + mag * 0.1, 0.9);
         ctx.strokeStyle = `hsla(${hue}, 80%, 60%, ${opacity})`;
@@ -185,17 +161,15 @@ const VectorFieldLab = () => {
         ctx.lineWidth = 1.5;
 
         const startX = center.x + x * scale;
-        const startY = center.y - y * scale; // inverted Y for standard Cartesian
+        const startY = center.y - y * scale; 
         const endX = startX + nvx;
-        const endY = startY - nvy; // inverted Y
+        const endY = startY - nvy; 
 
-        // Draw Line
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.lineTo(endX, endY);
         ctx.stroke();
 
-        // Draw Arrowhead
         const angle = Math.atan2(-nvy, nvx);
         const headlen = 4;
         ctx.beginPath();
@@ -205,20 +179,16 @@ const VectorFieldLab = () => {
         ctx.fill();
     };
 
-    // Render Field
     for (let px = -width/2; px < width/2; px += step) {
         for (let py = -height/2; py < height/2; py += step) {
             const mathX = px / scale;
             const mathY = py / scale;
-            // dx/dt = ax + by
-            // dy/dt = cx + dy
             const vx = a * mathX + b * mathY;
             const vy = c * mathX + d * mathY;
             drawArrow(mathX, mathY, vx, vy);
         }
     }
 
-    // Draw fixed point
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.arc(center.x, center.y, 4, 0, 2 * Math.PI);
@@ -229,16 +199,12 @@ const VectorFieldLab = () => {
   return (
     <div className="my-10 p-6 bg-black/60 border border-white/10 rounded-2xl shadow-2xl font-mono">
       <div className="flex flex-col lg:flex-row gap-8">
-        
-        {/* Canvas Section */}
         <div className="relative flex-1 bg-[#050b14] rounded-xl border border-white/5 shadow-inner overflow-hidden flex items-center justify-center p-2">
           <canvas ref={canvasRef} width={500} height={500} className="w-full max-w-[500px] aspect-square" />
           <div className="absolute top-4 left-4 text-[10px] text-white/40 uppercase tracking-widest font-bold">Phase_Space_Engine</div>
         </div>
 
-        {/* Controls Section */}
         <div className="w-full lg:w-80 space-y-6 flex flex-col justify-between">
-          
           <div className="space-y-4">
             <h4 className="text-cyan-400 text-xs tracking-[0.2em] uppercase font-bold border-b border-white/10 pb-2">Jacobian Matrix [A]</h4>
             <div className="grid grid-cols-2 gap-4 bg-white/[0.02] p-4 rounded-lg border border-white/5">
@@ -276,7 +242,6 @@ const VectorFieldLab = () => {
                 </div>
              </div>
           </div>
-
         </div>
       </div>
     </div>
@@ -313,126 +278,179 @@ const ChaosLogContinuous = () => {
       <div className="space-y-12 font-mono text-white/80 text-sm md:text-base leading-relaxed max-w-5xl mx-auto pb-20">
         
         <section className="space-y-4">
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">1. Introduction to Continuous Systems</h3>
           <p>
-            While discrete iterative maps reveal the aesthetic fractal nature of chaos, physical reality—from the orbital mechanics of planets to fluid turbulence and oscillating chemical reactions—unfolds continuously in time. In this log, we transition from difference equations to <strong>Differential Equations</strong>.
+            Unlike discrete iterative maps, continuous dynamical systems involve states that evolve smoothly over time. These systems are strictly governed by <strong>Differential Equations</strong>.
           </p>
-        </section>
-
-        <section className="space-y-4">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">1. One-Dimensional Phase Trajectories</h3>
           <p>
-            For a continuous dynamical system, the evolution of a state <InlineMath tex="x" katexReady={katexReady} /> is governed by its velocity:
-          </p>
-          <MathDisplay tex={FORMULAS.oneD} katexReady={katexReady} />
-          <p>
-            Consider the classic 1D system <InlineMath tex="\dot{x} = r + x^2" katexReady={katexReady} />. By analyzing the roots where velocity is zero (<InlineMath tex="\dot{x} = 0" katexReady={katexReady} />), we can deduce the system's vector field without explicitly solving the equation.
-          </p>
-          <ul className="list-disc list-inside space-y-2 text-white/70 ml-4">
-            <li>If <InlineMath tex="r < 0" katexReady={katexReady} />: Two fixed points exist (one stable, one unstable).</li>
-            <li>If <InlineMath tex="r = 0" katexReady={katexReady} />: The points collide into a half-stable node (Saddle-Node Bifurcation).</li>
-            <li>If <InlineMath tex="r > 0" katexReady={katexReady} />: The fixed points vanish into the complex plane; the system flows uniformly to infinity.</li>
-          </ul>
-        </section>
-
-        <section className="space-y-6">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">2. The Belousov-Zhabotinsky (BZ) Reaction</h3>
-          <p>
-            A paradigm of continuous dynamical systems is found in chemistry. Discovered in the 1950s, the <strong>Belousov-Zhabotinsky reaction</strong> shocked the scientific community by exhibiting macroscopic, periodic color oscillations (e.g., alternating between red and blue), defying the naive intuition that chemical reactions must monotonically decay to equilibrium.
+            A milestone in this field is the discovery of <strong>Oscillating Chemical Reactions</strong>. In the 1950s, Belousov observed periodical behavior in chemical mixtures. This was initially met with intense skepticism, as it seemed to contradict the Second Law of Thermodynamics (which implies monotonic decay to equilibrium). However, these systems are simply moving toward a complex attractor in a non-equilibrium state.
           </p>
           
           <figure className="my-8 overflow-hidden rounded-xl border border-white/10 shadow-2xl bg-white/5">
-            {/* 使用 Fallback，如果在本地且有图，请将 src 替换为 {bzReaction} */}
+            {/* 引用真实导入的图片 */}
             <img 
-              src={bzReactionFallback} 
+              src={bzReaction} 
               alt="BZ Chemical Reaction" 
               className="w-full object-cover opacity-90 transition-opacity"
             />
             <figcaption className="p-4 text-center text-[10px] text-white/40 uppercase tracking-widest font-bold border-t border-white/5">
-              Fig 1. Periodic behavior of an oscillating chemical reaction (BZ System).
+              Fig 1. Experimental observation of the Belousov-Zhabotinsky reaction showing color oscillation over time.
             </figcaption>
           </figure>
+        </section>
 
+        <section className="space-y-4">
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">2. One-Dimensional Case: <InlineMath tex="\dot{x} = f(x)" katexReady={katexReady} /></h3>
           <p>
-            Because chemical kinetics are strictly governed by differential equations representing concentrations of reactants, we can non-dimensionalize the complex BZ reaction into a simplified 2D planar system:
+            In the 1D case, the velocity <InlineMath tex="\dot{x}" katexReady={katexReady} /> of the system is governed solely by its current state <InlineMath tex="x" katexReady={katexReady} />.
           </p>
-          <MathDisplay tex={FORMULAS.bzEq} katexReady={katexReady} />
+          
+          <h4 className="font-bold text-cyan-400 mt-6">Phase Trajectory Method</h4>
+          <p>
+            We can geometrically determine the stability of fixed points without formally solving the ODE using the "left flow, right push" rule:
+          </p>
+          <ul className="list-disc list-inside space-y-2 text-white/70 ml-4">
+            <li>If <InlineMath tex="f(x) > 0" katexReady={katexReady} />: Velocity is positive, the point moves to the <strong>right</strong> (<InlineMath tex="\rightarrow" katexReady={katexReady} />).</li>
+            <li>If <InlineMath tex="f(x) < 0" katexReady={katexReady} />: Velocity is negative, the point moves to the <strong>left</strong> (<InlineMath tex="\leftarrow" katexReady={katexReady} />).</li>
+          </ul>
+
+          <h4 className="font-bold text-cyan-400 mt-6">Bifurcation: Qualitative Changes</h4>
+          <p>
+            A <strong>Bifurcation</strong> is defined as a qualitative change in the vector field:
+          </p>
+          <ul className="list-disc list-inside space-y-2 text-white/70 ml-4">
+            <li><strong>Quantitative Change:</strong> The exact position of a fixed point shifts slightly, but the overall phase portrait topology remains identical.</li>
+            <li><strong>Qualitative Change:</strong> The number of fixed points changes (e.g., from 1 to 2, or vanishing to 0), or their intrinsic stability properties completely flip.</li>
+          </ul>
+
+          <p className="mt-4">
+            <strong>Example: Saddle-Node Bifurcation</strong> (<InlineMath tex="\dot{x} = r + x^2" katexReady={katexReady} />)
+          </p>
+          <ul className="list-disc list-inside space-y-2 text-white/70 ml-4">
+            <li><InlineMath tex="r < 0" katexReady={katexReady} />: Two fixed points exist (one stable, one unstable).</li>
+            <li><InlineMath tex="r = 0" katexReady={katexReady} />: The points violently collide into a single <strong>half-stable</strong> point.</li>
+            <li><InlineMath tex="r > 0" katexReady={katexReady} />: All fixed points vanish into the complex plane; the system uniformly flows to infinity.</li>
+          </ul>
+        </section>
+
+        <section className="space-y-4">
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">3. Two-Dimensional Case and Linearization</h3>
+          <p>
+            In 2D systems described by <InlineMath tex="\dot{x} = f(x, y)" katexReady={katexReady} /> and <InlineMath tex="\dot{y} = g(x, y)" katexReady={katexReady} />, the phase space expands into a plane equipped with a complex <strong>Vector Field</strong>.
+          </p>
+          
+          <h4 className="font-bold text-cyan-400 mt-6">Linearization near <InlineMath tex="(x^*, y^*)" katexReady={katexReady} /></h4>
+          <p>
+            To understand the flow behavior near an equilibrium, we introduce tiny perturbations <InlineMath tex="u" katexReady={katexReady} /> and <InlineMath tex="v" katexReady={katexReady} />. The local dynamics are governed by the <strong>Jacobian Matrix <InlineMath tex="A" katexReady={katexReady} /></strong>:
+          </p>
+          <MathDisplay tex={FORMULAS.jacobian} katexReady={katexReady} />
+          <MathDisplay tex={FORMULAS.linSys} katexReady={katexReady} />
+
+          <h4 className="font-bold text-cyan-400 mt-6">Eigenvalues and Manifolds</h4>
+          <ul className="list-disc list-inside space-y-2 text-white/70 ml-4">
+            <li><strong>Eigenvectors</strong> map out the primary <strong>eigendirections</strong> (the straight-line flows in the phase portrait).</li>
+            <li><strong><InlineMath tex="\lambda < 0" katexReady={katexReady} /> (Stable Manifold):</strong> Fluid or trajectories flow directly into the fixed point.</li>
+            <li><strong><InlineMath tex="\lambda > 0" katexReady={katexReady} /> (Unstable Manifold):</strong> Trajectories are fiercely pushed out from the fixed point.</li>
+          </ul>
         </section>
 
         <section className="space-y-6">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">3. Nullclines and Phase Portraits</h3>
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">4. Classification of Fixed Points</h3>
           <p>
-            In a two-dimensional case <InlineMath tex="\dot{x} = f(x, y)" katexReady={katexReady} /> and <InlineMath tex="\dot{y} = g(x, y)" katexReady={katexReady} />, analyzing the entire vector field can be daunting. We employ <strong>Nullclines</strong>—curves where either <InlineMath tex="\dot{x} = 0" katexReady={katexReady} /> or <InlineMath tex="\dot{y} = 0" katexReady={katexReady} />.
-          </p>
-          <p>
-            The intersections of these nullclines mathematically guarantee <InlineMath tex="\dot{x} = \dot{y} = 0" katexReady={katexReady} />. These exact intersections are the fixed points of the continuous system.
+            The topological behavior is entirely determined by the Trace (<InlineMath tex="\tau" katexReady={katexReady} />) and Determinant (<InlineMath tex="\Delta" katexReady={katexReady} />) of the Jacobian Matrix.
           </p>
           
+          <ul className="list-none space-y-4 text-white/70">
+            <li>
+              <strong className="text-white">1. Trace <InlineMath tex="\tau = \text{tr}(A) = \lambda_1 + \lambda_2" katexReady={katexReady} /></strong>
+              <ul className="list-disc list-inside ml-6 mt-1">
+                <li><InlineMath tex="\tau < 0" katexReady={katexReady} />: Stable (trajectories point inside).</li>
+                <li><InlineMath tex="\tau > 0" katexReady={katexReady} />: Unstable (trajectories point outside).</li>
+              </ul>
+            </li>
+            <li>
+              <strong className="text-white">2. Determinant <InlineMath tex="\Delta = \text{det}(A) = \lambda_1 \lambda_2" katexReady={katexReady} /></strong>
+              <ul className="list-disc list-inside ml-6 mt-1">
+                <li><InlineMath tex="\Delta < 0" katexReady={katexReady} />: <strong>Saddle point</strong> (features one stable and one unstable manifold).</li>
+              </ul>
+            </li>
+            <li>
+              <strong className="text-white">3. Discriminant <InlineMath tex="\tau^2 - 4\Delta" katexReady={katexReady} /></strong> (Determines spirals)
+              <ul className="list-disc list-inside ml-6 mt-1">
+                <li><InlineMath tex="\tau^2 - 4\Delta < 0" katexReady={katexReady} />: Complex eigenvalues, resulting in a <strong>Spiral</strong> or a neutral <strong>Center</strong>.</li>
+                <li><InlineMath tex="\tau^2 - 4\Delta > 0" katexReady={katexReady} />: Real eigenvalues, resulting in a clean <strong>Node</strong>.</li>
+              </ul>
+            </li>
+          </ul>
+
           <figure className="my-8 overflow-hidden rounded-xl border border-white/10 shadow-2xl bg-white/5">
-            {/* 使用 Fallback，如果在本地且有图，请将 src 替换为 {phasePortrait} */}
+            {/* 引用真实导入的图片 */}
             <img 
-              src={phasePortraitFallback} 
+              src={classification} 
+              alt="Classification of Fixed Points" 
+              className="w-full object-cover opacity-90 transition-opacity invert hue-rotate-180"
+              style={{ filter: "invert(1) hue-rotate(180deg) contrast(1.2)" }}
+            />
+            <figcaption className="p-4 text-center text-[10px] text-white/40 uppercase tracking-widest font-bold border-t border-white/5">
+              Fig 2. The Poincaré diagram: Classification of fixed points based on Trace and Determinant.
+            </figcaption>
+          </figure>
+        </section>
+
+        <section className="space-y-4">
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">5. Interactive Lab: 2D Vector Fields</h3>
+          <p>
+            Experience the topological shifts firsthand. By manipulating the elements of the Jacobian matrix below, you linearly transform the 2D phase space. Observe how adjusting the parameters forces the system to undergo bifurcations, morphing between saddles, spirals, and nodes in real-time.
+          </p>
+          
+          <VectorFieldLab />
+        </section>
+
+        <section className="space-y-6">
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">6. Case Study: The Belousov-Zhabotinsky (BZ) System</h3>
+          <p>
+            The BZ reaction involves a labyrinth of complex chemical steps that can be rigorously modeled by coupled differential equations tracking the concentrations of reactants and products over time.
+          </p>
+
+          <h4 className="font-bold text-cyan-400 mt-6">Main Reaction Steps</h4>
+          <p>The core kinetic mechanism is described by the following sequence and their respective rate laws:</p>
+          <div className="bg-white/[0.02] border border-white/5 p-4 rounded-xl space-y-2">
+            <MathDisplay tex={FORMULAS.bz1} katexReady={katexReady} />
+            <MathDisplay tex={FORMULAS.bz2} katexReady={katexReady} />
+            <MathDisplay tex={FORMULAS.bz3} katexReady={katexReady} />
+          </div>
+
+          <h4 className="font-bold text-cyan-400 mt-6">Simplified Dimensionless Model</h4>
+          <p>
+            By distilling the complexity and non-dimensionalizing the variables, we obtain an elegant 2D mathematical model where <InlineMath tex="x" katexReady={katexReady} /> and <InlineMath tex="y" katexReady={katexReady} /> are dimensionless concentrations:
+          </p>
+          <MathDisplay tex={FORMULAS.bzEq} katexReady={katexReady} />
+
+          <figure className="my-8 overflow-hidden rounded-xl border border-white/10 shadow-2xl bg-white/5">
+            {/* 引用真实导入的图片 */}
+            <img 
+              src={phasePortrait} 
               alt="Nullclines Phase Portrait" 
               className="w-full object-cover opacity-90 invert hue-rotate-180 transition-opacity"
               style={{ filter: "invert(1) hue-rotate(180deg) contrast(1.2)" }}
             />
             <figcaption className="p-4 text-center text-[10px] text-white/40 uppercase tracking-widest font-bold border-t border-white/5">
-              Fig 2. The phase portrait of the simplified model of the BZ reaction showing nullcline intersections.
+              Fig 3. Phase portrait of the simplified BZ model showing nullclines. The fixed point lies at the intersection of <InlineMath tex="\dot{x}=0" katexReady={katexReady} /> and <InlineMath tex="\dot{y}=0" katexReady={katexReady} />.
             </figcaption>
           </figure>
-        </section>
 
-        <section className="space-y-4">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">4. Linearization and the Jacobian Matrix</h3>
+          <h4 className="font-bold text-cyan-400 mt-6">Hopf Bifurcation</h4>
           <p>
-            To rigorously analyze the stability near a fixed point <InlineMath tex="(x^*, y^*)" katexReady={katexReady} />, we apply Taylor expansion and discard higher-order non-linear terms. By introducing tiny perturbations <InlineMath tex="u" katexReady={katexReady} /> and <InlineMath tex="v" katexReady={katexReady} />:
+            By evaluating the Jacobian matrix of this simplified BZ system at the fixed point <InlineMath tex="(x^*, y^*)" katexReady={katexReady} />, we can isolate the trace <InlineMath tex="\tau" katexReady={katexReady} />:
           </p>
-          <MathDisplay tex={FORMULAS.linearization} katexReady={katexReady} />
+          <MathDisplay tex={FORMULAS.hopfTrace} katexReady={katexReady} />
           <p>
-            The local dynamics are entirely governed by a linear system utilizing the <strong>Jacobian Matrix <InlineMath tex="A" katexReady={katexReady} /></strong> evaluated at the fixed point:
+            As the parameter <InlineMath tex="b" katexReady={katexReady} /> increases, the trace <InlineMath tex="\tau" katexReady={katexReady} /> transitions smoothly from negative to positive. At the precise critical threshold:
           </p>
-          <MathDisplay tex={FORMULAS.jacobian} katexReady={katexReady} />
-          <MathDisplay tex={FORMULAS.linSys} katexReady={katexReady} />
-        </section>
-
-        <section className="space-y-6">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">5. The Trace-Determinant Classification</h3>
-          <p>
-            The essence of the Jacobian matrix lies in its eigenvalues (<InlineMath tex="\lambda" katexReady={katexReady} />) and eigenvectors. The eigenvectors dictate the primary directions of flow (the stable/unstable manifolds), while the eigenvalues dictate whether the flow is converging (<InlineMath tex="\lambda < 0" katexReady={katexReady} />) or diverging (<InlineMath tex="\lambda > 0" katexReady={katexReady} />).
+          <MathDisplay tex={FORMULAS.hopfCritical} katexReady={katexReady} />
+          <p className="bg-white/5 p-4 border-l-2 border-pink-500/50 text-sm italic">
+            The system undergoes a magnificent <strong>Hopf Bifurcation</strong>. The previously stable fixed point abruptly loses stability, birthing a stable <strong>limit cycle</strong>—the mathematical manifestation of the periodic chemical oscillations we observe in the petri dish.
           </p>
-          <p>
-            We can compute these eigenvalues using the characteristic equation, elegantly simplified via the Trace (<InlineMath tex="\tau" katexReady={katexReady} />) and Determinant (<InlineMath tex="\Delta" katexReady={katexReady} />):
-          </p>
-          <MathDisplay tex={FORMULAS.traceDet} katexReady={katexReady} />
-          <MathDisplay tex={FORMULAS.charEq} katexReady={katexReady} />
-
-          <figure className="my-8 overflow-hidden rounded-xl border border-white/10 shadow-2xl bg-white/5">
-            {/* 使用 Fallback，如果在本地且有图，请将 src 替换为 {classification} */}
-            <img 
-              src={classificationFallback} 
-              alt="Classification of Fixed Points" 
-              className="w-full object-cover opacity-90 transition-opacity"
-            />
-            <figcaption className="p-4 text-center text-[10px] text-white/40 uppercase tracking-widest font-bold border-t border-white/5">
-              Fig 3. The Poincaré diagram: Classification of fixed points based on Trace and Determinant.
-            </figcaption>
-          </figure>
-          
-          <ul className="list-disc list-inside space-y-2 text-white/70 ml-4">
-            <li><strong className="text-pink-400">Saddles:</strong> Occur when <InlineMath tex="\Delta < 0" katexReady={katexReady} />. The eigenvalues have opposite signs.</li>
-            <li><strong className="text-cyan-400">Nodes:</strong> Occur when <InlineMath tex="\tau^2 - 4\Delta > 0" katexReady={katexReady} />. Purely real eigenvalues (no spiraling).</li>
-            <li><strong className="text-cyan-400">Spirals:</strong> Occur when <InlineMath tex="\tau^2 - 4\Delta < 0" katexReady={katexReady} />. Complex eigenvalues induce rotational flow.</li>
-          </ul>
-        </section>
-
-        <section className="space-y-4">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">6. Interactive Lab: 2D Vector Fields</h3>
-          <p>
-            Experience the topological shifts firsthand. By manipulating the elements of the Jacobian matrix below, you linearly transform the 2D phase space. Observe how adjusting the parameters forces the system to undergo bifurcations, morphing between saddles, spirals, and nodes.
-          </p>
-          
-          {/* 交互式 2D 向量场组件 */}
-          <VectorFieldLab />
-          
         </section>
 
         <div className="py-16 border-y border-white/5 text-center space-y-8 mt-16">
