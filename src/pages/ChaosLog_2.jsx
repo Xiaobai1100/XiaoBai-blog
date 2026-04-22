@@ -12,7 +12,6 @@ import bzReaction from '../assets/Figure_3.png';
 import phasePortrait from '../assets/Figure_4.png';
 import classification from '../assets/Figure_5.png';
 
-
 // =========================================================
 // 🛡️ 静态资源隔离区 (完全防爆机制，防止 Vercel 编译崩溃)
 // =========================================================
@@ -130,6 +129,22 @@ const VectorFieldLab = () => {
     }
   }
 
+  // --- 新增：计算特征值以供显示 ---
+  let lambda1Str = "";
+  let lambda2Str = "";
+  if (disc >= 0) {
+    const l1 = (tr + Math.sqrt(disc)) / 2;
+    const l2 = (tr - Math.sqrt(disc)) / 2;
+    lambda1Str = l1.toFixed(2);
+    lambda2Str = l2.toFixed(2);
+  } else {
+    const realPart = (tr / 2).toFixed(2);
+    const imagPart = (Math.sqrt(-disc) / 2).toFixed(2);
+    lambda1Str = `${realPart} + ${imagPart}i`;
+    lambda2Str = `${realPart} - ${imagPart}i`;
+  }
+  // ---------------------------------
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -237,7 +252,7 @@ const VectorFieldLab = () => {
 
           <div className="space-y-4">
              <h4 className="text-pink-400 text-xs tracking-[0.2em] uppercase font-bold border-b border-white/10 pb-2">Analysis Panel</h4>
-             <div className="bg-white/[0.02] p-5 rounded-xl border border-white/5 space-y-4 text-xs shadow-inner h-full flex flex-col justify-center">
+             <div className="bg-white/[0.02] p-5 rounded-xl border border-white/5 space-y-3 text-xs shadow-inner h-full flex flex-col justify-center">
                 <div className="flex justify-between items-center">
                     <span className="text-white/40 uppercase tracking-widest">Trace (τ)</span>
                     <span className="text-white font-bold text-sm bg-white/5 px-2 py-1 rounded">{tr.toFixed(2)}</span>
@@ -246,7 +261,18 @@ const VectorFieldLab = () => {
                     <span className="text-white/40 uppercase tracking-widest">Determinant (Δ)</span>
                     <span className="text-white font-bold text-sm bg-white/5 px-2 py-1 rounded">{det.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-2">
+                
+                {/* --- 新增：特征值显示区域 --- */}
+                <div className="flex justify-between items-center">
+                    <span className="text-white/40 uppercase tracking-widest">Eigenvalues</span>
+                    <div className="text-right flex flex-col gap-1">
+                      <span className="text-white font-mono text-[10px] bg-white/5 px-2 py-0.5 rounded border border-white/5">λ₁ = {lambda1Str}</span>
+                      <span className="text-white font-mono text-[10px] bg-white/5 px-2 py-0.5 rounded border border-white/5">λ₂ = {lambda2Str}</span>
+                    </div>
+                </div>
+                {/* ----------------------------- */}
+
+                <div className="flex justify-between items-center pt-3 border-t border-white/5 mt-1">
                     <span className="text-white/40 uppercase tracking-widest">Topology</span>
                     <span className={`font-black text-sm tracking-wide ${det < 0 ? 'text-pink-400' : 'text-cyan-400'}`}>{type}</span>
                 </div>
