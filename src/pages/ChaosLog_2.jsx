@@ -12,6 +12,7 @@ import bzReaction from '../assets/Figure_3.png';
 import phasePortrait from '../assets/Figure_4.png';
 import classification from '../assets/Figure_5.png';
 
+
 // =========================================================
 // 🛡️ 静态资源隔离区 (完全防爆机制，防止 Vercel 编译崩溃)
 // =========================================================
@@ -19,16 +20,20 @@ const FORMULAS = {
   oneD: "\\dot{x} = f(x)",
   oneDEx: "\\dot{x} = r + x^2",
   twoD: "\\begin{cases} \\dot{x} = f(x, y) \\\\ \\dot{y} = g(x, y) \\end{cases}",
+  nullclinesDef: "\\dot{x} = 0 \\quad \\text{and} \\quad \\dot{y} = 0",
   linearization: "u = x - x^*, \\quad v = y - y^*",
   jacobian: "A = \\begin{pmatrix} \\frac{\\partial f}{\\partial x} & \\frac{\\partial f}{\\partial y} \\\\ \\frac{\\partial g}{\\partial x} & \\frac{\\partial g}{\\partial y} \\end{pmatrix}_{(x^*, y^*)}",
+  jacobianABCD: "A = \\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}",
   linSys: "\\begin{pmatrix} \\dot{u} \\\\ \\dot{v} \\end{pmatrix} = A \\begin{pmatrix} u \\\\ v \\end{pmatrix}",
   bz1: "MA + I_2 \\rightarrow IMA + I^- + H^+; \\quad \\frac{d[I_2]}{dt} = -\\frac{k_{1a}[MA][I_2]}{k_{1b} + [I_2]}",
   bz2: "ClO_2 + I^- \\rightarrow ClO_2^- + \\frac{1}{2}I_2; \\quad \\frac{d[ClO_2]}{dt} = -k_2 \\frac{[ClO_2]}{[I^-]}",
   bz3: "ClO_2^- + 4I^- + 4H^+ \\rightarrow Cl^- + 2I_2 + 2H_2O; \\quad \\frac{d[ClO_2^-]}{dt} = -k_{3a}[ClO_2^-][I^-][H^+] - k_{3b}[ClO_2^-][I_2]\\frac{[I^-]}{u + [I^-]^2}",
   bzEq: "\\dot{x} = a - x - \\frac{4xy}{1+x^2}, \\quad \\dot{y} = bx \\left( 1 - \\frac{y}{1+x^2} \\right)",
+  bzFixedPoint: "x^* = \\frac{a}{5}, \\quad y^* = 1 + (x^*)^2 = 1 + \\left(\\frac{a}{5}\\right)^2",
+  bzJacobianEval: "J|_{(x^*, y^*)} = \\frac{1}{1+(x^*)^2} \\begin{pmatrix} 3(x^*)^2 - 5 & -4x^* \\\\ 2b(x^*)^2 & -bx^* \\end{pmatrix}",
   traceDet: "\\tau = \\text{tr}(A) = \\lambda_1 + \\lambda_2, \\quad \\Delta = \\det(A) = \\lambda_1 \\lambda_2",
-  charEq: "\\lambda^2 - \\tau \\lambda + \\Delta = 0",
-  hopfTrace: "\\tau = \\frac{3(x^*)^2 - 5 - bx^*}{1 + (x^*)^2}",
+  bzDet: "\\Delta = \\det(J) = \\frac{5bx^*}{1+(x^*)^2} > 0",
+  hopfTrace: "\\tau = \\text{tr}(J) = \\frac{3(x^*)^2 - 5 - bx^*}{1 + (x^*)^2}",
   hopfCritical: "b_c = \\frac{3a}{5} - \\frac{25}{a}"
 };
 
@@ -201,13 +206,13 @@ const VectorFieldLab = () => {
     <div className="my-10 p-6 md:p-10 bg-black/60 border border-white/10 rounded-2xl shadow-2xl font-mono">
       <div className="flex flex-col gap-10 items-center">
         
-        {/* Canvas Section - 改为大尺寸居中显示 */}
+        {/* Canvas Section */}
         <div className="relative w-full max-w-[650px] bg-[#050b14] rounded-xl border border-white/5 shadow-inner overflow-hidden flex items-center justify-center p-2">
           <canvas ref={canvasRef} width={600} height={600} className="w-full aspect-square" />
           <div className="absolute top-6 left-6 text-xs text-white/40 uppercase tracking-widest font-bold">Phase_Space_Engine</div>
         </div>
 
-        {/* Controls Section - 改为下方网格双栏布局 */}
+        {/* Controls Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-[650px]">
           
           <div className="space-y-4">
@@ -293,7 +298,6 @@ const ChaosLogContinuous = () => {
           </p>
           
           <figure className="my-8 overflow-hidden rounded-xl border border-white/10 shadow-2xl bg-white/5">
-            {/* 引用真实导入的图片 */}
             <img 
               src={bzReaction} 
               alt="BZ Chemical Reaction" 
@@ -340,9 +344,18 @@ const ChaosLogContinuous = () => {
         </section>
 
         <section className="space-y-4">
-          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">3. Two-Dimensional Case and Linearization</h3>
+          <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">3. Two-Dimensional Case and Nullclines</h3>
           <p>
             In 2D systems described by <InlineMath tex="\dot{x} = f(x, y)" katexReady={katexReady} /> and <InlineMath tex="\dot{y} = g(x, y)" katexReady={katexReady} />, the phase space expands into a plane equipped with a complex <strong>Vector Field</strong>.
+          </p>
+
+          <h4 className="font-bold text-cyan-400 mt-6">Nullclines: The Skeleton of Phase Space</h4>
+          <p>
+            To intuitively grasp the dynamics of a 2D system without analyzing every single vector, we identify the <strong>Nullclines</strong> (零等倾线). These are the specific curves where the velocity in one of the principal directions is exactly zero:
+          </p>
+          <MathDisplay tex={FORMULAS.nullclinesDef} katexReady={katexReady} />
+          <p>
+            The profound significance of nullclines lies in their intersection. <strong>The exact points where the <InlineMath tex="x" katexReady={katexReady}/>-nullcline and <InlineMath tex="y" katexReady={katexReady}/>-nullcline intersect mathematically guarantee that <InlineMath tex="\dot{x} = \dot{y} = 0" katexReady={katexReady}/>.</strong> Therefore, these intersections uniquely define the fixed points (equilibria) of the entire continuous system.
           </p>
           
           <h4 className="font-bold text-cyan-400 mt-6">Linearization near <InlineMath tex="(x^*, y^*)" katexReady={katexReady} /></h4>
@@ -390,7 +403,6 @@ const ChaosLogContinuous = () => {
           </ul>
 
           <figure className="my-8 overflow-hidden rounded-xl border border-white/10 shadow-2xl bg-white/5">
-            {/* 引用真实导入的图片 */}
             <img 
               src={classification} 
               alt="Classification of Fixed Points" 
@@ -406,7 +418,11 @@ const ChaosLogContinuous = () => {
         <section className="space-y-4">
           <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">5. Interactive Lab: 2D Vector Fields</h3>
           <p>
-            Experience the topological shifts firsthand. By manipulating the elements of the Jacobian matrix below, you linearly transform the 2D phase space. Observe how adjusting the parameters forces the system to undergo bifurcations, morphing between saddles, spirals, and nodes in real-time.
+            Experience the topological shifts firsthand. The local behavior near the origin is dictated by the Jacobian matrix <InlineMath tex="A" katexReady={katexReady} />, defined as:
+          </p>
+          <MathDisplay tex={FORMULAS.jacobianABCD} katexReady={katexReady} />
+          <p>
+            By manipulating the specific matrix elements <InlineMath tex="a, b, c, d" katexReady={katexReady} /> below, you linearly transform the 2D phase space. Observe how adjusting the parameters forces the system to undergo bifurcations, morphing between saddles, spirals, and nodes in real-time.
           </p>
           
           <VectorFieldLab />
@@ -426,14 +442,13 @@ const ChaosLogContinuous = () => {
             <MathDisplay tex={FORMULAS.bz3} katexReady={katexReady} />
           </div>
 
-          <h4 className="font-bold text-cyan-400 mt-6">Simplified Dimensionless Model</h4>
+          <h4 className="font-bold text-cyan-400 mt-6">Simplified Dimensionless Model & Nullclines</h4>
           <p>
             By distilling the complexity and non-dimensionalizing the variables, we obtain an elegant 2D mathematical model where <InlineMath tex="x" katexReady={katexReady} /> and <InlineMath tex="y" katexReady={katexReady} /> are dimensionless concentrations:
           </p>
           <MathDisplay tex={FORMULAS.bzEq} katexReady={katexReady} />
 
           <figure className="my-8 overflow-hidden rounded-xl border border-white/10 shadow-2xl bg-white/5">
-            {/* 引用真实导入的图片 */}
             <img 
               src={phasePortrait} 
               alt="Nullclines Phase Portrait" 
@@ -441,17 +456,30 @@ const ChaosLogContinuous = () => {
               style={{ filter: "invert(1) hue-rotate(180deg) contrast(1.2)" }}
             />
             <figcaption className="p-4 text-center text-[10px] text-white/40 uppercase tracking-widest font-bold border-t border-white/5">
-              Fig 3. Phase portrait of the simplified BZ model showing nullclines. The fixed point lies at the intersection of <InlineMath tex="\dot{x}=0" katexReady={katexReady} /> and <InlineMath tex="\dot{y}=0" katexReady={katexReady} />.
+              Fig 3. Phase portrait of the simplified BZ model showing nullclines. The fixed point lies exactly at the intersection of <InlineMath tex="\dot{x}=0" katexReady={katexReady} /> and <InlineMath tex="\dot{y}=0" katexReady={katexReady} />.
             </figcaption>
           </figure>
 
+          <h4 className="font-bold text-cyan-400 mt-6">Fixed Point and Jacobian Evaluation</h4>
+          <p>
+            By solving the nullcline equations simultaneously (<InlineMath tex="\dot{x}=0, \dot{y}=0" katexReady={katexReady} />), we locate the unique fixed point of the system:
+          </p>
+          <MathDisplay tex={FORMULAS.bzFixedPoint} katexReady={katexReady} />
+          
+          <p>
+            To understand the stability, we linearize the system by evaluating the Jacobian matrix precisely at this fixed point <InlineMath tex="(x^*, y^*)" katexReady={katexReady} />. The calculus yields:
+          </p>
+          <MathDisplay tex={FORMULAS.bzJacobianEval} katexReady={katexReady} />
+          
+          <p>
+            From this matrix, we can extract the Determinant (<InlineMath tex="\Delta" katexReady={katexReady} />) and Trace (<InlineMath tex="\tau" katexReady={katexReady} />). Notice that the determinant is strictly positive:
+          </p>
+          <MathDisplay tex={FORMULAS.bzDet} katexReady={katexReady} />
+          <MathDisplay tex={FORMULAS.hopfTrace} katexReady={katexReady} />
+
           <h4 className="font-bold text-cyan-400 mt-6">Hopf Bifurcation</h4>
           <p>
-            By evaluating the Jacobian matrix of this simplified BZ system at the fixed point <InlineMath tex="(x^*, y^*)" katexReady={katexReady} />, we can isolate the trace <InlineMath tex="\tau" katexReady={katexReady} />:
-          </p>
-          <MathDisplay tex={FORMULAS.hopfTrace} katexReady={katexReady} />
-          <p>
-            As the parameter <InlineMath tex="b" katexReady={katexReady} /> increases, the trace <InlineMath tex="\tau" katexReady={katexReady} /> transitions smoothly from negative to positive. At the precise critical threshold:
+            Because <InlineMath tex="\Delta > 0" katexReady={katexReady} />, the fixed point can never be a saddle. Instead, as the parameter <InlineMath tex="b" katexReady={katexReady} /> increases, the trace <InlineMath tex="\tau" katexReady={katexReady} /> transitions smoothly from negative (stable) to positive (unstable). This transition occurs at the precise critical threshold:
           </p>
           <MathDisplay tex={FORMULAS.hopfCritical} katexReady={katexReady} />
           
