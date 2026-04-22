@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // =========================================================
-// 1. 正常导入 Layout 组件
+// 1. 正常导入 Layout 组件 (在预览环境中暂时注释，复制到本地时请取消注释)
 // =========================================================
 import LogLayout from '../components/LogLayout';
 
 // =========================================================
-// 2. 正常导入你放在 assets 文件夹中的本地真实图片
+// 2. 正常导入你放在 assets 文件夹中的本地真实图片 (在预览环境中暂时注释，复制到本地时请取消注释)
 // =========================================================
 import bzReaction from '../assets/Figure_3.png';
 import phasePortrait from '../assets/Figure_4.png';
@@ -97,13 +97,13 @@ const InlineMath = ({ tex, katexReady }) => {
 };
 
 // =========================================================
-// 组件: 2D 向量场交互式实验室 (Vector Field Lab)
+// 组件: 2D 向量场交互式实验室 (Vector Field Lab - 上下布局版)
 // =========================================================
 const VectorFieldLab = () => {
-  const [a, setA] = useState(1);
-  const [b, setB] = useState(1);
-  const [c, setC] = useState(1);
-  const [d, setD] = useState(-1);
+  const [a, setA] = useState(1.3);
+  const [b, setB] = useState(3.0);
+  const [c, setC] = useState(1.0);
+  const [d, setD] = useState(-1.0);
   
   const canvasRef = useRef(null);
 
@@ -134,7 +134,8 @@ const VectorFieldLab = () => {
     
     ctx.clearRect(0, 0, width, height);
 
-    const scale = 20; 
+    // 加大了网格密度，使得大画布上的向量更加丰富
+    const scale = 24; 
     const center = { x: width / 2, y: height / 2 };
 
     ctx.strokeStyle = '#ffffff22';
@@ -144,8 +145,8 @@ const VectorFieldLab = () => {
     ctx.moveTo(center.x, 0); ctx.lineTo(center.x, height);
     ctx.stroke();
 
-    const step = 25; 
-    const arrowScale = 4;
+    const step = 30; 
+    const arrowScale = 5;
 
     const drawArrow = (x, y, vx, vy) => {
         const mag = Math.sqrt(vx * vx + vy * vy);
@@ -171,7 +172,7 @@ const VectorFieldLab = () => {
         ctx.stroke();
 
         const angle = Math.atan2(-nvy, nvx);
-        const headlen = 4;
+        const headlen = 5;
         ctx.beginPath();
         ctx.moveTo(endX, endY);
         ctx.lineTo(endX - headlen * Math.cos(angle - Math.PI / 6), endY - headlen * Math.sin(angle - Math.PI / 6));
@@ -197,21 +198,25 @@ const VectorFieldLab = () => {
   }, [a, b, c, d]);
 
   return (
-    <div className="my-10 p-6 bg-black/60 border border-white/10 rounded-2xl shadow-2xl font-mono">
-      <div className="flex flex-col lg:flex-row gap-8">
-        <div className="relative flex-1 bg-[#050b14] rounded-xl border border-white/5 shadow-inner overflow-hidden flex items-center justify-center p-2">
-          <canvas ref={canvasRef} width={500} height={500} className="w-full max-w-[500px] aspect-square" />
-          <div className="absolute top-4 left-4 text-[10px] text-white/40 uppercase tracking-widest font-bold">Phase_Space_Engine</div>
+    <div className="my-10 p-6 md:p-10 bg-black/60 border border-white/10 rounded-2xl shadow-2xl font-mono">
+      <div className="flex flex-col gap-10 items-center">
+        
+        {/* Canvas Section - 改为大尺寸居中显示 */}
+        <div className="relative w-full max-w-[650px] bg-[#050b14] rounded-xl border border-white/5 shadow-inner overflow-hidden flex items-center justify-center p-2">
+          <canvas ref={canvasRef} width={600} height={600} className="w-full aspect-square" />
+          <div className="absolute top-6 left-6 text-xs text-white/40 uppercase tracking-widest font-bold">Phase_Space_Engine</div>
         </div>
 
-        <div className="w-full lg:w-80 space-y-6 flex flex-col justify-between">
+        {/* Controls Section - 改为下方网格双栏布局 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-[650px]">
+          
           <div className="space-y-4">
             <h4 className="text-cyan-400 text-xs tracking-[0.2em] uppercase font-bold border-b border-white/10 pb-2">Jacobian Matrix [A]</h4>
-            <div className="grid grid-cols-2 gap-4 bg-white/[0.02] p-4 rounded-lg border border-white/5">
+            <div className="grid grid-cols-2 gap-6 bg-white/[0.02] p-5 rounded-xl border border-white/5 shadow-inner">
               {[ {label: 'a', val: a, setter: setA}, {label: 'b', val: b, setter: setB}, 
                  {label: 'c', val: c, setter: setC}, {label: 'd', val: d, setter: setD} ].map((item) => (
-                <div key={item.label} className="space-y-1">
-                  <div className="flex justify-between text-[10px] text-white/50">
+                <div key={item.label} className="space-y-2">
+                  <div className="flex justify-between text-xs text-white/50 font-bold">
                     <span>{item.label}</span>
                     <span className="text-cyan-300">{item.val.toFixed(2)}</span>
                   </div>
@@ -225,23 +230,24 @@ const VectorFieldLab = () => {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
              <h4 className="text-pink-400 text-xs tracking-[0.2em] uppercase font-bold border-b border-white/10 pb-2">Analysis Panel</h4>
-             <div className="bg-white/[0.02] p-4 rounded-lg border border-white/5 space-y-2 text-xs">
-                <div className="flex justify-between">
-                    <span className="text-white/40">Trace (τ)</span>
-                    <span className="text-white font-bold">{tr.toFixed(2)}</span>
+             <div className="bg-white/[0.02] p-5 rounded-xl border border-white/5 space-y-4 text-xs shadow-inner h-full flex flex-col justify-center">
+                <div className="flex justify-between items-center">
+                    <span className="text-white/40 uppercase tracking-widest">Trace (τ)</span>
+                    <span className="text-white font-bold text-sm bg-white/5 px-2 py-1 rounded">{tr.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                    <span className="text-white/40">Determinant (Δ)</span>
-                    <span className="text-white font-bold">{det.toFixed(2)}</span>
+                <div className="flex justify-between items-center">
+                    <span className="text-white/40 uppercase tracking-widest">Determinant (Δ)</span>
+                    <span className="text-white font-bold text-sm bg-white/5 px-2 py-1 rounded">{det.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between pt-2 border-t border-white/5">
-                    <span className="text-white/40">Topology</span>
-                    <span className={`font-black ${det < 0 ? 'text-pink-400' : 'text-cyan-400'}`}>{type}</span>
+                <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-2">
+                    <span className="text-white/40 uppercase tracking-widest">Topology</span>
+                    <span className={`font-black text-sm tracking-wide ${det < 0 ? 'text-pink-400' : 'text-cyan-400'}`}>{type}</span>
                 </div>
              </div>
           </div>
+
         </div>
       </div>
     </div>
@@ -447,12 +453,20 @@ const ChaosLogContinuous = () => {
           <p>
             As the parameter <InlineMath tex="b" katexReady={katexReady} /> increases, the trace <InlineMath tex="\tau" katexReady={katexReady} /> transitions smoothly from negative to positive. At the precise critical threshold:
           </p>
-            That is the system have a <strong>Hopf Bifurcation</strong>. The previously stable fixed point abruptly loses stability, birthing a stable and <strong>limit cycle</strong>—what is the mathematical manifestation of the periodic chemical oscillations we observe in the petri dish.
+          <MathDisplay tex={FORMULAS.hopfCritical} katexReady={katexReady} />
+          
+          <p>
+            This indicates that the system undergoes a magnificent <strong>Hopf Bifurcation</strong>. The previously stable fixed point abruptly loses stability, birthing a stable <strong>limit cycle</strong>—which is the exact mathematical manifestation of the periodic chemical oscillations we observe in the petri dish.
           </p>
-		  <MathDisplay tex={FORMULAS.hopfCritical} katexReady={katexReady} />
-          <p className="bg-white/5 p-4 border-l-2 border-pink-500/50 text-sm italic">
-            By the way, these days I have often been troubled by some disturbances in my life. They used to greatly trouble me until I saw the wheels of a cart, the uneven ground causing them to repeatedly sway and generating oscillation, almost like that limit cycle. What I want to say is that life is the same. It cannot run perfectly along the trajectory, but although it is wobbling, it is still a stable system.
-          </p>
+          
+          <div className="mt-8 bg-white/[0.02] p-6 border-l-4 border-cyan-500/50 rounded-r-xl shadow-[inset_0_0_20px_rgba(34,211,238,0.02)]">
+            <p className="text-sm italic leading-relaxed text-white/70">
+              <span className="text-cyan-400 font-black tracking-widest uppercase text-[10px] block mb-2">// Personal Reflection</span>
+              "By the way, these days I have often been troubled by some disturbances in my life. They used to greatly trouble me until I saw the wheels of a cart: the uneven ground causing them to repeatedly sway and generate oscillations, almost exactly like that mathematical limit cycle. 
+              <br/><br/>
+              What I want to say is that life is the same. It cannot run perfectly along an idealized, completely flat trajectory. But even when it is wobbling and oscillating, it remains fundamentally—a stable system."
+            </p>
+          </div>
         </section>
 
         <div className="py-16 border-y border-white/5 text-center space-y-8 mt-16">
