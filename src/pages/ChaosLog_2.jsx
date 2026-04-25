@@ -509,27 +509,18 @@ const ChaosLogContinuous = () => {
           </p>
           <MathDisplay tex={FORMULAS.hopfCritical} katexReady={katexReady} />
           
-          <p>
-            This indicates that the system undergoes a magnificent <strong>Hopf Bifurcation</strong>. The previously stable fixed point abruptly loses stability, birthing a stable <strong>limit cycle</strong>—which is the exact mathematical manifestation of the periodic chemical oscillations we observe in the petri dish.
-          </p>
-          
         </section>
 
-        </div>
-		
         {/* Postscript */}
         <div className="py-16 border-y border-white/5 text-center space-y-8 mt-16">
-          <p className="text-sm text-white/30 tracking-[0.4em] uppercase font-light italic">
-            // End_Transmission: Flowing through the Phase Space
-          </p>		
           <div className="inline-block px-10 py-5 bg-cyan-600/10 border border-cyan-500/30 text-cyan-400 text-[11px] tracking-[0.6em] uppercase shadow-[0_0_40px_rgba(34,211,238,0.1)]">
             Continuous Systems Analyzed. Manifolds Charted.
           </div>
           <p className="text-xs text-white/30 tracking-[0.2em] font-light italic mt-8 max-w-2xl mx-auto leading-relaxed">
-              "By the way, these days I have often been troubled by some disturbances in my life. They used to greatly trouble me until I saw the wheels of a cart: the uneven ground causing them to repeatedly sway and generate oscillations, almost exactly like that mathematical limit cycle. 
-              <br/><br/>
-              What I want to say is that life is the same. It cannot run perfectly along an idealized, completely flat trajectory. But even when it is wobbling and oscillating, it remains fundamentally—a stable system."
-		  </p>
+            "By the way, these days I have often been troubled by some disturbances in my life. They used to greatly trouble me until I saw the wheels of a cart: the uneven ground causing them to repeatedly sway and generate oscillations, almost exactly like that mathematical limit cycle. 
+            <br/><br/>
+            What I want to say is that life is the same. It cannot run perfectly along an idealized, completely flat trajectory. But even when it is wobbling and oscillating, it remains fundamentally—a stable system."
+          </p>
 
           {/* References */}
           <div className="pt-16 text-[10px] text-white/20 tracking-wider space-y-1.5 uppercase font-light">
@@ -538,7 +529,6 @@ const ChaosLogContinuous = () => {
             <p>Differential Equations, Dynamical Systems, and an Introduction to Chaos (Devaney, Robert L., Hirsch, Morris W., Smale etc.)</p>
           </div>
         </div>
-
 
       </div>
     </LogLayout>
