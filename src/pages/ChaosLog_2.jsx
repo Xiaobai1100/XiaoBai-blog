@@ -311,7 +311,7 @@ const ChaosLogContinuous = () => {
   }, []);
 
   return (
-    <LogLayout title="CONTINUOUS_DYNAMICS: DIFFERENTIAL_EQUATIONS_&_VECTOR_FIELDS" category="RESEARCH" date="2026-04-22">
+    <LogLayout title="CHAOS 2: CONTINUOUS_DYNAMICS" category="RESEARCH" date="2026-04-22">
       <div className="space-y-12 font-mono text-white/80 text-sm md:text-base leading-relaxed max-w-5xl mx-auto pb-20">
         
         <section className="space-y-4">
@@ -377,7 +377,7 @@ const ChaosLogContinuous = () => {
 
           <h4 className="font-bold text-cyan-400 mt-6">Nullclines: The Skeleton of Phase Space</h4>
           <p>
-            To intuitively grasp the dynamics of a 2D system without analyzing every single vector, we identify the <strong>Nullclines</strong> (零等倾线). These are the specific curves where the velocity in one of the principal directions is exactly zero:
+            To intuitively grasp the dynamics of a 2D system without analyzing every single vector, we identify the <strong>Nullclines</strong>. These are the specific curves where the velocity in one of the principal directions is exactly zero:
           </p>
           <MathDisplay tex={FORMULAS.nullclinesDef} katexReady={katexReady} />
           <p>
@@ -515,7 +515,7 @@ const ChaosLogContinuous = () => {
           
           <div className="mt-8 bg-white/[0.02] p-6 border-l-4 border-cyan-500/50 rounded-r-xl shadow-[inset_0_0_20px_rgba(34,211,238,0.02)]">
             <p className="text-sm italic leading-relaxed text-white/70">
-              <span className="text-cyan-400 font-black tracking-widest uppercase text-[10px] block mb-2">// Personal Reflection</span>
+              <span className="text-cyan-400 font-black tracking-widest uppercase text-[10px] block mb-2">// Author's Note</span>
               "By the way, these days I have often been troubled by some disturbances in my life. They used to greatly trouble me until I saw the wheels of a cart: the uneven ground causing them to repeatedly sway and generate oscillations, almost exactly like that mathematical limit cycle. 
               <br/><br/>
               What I want to say is that life is the same. It cannot run perfectly along an idealized, completely flat trajectory. But even when it is wobbling and oscillating, it remains fundamentally—a stable system."
@@ -531,6 +531,26 @@ const ChaosLogContinuous = () => {
             Continuous Systems Analyzed. Manifolds Charted.
           </div>
         </div>
+		
+        {/* Postscript */}
+        <div className="py-16 border-y border-white/5 text-center space-y-8 mt-16">
+          <div className="inline-block px-10 py-5 bg-cyan-600/10 border border-cyan-500/30 text-cyan-400 text-[11px] tracking-[0.6em] uppercase shadow-[0_0_40px_rgba(34,211,238,0.1)]">
+            Dimensionality Transcended. Maps Calculated.
+          </div>
+          <p className="text-xs text-white/30 tracking-[0.2em] font-light italic mt-8 max-w-2xl mx-auto leading-relaxed">
+              "By the way, these days I have often been troubled by some disturbances in my life. They used to greatly trouble me until I saw the wheels of a cart: the uneven ground causing them to repeatedly sway and generate oscillations, almost exactly like that mathematical limit cycle. 
+              <br/><br/>
+              What I want to say is that life is the same. It cannot run perfectly along an idealized, completely flat trajectory. But even when it is wobbling and oscillating, it remains fundamentally—a stable system."
+		  </p>
+
+          {/* References */}
+          <div className="pt-16 text-[10px] text-white/20 tracking-wider space-y-1.5 uppercase font-light">
+            <p className="font-bold mb-2 text-white/30 tracking-[0.3em]">References</p>
+            <p>Nonlinear Dynamics and Chaos (Steven H. Strogatz)</p>
+            <p>Differential Equations, Dynamical Systems, and an Introduction to Chaos (Devaney, Robert L., Hirsch, Morris W., Smale etc.)</p>
+          </div>
+        </div>
+
 
       </div>
     </LogLayout>
