@@ -2,6 +2,7 @@ import AboutBlog from '../pages/AboutBlog';
 import ChristmasLog from '../pages/ChristmasLog';
 import ChaosLog_1 from '../pages/ChaosLog_1';
 import ChaosLog_2 from '../pages/ChaosLog_2';
+import ChaosLog_3 from '../pages/ChaosLog_3';
 
 
 
