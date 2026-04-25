@@ -513,6 +513,8 @@ const ChaosLogContinuous = () => {
             This indicates that the system undergoes a magnificent <strong>Hopf Bifurcation</strong>. The previously stable fixed point abruptly loses stability, birthing a stable <strong>limit cycle</strong>—which is the exact mathematical manifestation of the periodic chemical oscillations we observe in the petri dish.
           </p>
           
+        </section>
+
         </div>
 		
         {/* Postscript */}
