@@ -15,7 +15,6 @@ import figEllipsoid from '../assets/Figure_11.png';
 import figSaddleCycle from '../assets/Figure_12.png';
 import figSubcritical from '../assets/Figure_13.png';
 
-
 // =========================================================
 // 🛡️ 静态资源隔离区 (海量公式库)
 // =========================================================
@@ -339,13 +338,14 @@ const BifurcationInteractiveLab = () => {
             </svg>
           </div>
 
-		  <div className="bg-white/[0.02] p-4 rounded-xl border border-white/5 shadow-inner space-y-3">
+          <div className="bg-white/[0.02] p-4 rounded-xl border border-white/5 shadow-inner space-y-3">
             <div className="flex justify-between text-xs text-white/70 font-bold">
               <span>Rayleigh Number [r]:</span>
               <span className="text-red-300 font-mono bg-white/5 px-2 py-0.5 rounded">{r.toFixed(2)}</span>
             </div>
+            {/* 修改了此处的 step 为 0.01 */}
             <input 
-              type="range" min="15.0" max="30.0" step="0.1" value={r} 
+              type="range" min="15.00" max="30.00" step="0.01" value={r} 
               onChange={(e) => setR(parseFloat(e.target.value))} 
               className="w-full accent-red-500 h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer mt-2" 
             />
@@ -409,7 +409,7 @@ const ChaosLogLorenz = () => {
             <img 
               src={figWaterWheel} 
               alt="Chaotic Water Wheel States" 
-              className="w-full object-cover opacity-90 transition-opacity invert hue-rotate-180"
+              className="w-full h-auto object-contain opacity-90 transition-opacity invert hue-rotate-180"
               style={{ filter: "invert(1) hue-rotate(180deg) contrast(1.2)" }} 
             />
             <figcaption className="p-4 text-center text-[10px] text-white/40 uppercase tracking-widest font-bold border-t border-white/5">
@@ -451,7 +451,7 @@ const ChaosLogLorenz = () => {
             <img 
               src={figSector} 
               alt="Mass Variation Sector" 
-              className="max-w-[300px] mx-auto object-cover opacity-90 transition-opacity invert hue-rotate-180"
+              className="max-w-[300px] w-full h-auto object-contain mx-auto opacity-90 transition-opacity invert hue-rotate-180"
               style={{ filter: "invert(1) hue-rotate(180deg) contrast(1.2)" }} 
             />
             <figcaption className="p-4 text-center text-[10px] text-white/40 uppercase tracking-widest font-bold border-t border-white/5">
@@ -520,7 +520,7 @@ const ChaosLogLorenz = () => {
           <p>Since <InlineMath tex="\int_0^{2\pi} \sin^2\theta d\theta = \pi" katexReady={katexReady}/>:</p>
           <MathDisplay tex={FORMULAS.torqueReduced2} katexReady={katexReady} />
 
-		  <div className="mt-8 bg-white/[0.02] p-6 border-l-4 border-red-500/50 rounded-r-xl shadow-[inset_0_0_20px_rgba(239,68,68,0.02)]">
+          <div className="mt-8 bg-white/[0.02] p-6 border-l-4 border-red-500/50 rounded-r-xl shadow-[inset_0_0_20px_rgba(239,68,68,0.02)]">
             <h4 className="text-red-400 font-black tracking-widest uppercase text-xs mb-2">Log Insight: The Miracle of Decoupling</h4>
             <p className="text-xs italic leading-relaxed text-white/70">
               Through this derivation, the notes rigorously prove that <InlineMath tex="\dot{\omega}" katexReady={katexReady}/> is <strong>only related to</strong> <InlineMath tex="a_1" katexReady={katexReady}/>. For all <InlineMath tex="n \neq 1" katexReady={katexReady}/>, the infinitely many higher-order Fourier modes <InlineMath tex="a_n, b_n" katexReady={katexReady}/> are completely decoupled from the macroscopic rotation of the water wheel. This is exactly why we can perfectly collapse the complex partial differential equation into a 3D ordinary differential equation system!
@@ -582,7 +582,7 @@ const ChaosLogLorenz = () => {
             <img 
               src={figVolume} 
               alt="Volume Contraction Surface" 
-              className="max-w-[400px] mx-auto object-cover opacity-90 transition-opacity invert hue-rotate-180"
+              className="max-w-[400px] w-full h-auto object-contain mx-auto opacity-90 transition-opacity invert hue-rotate-180"
               style={{ filter: "invert(1) hue-rotate(180deg) contrast(1.2)" }} 
             />
             <figcaption className="p-4 text-center text-[10px] text-white/40 uppercase tracking-widest font-bold border-t border-white/5">
@@ -640,7 +640,7 @@ const ChaosLogLorenz = () => {
             <img 
               src={figEllipsoid} 
               alt="Liapunov Concentric Ellipsoids" 
-              className="max-w-[400px] mx-auto object-cover opacity-90 transition-opacity invert hue-rotate-180"
+              className="max-w-[400px] w-full h-auto object-contain mx-auto opacity-90 transition-opacity invert hue-rotate-180"
               style={{ filter: "invert(1) hue-rotate(180deg) contrast(1.2)" }} 
             />
             <figcaption className="p-4 text-center text-[10px] text-white/40 uppercase tracking-widest font-bold border-t border-white/5">
@@ -681,7 +681,7 @@ const ChaosLogLorenz = () => {
             <img 
               src={figSaddleCycle} 
               alt="Saddle Cycle near Fixed Point" 
-              className="max-w-[400px] mx-auto object-cover opacity-90 transition-opacity invert hue-rotate-180"
+              className="max-w-[400px] w-full h-auto object-contain mx-auto opacity-90 transition-opacity invert hue-rotate-180"
               style={{ filter: "invert(1) hue-rotate(180deg) contrast(1.2)" }} 
             />
             <figcaption className="p-4 text-center text-[10px] text-white/40 uppercase tracking-widest font-bold border-t border-white/5">
@@ -697,7 +697,7 @@ const ChaosLogLorenz = () => {
             <img 
               src={figSubcritical} 
               alt="Subcritical Hopf Bifurcation" 
-              className="max-w-[400px] mx-auto object-cover opacity-90 transition-opacity invert hue-rotate-180"
+              className="max-w-[400px] w-full h-auto object-contain mx-auto opacity-90 transition-opacity invert hue-rotate-180"
               style={{ filter: "invert(1) hue-rotate(180deg) contrast(1.2)" }} 
             />
             <figcaption className="p-4 text-center text-[10px] text-white/40 uppercase tracking-widest font-bold border-t border-white/5">
