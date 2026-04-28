@@ -339,7 +339,7 @@ const BifurcationInteractiveLab = () => {
             </svg>
           </div>
 
-          <div className="bg-white/[0.02] p-4 rounded-xl border border-white/5 shadow-inner space-y-3">
+		  <div className="bg-white/[0.02] p-4 rounded-xl border border-white/5 shadow-inner space-y-3">
             <div className="flex justify-between text-xs text-white/70 font-bold">
               <span>Rayleigh Number [r]:</span>
               <span className="text-red-300 font-mono bg-white/5 px-2 py-0.5 rounded">{r.toFixed(2)}</span>
@@ -349,9 +349,11 @@ const BifurcationInteractiveLab = () => {
               onChange={(e) => setR(parseFloat(e.target.value))} 
               className="w-full accent-red-500 h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer mt-2" 
             />
-            <div className="text-[10px] text-white/40 pt-2 grid grid-cols-2 gap-2">
-               <div>Critical $r_H \approx$ 24.74</div>
-               <div className="text-right text-pink-400 font-bold">{r < rH ? "Saddle Cycle Restrains" : "Boundary Crushed"}</div>
+            <div className="text-[10px] text-white/40 pt-2 flex justify-between items-center">
+               <div>Critical r<sub>H</sub> ≈ 24.74</div>
+               <div className="text-right text-pink-400 font-bold">
+                 {r < rH ? "Saddle Cycle Restrains" : "Boundary Crushed"}
+               </div>
             </div>
           </div>
         </div>
@@ -518,10 +520,10 @@ const ChaosLogLorenz = () => {
           <p>Since <InlineMath tex="\int_0^{2\pi} \sin^2\theta d\theta = \pi" katexReady={katexReady}/>:</p>
           <MathDisplay tex={FORMULAS.torqueReduced2} katexReady={katexReady} />
 
-          <div className="mt-8 bg-white/[0.02] p-6 border-l-4 border-red-500/50 rounded-r-xl shadow-[inset_0_0_20px_rgba(239,68,68,0.02)]">
+		  <div className="mt-8 bg-white/[0.02] p-6 border-l-4 border-red-500/50 rounded-r-xl shadow-[inset_0_0_20px_rgba(239,68,68,0.02)]">
             <h4 className="text-red-400 font-black tracking-widest uppercase text-xs mb-2">Log Insight: The Miracle of Decoupling</h4>
             <p className="text-xs italic leading-relaxed text-white/70">
-              通过这步推导，笔记严谨地证明了：<InlineMath tex="\dot{\omega}" katexReady={katexReady}/> <strong>only related to</strong> <InlineMath tex="a_1" katexReady={katexReady}/>。对于所有的 <InlineMath tex="n \neq 1" katexReady={katexReady}/>，无穷多个高阶傅里叶模态 <InlineMath tex="a_n, b_n" katexReady={katexReady}/> 完全与水车的宏观旋转系统解耦（decoupled）。这就是为什么我们可以将偏微分方程完美坍缩为三维常微分方程系统！
+              Through this derivation, the notes rigorously prove that <InlineMath tex="\dot{\omega}" katexReady={katexReady}/> is <strong>only related to</strong> <InlineMath tex="a_1" katexReady={katexReady}/>. For all <InlineMath tex="n \neq 1" katexReady={katexReady}/>, the infinitely many higher-order Fourier modes <InlineMath tex="a_n, b_n" katexReady={katexReady}/> are completely decoupled from the macroscopic rotation of the water wheel. This is exactly why we can perfectly collapse the complex partial differential equation into a 3D ordinary differential equation system!
             </p>
           </div>
 
