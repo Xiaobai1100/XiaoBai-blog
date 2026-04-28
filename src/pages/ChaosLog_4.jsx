@@ -26,12 +26,12 @@ const FORMULAS = {
   massDeriv: "m(\\theta_1) - m(\\theta_2) = -\\int_{\\theta_1}^{\\theta_2} \\frac{\\partial m}{\\partial \\theta} d\\theta",
   continuityPre1: "\\implies \\frac{dM}{dt} = \\int_{\\theta_1}^{\\theta_2} \\left( Q - Km - \\omega \\frac{\\partial m}{\\partial \\theta} \\right) d\\theta",
   continuityPre2: "\\implies \\frac{dM}{dt} = \\int_{\\theta_1}^{\\theta_2} \\frac{\\partial m}{\\partial t} d\\theta",
-  continuityEq: "\\frac{\\partial m}{\\partial t} = Q - Km - \\omega \\frac{\\partial m}{\\partial \\theta} \\quad \\text{... (Eq. 1)}",
+  continuityEq: "\\frac{\\partial m}{\\partial t} = Q - Km - \\omega \\frac{\\partial m}{\\partial \\theta} \\quad \\text{(1)}",
   torqueGrav1: "d\\tau = dMg r \\sin\\theta = mg r \\sin\\theta d\\theta",
   torqueGrav2: "\\implies \\text{gravitation torque} = gr \\int_0^{2\\pi} m(\\theta,t)\\sin\\theta d\\theta",
-  torqueEq: "I\\dot{\\omega} = -\\nu\\omega + gr \\int_0^{2\\pi} m(\\theta,t)\\sin\\theta d\\theta \\quad \\text{... (Eq. 2)}",
-  fourierM: "m(\\theta,t) = \\sum_{n=0}^{\\infty} \\left[ a_n(t)\\sin n\\theta + b_n(t)\\cos n\\theta \\right] \\quad \\text{... (3)}",
-  fourierQ: "Q(\\theta) = \\sum_{n=0}^{\\infty} q_n \\cos n\\theta \\quad \\text{... (4)}",
+  torqueEq: "I\\dot{\\omega} = -\\nu\\omega + gr \\int_0^{2\\pi} m(\\theta,t)\\sin\\theta d\\theta \\quad \\text{(2)}",
+  fourierM: "m(\\theta,t) = \\sum_{n=0}^{\\infty} \\left[ a_n(t)\\sin n\\theta + b_n(t)\\cos n\\theta \\right] \\quad \\text{(3)}",
+  fourierQ: "Q(\\theta) = \\sum_{n=0}^{\\infty} q_n \\cos n\\theta \\quad \\text{(4)}",
   lhs: "\\text{LHS: } \\sum_{n=0}^{\\infty} (\\dot{a}_n \\sin n\\theta + \\dot{b}_n \\cos n\\theta)",
   rhs: "\\text{RHS: } \\sum_{n=0}^{\\infty} q_n \\cos n\\theta - K \\sum_{n=0}^{\\infty} (a_n \\sin n\\theta + b_n \\cos n\\theta) - \\omega \\sum_{n=0}^{\\infty} (n a_n \\cos n\\theta - n b_n \\sin n\\theta)",
   coeffSin: "\\dot{a}_n = n\\omega b_n - Ka_n",
@@ -386,7 +386,7 @@ const ChaosLogLorenz = () => {
   }, []);
 
   return (
-    <LogLayout title="CHAOS 4: LORENZ EQ & SADDLE CYCLE" category="RESEARCH" date="2026-04-28">
+    <LogLayout title="CHAOS 4: LORENZ EQ. & SADDLE CYCLE" category="RESEARCH" date="2026-04-28">
       <div className="space-y-12 font-mono text-white/80 text-sm md:text-base leading-relaxed max-w-5xl mx-auto pb-20">
         
         <section className="space-y-4">
