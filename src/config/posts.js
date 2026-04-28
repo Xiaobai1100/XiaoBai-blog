@@ -3,15 +3,26 @@ import ChristmasLog from '../pages/ChristmasLog';
 import ChaosLog_1 from '../pages/ChaosLog_1';
 import ChaosLog_2 from '../pages/ChaosLog_2';
 import ChaosLog_3 from '../pages/ChaosLog_3';
+import ChaosLog_4 from '../pages/ChaosLog_4';
 
 
 
 export const POSTS = [
 {
+id: 'CHAOS 4: Lorenz Equation', 
+title: 'CHAOS 4: Lorenz Equation',
+category: 'RESEARCH',
+date: '2026-04-28',
+description: 'Lorenz Equation.',
+component: ChaosLog_4 
+},
+
+
+{
 id: 'CHAOS 3: Poincaré-Bendixson Th. & RETURN MAP', 
 title: 'CHAOS 3: Poincaré-Bendixson Th. & RETURN MAP',
 category: 'RESEARCH',
-date: '2026-04-22',
+date: '2026-04-26',
 description: 'Poincaré-Bendixson Th. & RETURN MAP.',
 component: ChaosLog_3 
 },
