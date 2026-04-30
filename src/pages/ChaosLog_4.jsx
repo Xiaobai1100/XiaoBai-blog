@@ -123,11 +123,11 @@ const BifurcationInteractiveLab = () => {
 
   // 初始化粒子群
   useEffect(() => {
-    const count = 300;
+    const count = 250;
     particlesRef.current = Array.from({ length: count }).map(() => ({
       r_polar: Math.random() * 2.5 + 0.1,
       theta: Math.random() * 2 * Math.PI,
-      z: (Math.random() - 0.5) * 8, // 增加初始 Z 轴的高度范围
+      z: (Math.random() - 0.5) * 8, 
       age: Math.random() * 100
     }));
   }, []);
@@ -153,19 +153,15 @@ const BifurcationInteractiveLab = () => {
       timeRef.current += 0.05;
       const t = timeRef.current;
 
-      // 固定的 3D 视角投影：绕 Y 轴转一点，再绕 X 轴倾斜，完美契合你的手写笔记图12
       const pitch = 0.5; // 倾角
       const yaw = 0.3;   // 旋转
       
       const project = (x, y, z) => {
-        // Yaw
         const x1 = x * Math.cos(yaw) - y * Math.sin(yaw);
         const y1 = x * Math.sin(yaw) + y * Math.cos(yaw);
         const z1 = z;
-        // Pitch
         const x2 = x1;
         const y2 = y1 * Math.cos(pitch) - z1 * Math.sin(pitch);
-        // 映射
         return { sx: center.x + x2 * scale, sy: center.y - y2 * scale, depth: z1 };
       };
 
@@ -182,7 +178,7 @@ const BifurcationInteractiveLab = () => {
 
       // 2. 绘制 1D 稳定流形 (Z轴)
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)'; // 用青色代表它是一条稳定流形
+      ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)'; // 青色稳定流形
       ctx.setLineDash([4, 4]);
       let zBottom = project(0, 0, -4.5); ctx.moveTo(zBottom.sx, zBottom.sy);
       let zTop = project(0, 0, 4.5); ctx.lineTo(zTop.sx, zTop.sy);
@@ -203,17 +199,21 @@ const BifurcationInteractiveLab = () => {
         ctx.setLineDash([]);
       }
 
-      // 4. 绘制中心不动点 C+ (鞍焦点)
+      // 4. 绘制中心不动点 C+
       const cp = project(0, 0, 0);
       ctx.beginPath();
-      ctx.fillStyle = hasCycle ? '#22d3ee' : '#ef4444'; 
+      ctx.fillStyle = hasCycle ? '#22d3ee' : '#ef4444'; // 有鞍环时中心稳定(青色)，否则失稳(红色)
       ctx.arc(cp.sx, cp.sy, 4, 0, 2*Math.PI);
       ctx.fill();
 
-      // 5A: 稳定流形的内螺旋 (仅在有环时，即 r < rH 时画平面螺旋)
+      // ============================================
+      // 5. 核心修复：理论引导轨迹
+      // ============================================
+      
+      // 5A: 稳定流形的平面内螺旋 (仅仅！仅仅！在有环时才画)
       if (hasCycle) {
         ctx.beginPath();
-        ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)';
+        ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)'; // 青色
         for(let a = 0; a <= 15; a += 0.2) {
           let rad = cycleRadius * Math.exp(-0.2 * a);
           let pt = project(rad * Math.cos(a), rad * Math.sin(a), 0);
@@ -227,7 +227,7 @@ const BifurcationInteractiveLab = () => {
         ctx.beginPath(); ctx.fillStyle = '#22d3ee'; ctx.arc(dpt.sx, dpt.sy, 3, 0, 2*Math.PI); ctx.fill();
       }
 
-      // 5B: Z 轴上的 1D 稳定流形轨迹 (代替消失的平面螺旋)
+      // 5B: Z 轴上的 1D 稳定流形点滴轨迹 (不论是否有环都存在)
       let zPhase = 4.5 - (t * 2 % 4.5); 
       let zPtTop = project(0, 0, zPhase);
       let zPtBot = project(0, 0, -zPhase);
@@ -235,44 +235,58 @@ const BifurcationInteractiveLab = () => {
       ctx.arc(zPtTop.sx, zPtTop.sy, 2.5, 0, 2*Math.PI); ctx.fill();
       ctx.beginPath(); ctx.arc(zPtBot.sx, zPtBot.sy, 2.5, 0, 2*Math.PI); ctx.fill();
 
-      // 5C: 不稳定流形的外螺旋 (扩大了外逃的视野与轨迹)
+      // 5C: 不稳定流形的外螺旋 (粉色逃逸轨迹)
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(244, 114, 182, 0.5)';
+      ctx.strokeStyle = 'rgba(244, 114, 182, 0.5)'; // 粉色
+      
+      // 当失稳 (hasCycle = false) 时，逃逸速率拉满，让线条布满屏幕！
+      const escapeRate = hasCycle ? 0.1 : 0.4; 
+      const escapeBaseRad = hasCycle ? cycleRadius : 0.05;
+
       for(let a = 0; a <= 12; a += 0.2) {
-        let baseRad = hasCycle ? cycleRadius : 0.1;
-        let rad = baseRad * Math.exp((hasCycle ? 0.15 : 0.3) * a); // 如果失稳，逃跑速度和半径翻倍
-        let zVal = hasCycle ? 0.05 * Math.exp(0.4 * a) : (0.1 * Math.exp(0.4 * a) * Math.sin(a));
+        let rad = escapeBaseRad * Math.exp(escapeRate * a);
+        if (rad > 8) break; // 超过视口边缘就停止绘制
+        let zVal = hasCycle ? 0.05 * Math.exp(0.4 * a) : 0.1 * Math.exp(0.5 * a) * Math.sin(a); 
         let pt = project(rad * Math.cos(a), rad * Math.sin(a), zVal);
         if(a===0) ctx.moveTo(pt.sx, pt.sy); else ctx.lineTo(pt.sx, pt.sy);
       }
       ctx.stroke();
       
-      let phaseEsc = (t % 12);
-      let baseRadEsc = hasCycle ? cycleRadius : 0.1;
-      let dynRadEsc = baseRadEsc * Math.exp((hasCycle ? 0.15 : 0.3) * phaseEsc);
-      let zValEsc = hasCycle ? 0.05 * Math.exp(0.4 * phaseEsc) : (0.1 * Math.exp(0.4 * phaseEsc) * Math.sin(phaseEsc));
-      let dptEsc = project(dynRadEsc * Math.cos(phaseEsc), dynRadEsc * Math.sin(phaseEsc), zValEsc);
-      ctx.beginPath(); ctx.fillStyle = '#f472b6'; ctx.arc(dptEsc.sx, dptEsc.sy, 3.5, 0, 2*Math.PI); ctx.fill();
+      let phaseEsc = (t * (hasCycle ? 1 : 1.5) % 12);
+      let dynRadEsc = escapeBaseRad * Math.exp(escapeRate * phaseEsc);
+      if (dynRadEsc <= 8) {
+        let zValEsc = hasCycle ? 0.05 * Math.exp(0.4 * phaseEsc) : 0.1 * Math.exp(0.5 * phaseEsc) * Math.sin(phaseEsc);
+        let dptEsc = project(dynRadEsc * Math.cos(phaseEsc), dynRadEsc * Math.sin(phaseEsc), zValEsc);
+        ctx.beginPath(); ctx.fillStyle = '#f472b6'; ctx.arc(dptEsc.sx, dptEsc.sy, 3.5, 0, 2*Math.PI); ctx.fill();
+      }
 
-      // 6. 粒子动力学更新与渲染 (Saddle-Focus 逻辑重构)
+      // ============================================
+      // 6. 核心修复：粒子动力学引擎 (匹配理论)
+      // ============================================
       particlesRef.current.forEach(p => {
         let dR = 0;
-        let dZ = 0;
-        let dTheta = 2.0 * dt;
+        let isEscaping = false;
 
         if (hasCycle) {
-          // r < rH: 有鞍环。环内吸入，环外逃逸。
-          dR = (-muVal * p.r_polar + 0.1 * Math.pow(p.r_polar, 3)) * dt;
+          // r < rH: 环内吸入，环外逃逸
+          let norm = p.r_polar / cycleRadius;
+          dR = -0.5 * norm * (1 - norm * norm) * dt * 5;
+          isEscaping = p.r_polar > cycleRadius;
         } else {
           // r > rH: 纯粹的二维不稳定流形，所有平面粒子猛烈向外排斥
-          dR = (0.5 + Math.abs(muVal)) * p.r_polar * dt;
+          dR = 2.0 * p.r_polar * dt;
+          isEscaping = true;
         }
         
-        dR = Math.max(Math.min(dR, 2.5), -1.5); // 防止发散过快
-        // Z轴代表一维稳定流形，所有粒子都会被拉向 z=0
-        dZ = -2.0 * p.z * dt; 
+        dR = Math.max(Math.min(dR, 2.0), -2.0); // 防止发散过快导致越界
+        
+        let dTheta = 2.0 * dt;
+        let dZ = -2.0 * p.z * dt; // Z轴是一维稳定流形，不断往平面拉
 
-        let isEscaping = dR > 0;
+        // 逃逸的粒子在远离中心后沿着 Z 轴被弹飞
+        if (isEscaping && p.r_polar > (hasCycle ? cycleRadius * 1.1 : 0.5)) {
+          dZ += Math.sign(p.z || 1) * 2.0 * dt; 
+        }
 
         p.r_polar += dR;
         p.theta += dTheta;
@@ -286,16 +300,16 @@ const BifurcationInteractiveLab = () => {
         ctx.fillStyle = isEscaping ? '#f472b6' : '#22d3ee'; 
         ctx.globalAlpha = Math.max(0.1, 1 - Math.abs(sp.depth)/5); 
         ctx.beginPath();
-        // 逃跑的粒子画大一点，显眼
+        // 逃逸的粒子画得明显一点
         ctx.arc(sp.sx, sp.sy, isEscaping ? 2 : 1.5, 0, 2*Math.PI);
         ctx.fill();
         ctx.globalAlpha = 1.0;
 
-        // 失稳后允许粒子逃得更远再重置，产生银河旋臂感
-        if (p.age > 250 || Math.abs(p.z) > 6 || p.r_polar > 8 || (hasCycle && p.r_polar < 0.05)) {
-          p.r_polar = Math.random() * 2.5 + 0.1;
+        // 如果粒子飞出屏幕，或者寿命耗尽，则重置回中心附近
+        if (p.age > (hasCycle ? 200 : 80) || Math.abs(p.z) > 6 || p.r_polar > 6 || (hasCycle && p.r_polar < 0.05)) {
+          p.r_polar = Math.random() * 3.5 + 0.1;
           p.theta = Math.random() * 2 * Math.PI;
-          p.z = (Math.random() - 0.5) * 8;
+          p.z = (Math.random() - 0.5) * 6;
           p.age = 0;
         }
       });
