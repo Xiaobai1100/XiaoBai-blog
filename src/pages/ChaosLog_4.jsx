@@ -119,6 +119,18 @@ const BifurcationInteractiveLab = () => {
   const canvasRef = useRef(null);
   const timeRef = useRef(0);
   const animationRef = useRef(null);
+  const particlesRef = useRef([]);
+
+  // 初始化粒子群
+  useEffect(() => {
+    const count = 300;
+    particlesRef.current = Array.from({ length: count }).map(() => ({
+      r_polar: Math.random() * 2.5 + 0.1,
+      theta: Math.random() * 2 * Math.PI,
+      z: (Math.random() - 0.5) * 8, // 增加初始 Z 轴的高度范围
+      age: Math.random() * 100
+    }));
+  }, []);
 
   // 渲染精准的 3D 教科书式图表
   useEffect(() => {
@@ -129,10 +141,12 @@ const BifurcationInteractiveLab = () => {
     const height = canvas.height;
     const center = { x: width / 2, y: height / 2 + 10 };
     const scale = 40; 
+    const dt = 0.015;
 
-    // 判断局部参数，若 r < rH 存在环
+    // 判断局部参数，若 r < rH 存在稳定流形和鞍形环
     const hasCycle = r < rH;
-    const cycleRadius = hasCycle ? Math.sqrt(rH - r) * 0.8 : 0; 
+    const muVal = (rH - r) / 2.0;
+    const cycleRadius = hasCycle ? Math.sqrt(muVal / 0.1) : 0; 
 
     const renderLoop = () => {
       ctx.clearRect(0, 0, width, height);
@@ -152,26 +166,26 @@ const BifurcationInteractiveLab = () => {
         const x2 = x1;
         const y2 = y1 * Math.cos(pitch) - z1 * Math.sin(pitch);
         // 映射
-        return { sx: center.x + x2 * scale, sy: center.y - y2 * scale };
+        return { sx: center.x + x2 * scale, sy: center.y - y2 * scale, depth: z1 };
       };
 
-      // 1. 绘制 2D 稳定流形平面 (透明灰色带白边)
+      // 1. 绘制 2D 流形平面 (透明灰色带白边)
       ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
       ctx.beginPath();
-      let p1 = project(-3, -3, 0); ctx.moveTo(p1.sx, p1.sy);
-      let p2 = project(3, -3, 0); ctx.lineTo(p2.sx, p2.sy);
-      let p3 = project(3, 3, 0); ctx.lineTo(p3.sx, p3.sy);
-      let p4 = project(-3, 3, 0); ctx.lineTo(p4.sx, p4.sy);
+      let p1 = project(-3.5, -3.5, 0); ctx.moveTo(p1.sx, p1.sy);
+      let p2 = project(3.5, -3.5, 0); ctx.lineTo(p2.sx, p2.sy);
+      let p3 = project(3.5, 3.5, 0); ctx.lineTo(p3.sx, p3.sy);
+      let p4 = project(-3.5, 3.5, 0); ctx.lineTo(p4.sx, p4.sy);
       ctx.closePath();
       ctx.fill(); ctx.stroke();
 
-      // 2. 绘制 Z 轴 (不稳定流形)
+      // 2. 绘制 1D 稳定流形 (Z轴)
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)'; // 用青色代表它是一条稳定流形
       ctx.setLineDash([4, 4]);
-      let zBottom = project(0, 0, -4); ctx.moveTo(zBottom.sx, zBottom.sy);
-      let zTop = project(0, 0, 4); ctx.lineTo(zTop.sx, zTop.sy);
+      let zBottom = project(0, 0, -4.5); ctx.moveTo(zBottom.sx, zBottom.sy);
+      let zTop = project(0, 0, 4.5); ctx.lineTo(zTop.sx, zTop.sy);
       ctx.stroke();
       ctx.setLineDash([]);
 
@@ -189,55 +203,102 @@ const BifurcationInteractiveLab = () => {
         ctx.setLineDash([]);
       }
 
-      // 4. 绘制中心不动点 C+
+      // 4. 绘制中心不动点 C+ (鞍焦点)
       const cp = project(0, 0, 0);
       ctx.beginPath();
       ctx.fillStyle = hasCycle ? '#22d3ee' : '#ef4444'; 
       ctx.arc(cp.sx, cp.sy, 4, 0, 2*Math.PI);
       ctx.fill();
 
-      // 5. 绘制理论轨迹与动态引导箭头
-      // 5A: 稳定流形的内螺旋 (被吸入 C+)
-      const drawInnerSpiral = () => {
+      // 5A: 稳定流形的内螺旋 (仅在有环时，即 r < rH 时画平面螺旋)
+      if (hasCycle) {
         ctx.beginPath();
         ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)';
         for(let a = 0; a <= 15; a += 0.2) {
-          let rad = hasCycle ? cycleRadius * Math.exp(-0.2 * a) : 2.5 * Math.exp(-0.2 * a);
+          let rad = cycleRadius * Math.exp(-0.2 * a);
           let pt = project(rad * Math.cos(a), rad * Math.sin(a), 0);
           if(a===0) ctx.moveTo(pt.sx, pt.sy); else ctx.lineTo(pt.sx, pt.sy);
         }
         ctx.stroke();
         
-        // 动态点
         let phase = (t % 15);
-        let dynRad = hasCycle ? cycleRadius * Math.exp(-0.2 * phase) : 2.5 * Math.exp(-0.2 * phase);
+        let dynRad = cycleRadius * Math.exp(-0.2 * phase);
         let dpt = project(dynRad * Math.cos(phase), dynRad * Math.sin(phase), 0);
         ctx.beginPath(); ctx.fillStyle = '#22d3ee'; ctx.arc(dpt.sx, dpt.sy, 3, 0, 2*Math.PI); ctx.fill();
-      };
-      drawInnerSpiral();
+      }
 
-      // 5B: 不稳定流形的外螺旋 (逃逸，仅当有鞍形环，或者本身 C+ 已经失稳)
-      const drawEscapeTrajectory = () => {
-        ctx.beginPath();
-        ctx.strokeStyle = 'rgba(244, 114, 182, 0.4)';
-        for(let a = 0; a <= 8; a += 0.2) {
-          let baseRad = hasCycle ? cycleRadius : 0.1;
-          let rad = baseRad * Math.exp(0.1 * a);
-          let zVal = 0.05 * Math.exp(0.4 * a); // 逃逸时沿Z轴飞出
-          let pt = project(rad * Math.cos(a), rad * Math.sin(a), zVal);
-          if(a===0) ctx.moveTo(pt.sx, pt.sy); else ctx.lineTo(pt.sx, pt.sy);
-        }
-        ctx.stroke();
-        
-        // 动态点
-        let phase = (t % 8);
+      // 5B: Z 轴上的 1D 稳定流形轨迹 (代替消失的平面螺旋)
+      let zPhase = 4.5 - (t * 2 % 4.5); 
+      let zPtTop = project(0, 0, zPhase);
+      let zPtBot = project(0, 0, -zPhase);
+      ctx.beginPath(); ctx.fillStyle = '#22d3ee'; 
+      ctx.arc(zPtTop.sx, zPtTop.sy, 2.5, 0, 2*Math.PI); ctx.fill();
+      ctx.beginPath(); ctx.arc(zPtBot.sx, zPtBot.sy, 2.5, 0, 2*Math.PI); ctx.fill();
+
+      // 5C: 不稳定流形的外螺旋 (扩大了外逃的视野与轨迹)
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(244, 114, 182, 0.5)';
+      for(let a = 0; a <= 12; a += 0.2) {
         let baseRad = hasCycle ? cycleRadius : 0.1;
-        let dynRad = baseRad * Math.exp(0.1 * phase);
-        let zVal = 0.05 * Math.exp(0.4 * phase);
-        let dpt = project(dynRad * Math.cos(phase), dynRad * Math.sin(phase), zVal);
-        ctx.beginPath(); ctx.fillStyle = '#f472b6'; ctx.arc(dpt.sx, dpt.sy, 3, 0, 2*Math.PI); ctx.fill();
-      };
-      drawEscapeTrajectory();
+        let rad = baseRad * Math.exp((hasCycle ? 0.15 : 0.3) * a); // 如果失稳，逃跑速度和半径翻倍
+        let zVal = hasCycle ? 0.05 * Math.exp(0.4 * a) : (0.1 * Math.exp(0.4 * a) * Math.sin(a));
+        let pt = project(rad * Math.cos(a), rad * Math.sin(a), zVal);
+        if(a===0) ctx.moveTo(pt.sx, pt.sy); else ctx.lineTo(pt.sx, pt.sy);
+      }
+      ctx.stroke();
+      
+      let phaseEsc = (t % 12);
+      let baseRadEsc = hasCycle ? cycleRadius : 0.1;
+      let dynRadEsc = baseRadEsc * Math.exp((hasCycle ? 0.15 : 0.3) * phaseEsc);
+      let zValEsc = hasCycle ? 0.05 * Math.exp(0.4 * phaseEsc) : (0.1 * Math.exp(0.4 * phaseEsc) * Math.sin(phaseEsc));
+      let dptEsc = project(dynRadEsc * Math.cos(phaseEsc), dynRadEsc * Math.sin(phaseEsc), zValEsc);
+      ctx.beginPath(); ctx.fillStyle = '#f472b6'; ctx.arc(dptEsc.sx, dptEsc.sy, 3.5, 0, 2*Math.PI); ctx.fill();
+
+      // 6. 粒子动力学更新与渲染 (Saddle-Focus 逻辑重构)
+      particlesRef.current.forEach(p => {
+        let dR = 0;
+        let dZ = 0;
+        let dTheta = 2.0 * dt;
+
+        if (hasCycle) {
+          // r < rH: 有鞍环。环内吸入，环外逃逸。
+          dR = (-muVal * p.r_polar + 0.1 * Math.pow(p.r_polar, 3)) * dt;
+        } else {
+          // r > rH: 纯粹的二维不稳定流形，所有平面粒子猛烈向外排斥
+          dR = (0.5 + Math.abs(muVal)) * p.r_polar * dt;
+        }
+        
+        dR = Math.max(Math.min(dR, 2.5), -1.5); // 防止发散过快
+        // Z轴代表一维稳定流形，所有粒子都会被拉向 z=0
+        dZ = -2.0 * p.z * dt; 
+
+        let isEscaping = dR > 0;
+
+        p.r_polar += dR;
+        p.theta += dTheta;
+        p.z += dZ;
+        p.age += 1;
+
+        const px = p.r_polar * Math.cos(p.theta);
+        const py = p.r_polar * Math.sin(p.theta);
+        const sp = project(px, py, p.z);
+
+        ctx.fillStyle = isEscaping ? '#f472b6' : '#22d3ee'; 
+        ctx.globalAlpha = Math.max(0.1, 1 - Math.abs(sp.depth)/5); 
+        ctx.beginPath();
+        // 逃跑的粒子画大一点，显眼
+        ctx.arc(sp.sx, sp.sy, isEscaping ? 2 : 1.5, 0, 2*Math.PI);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+
+        // 失稳后允许粒子逃得更远再重置，产生银河旋臂感
+        if (p.age > 250 || Math.abs(p.z) > 6 || p.r_polar > 8 || (hasCycle && p.r_polar < 0.05)) {
+          p.r_polar = Math.random() * 2.5 + 0.1;
+          p.theta = Math.random() * 2 * Math.PI;
+          p.z = (Math.random() - 0.5) * 8;
+          p.age = 0;
+        }
+      });
 
       animationRef.current = requestAnimationFrame(renderLoop);
     };
@@ -246,11 +307,9 @@ const BifurcationInteractiveLab = () => {
     return () => cancelAnimationFrame(animationRef.current);
   }, [r]);
 
-  // 精准生成 SVG 分叉图路径（修复向左的抛物线）
+  // 精准生成 SVG 分叉图路径
   const svgPaths = useMemo(() => {
-    // 映射函数：r 取 [0, 35]，映射到 x 取 [20, 380]
     const mapR = (r_val) => 20 + r_val * 10;
-    // 映射函数：x 的值映射到 y 轴，中心 150
     const mapX = (x_val) => 150 - x_val * 12;
 
     let pathOriginSolid = `M ${mapR(0)} 150 L ${mapR(1)} 150`;
@@ -269,10 +328,8 @@ const BifurcationInteractiveLab = () => {
         pathCPlusSolid += (pathCPlusSolid===""?'M':' L') + `${rx} ${mapX(cx)}`;
         pathCMinusSolid += (pathCMinusSolid===""?'M':' L') + `${rx} ${mapX(-cx)}`;
         
-        // 生成完美的向左开口抛物线 (Unstable Saddle Cycle)
-        // 鞍形环在 rH 时振幅为0，向左 r 越小振幅越大
         if (r_val >= 10) {
-          let cycleAmp = 1.0 * Math.sqrt(rH - r_val); // 振幅因子
+          let cycleAmp = 1.0 * Math.sqrt(rH - r_val); 
           cycleTop1 += (cycleTop1===""?'M':' L') + `${rx} ${mapX(cx + cycleAmp)}`;
           cycleTop2 += (cycleTop2===""?'M':' L') + `${rx} ${mapX(cx - cycleAmp)}`;
           cycleBot1 += (cycleBot1===""?'M':' L') + `${rx} ${mapX(-cx + cycleAmp)}`;
@@ -289,10 +346,8 @@ const BifurcationInteractiveLab = () => {
 
   return (
     <div className="my-10 p-6 md:p-8 bg-black/60 border border-white/10 rounded-2xl shadow-2xl font-mono">
-      {/* 采用双栏并排布局，压缩尺寸 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         
-        {/* 左侧：精简 3D 教科书式图解 */}
         <div className="relative w-full aspect-square max-w-[400px] mx-auto bg-[#050b14] rounded-xl border border-white/5 shadow-inner overflow-hidden flex items-center justify-center">
           <canvas ref={canvasRef} width={400} height={400} className="w-full h-full" />
           <div className="absolute top-4 left-4 text-[10px] text-white/40 uppercase tracking-widest font-bold">Fig 12. 3D Phase Space (Local C+)</div>
@@ -303,31 +358,24 @@ const BifurcationInteractiveLab = () => {
           </div>
         </div>
 
-        {/* 右侧：SVG 分叉图与控制面板 */}
         <div className="w-full flex flex-col justify-between h-full space-y-6 max-w-[400px] mx-auto">
-          
           <div className="relative w-full aspect-video bg-white/[0.02] rounded-xl border border-white/5 shadow-inner p-2">
             <div className="absolute top-2 left-3 text-[10px] text-white/40 uppercase tracking-widest font-bold">Fig 13. Subcritical Hopf Map</div>
             <svg width="100%" height="100%" viewBox="0 0 400 300" className="overflow-visible mt-2">
-              {/* Origin */}
               <path d={svgPaths.pathOriginSolid} fill="none" stroke="#22d3ee" strokeWidth="2" />
               <path d={svgPaths.pathOriginDashed} fill="none" stroke="#ef4444" strokeWidth="1.5" strokeDasharray="4 4" />
               
-              {/* Stable Branches */}
               <path d={svgPaths.pathCPlusSolid} fill="none" stroke="#22d3ee" strokeWidth="2.5" />
               <path d={svgPaths.pathCMinusSolid} fill="none" stroke="#22d3ee" strokeWidth="2.5" />
               
-              {/* Unstable Branches */}
               <path d={svgPaths.pathCPlusDashed} fill="none" stroke="#ef4444" strokeWidth="1.5" strokeDasharray="4 4" />
               <path d={svgPaths.pathCMinusDashed} fill="none" stroke="#ef4444" strokeWidth="1.5" strokeDasharray="4 4" />
               
-              {/* Unstable Saddle Cycles (完美还原向左开口的虚线抛物线) */}
               <path d={svgPaths.cycleTop1} fill="none" stroke="#f472b6" strokeWidth="1.5" strokeDasharray="3 3" />
               <path d={svgPaths.cycleTop2} fill="none" stroke="#f472b6" strokeWidth="1.5" strokeDasharray="3 3" />
               <path d={svgPaths.cycleBot1} fill="none" stroke="#f472b6" strokeWidth="1.5" strokeDasharray="3 3" />
               <path d={svgPaths.cycleBot2} fill="none" stroke="#f472b6" strokeWidth="1.5" strokeDasharray="3 3" />
 
-              {/* Scanning Indicator */}
               <line x1={svgPaths.mapR(r)} y1="10" x2={svgPaths.mapR(r)} y2="290" stroke="rgba(255,255,255,0.6)" strokeWidth="1" />
               { r > 1 && r <= rH && (
                 <circle cx={svgPaths.mapR(r)} cy={svgPaths.mapX(Math.sqrt(bParam*(r-1)))} r="4" fill="#22d3ee" className="animate-pulse" />
@@ -343,7 +391,6 @@ const BifurcationInteractiveLab = () => {
               <span>Rayleigh Number [r]:</span>
               <span className="text-red-300 font-mono bg-white/5 px-2 py-0.5 rounded">{r.toFixed(2)}</span>
             </div>
-            {/* 修改了此处的 step 为 0.01 */}
             <input 
               type="range" min="15.00" max="30.00" step="0.01" value={r} 
               onChange={(e) => setR(parseFloat(e.target.value))} 
