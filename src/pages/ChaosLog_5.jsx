@@ -10,8 +10,8 @@ import LogLayout from '../components/LogLayout';
 // =========================================================
 import figButterfly from '../assets/Figure_14.png'; 
 import figStructure from '../assets/Figure_15.png';
-import figDelta from '../assets/Figure_17.png';
-import figSlope from '../assets/Figure_18.png';
+import figDelta from '../assets/Figure_16.png';
+import figSlope from '../assets/Figure_17.png';
 
 // 预览环境临时变量 (复制到本地且取消上方注释后，可删除这段临时链接)
 const figButterfly = "https://images.unsplash.com/photo-1543857778-c4a1a3e0b2eb?auto=format&fit=crop&q=80&w=800";
