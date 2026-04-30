@@ -4,10 +4,20 @@ import ChaosLog_1 from '../pages/ChaosLog_1';
 import ChaosLog_2 from '../pages/ChaosLog_2';
 import ChaosLog_3 from '../pages/ChaosLog_3';
 import ChaosLog_4 from '../pages/ChaosLog_4';
+import ChaosLog_5 from '../pages/ChaosLog_5';
 
 
 
 export const POSTS = [
+{
+id: 'CHAOS 5: CHAOS & STRANGE ATTRACTOR', 
+title: 'CHAOS 5: CHAOS & STRANGE ATTRACTOR',
+category: 'RESEARCH',
+date: '2026-05-1',
+description: 'CHAOS & STRANGE ATTRACTOR.',
+component: ChaosLog_5
+},
+
 {
 id: 'CHAOS 4: Lorenz Equation', 
 title: 'CHAOS 4: Lorenz Equation',
