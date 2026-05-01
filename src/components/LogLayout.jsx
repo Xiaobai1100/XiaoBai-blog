@@ -30,7 +30,7 @@ const LogMode = ({ title, category, date, children }) => {
       <div className="relative z-10 max-w-5xl mx-auto pt-12 pb-32 px-4 md:px-6">
         
         {/* 💡 核心改变：90% 不透明度的稳重背板，兼顾底层模型透视与长文阅读 */}
-        <article className="bg-[#050b14]/90 backdrop-blur-md border border-white/10 rounded-sm shadow-2xl relative">
+        <article className="bg-[#050b14]/70 backdrop-blur-md border border-white/10 rounded-sm shadow-2xl relative">
           
           {/* 四角几何锚点 */}
           <div className="absolute top-4 left-4 text-cyan-500/30"><Target size={12} /></div>
