@@ -107,24 +107,26 @@ const TimeDilationLab = ({ katexReady }) => {
     <div className="my-10 p-6 md:p-8 bg-[#050b14] border border-white/10 rounded-2xl shadow-2xl font-mono">
       <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-center">
         
-        <div className="md:col-span-3 relative aspect-square md:aspect-video bg-black/40 rounded-xl border border-white/5 p-8 overflow-hidden">
-          <svg viewBox="-10 -10 120 125" className="w-full h-full overflow-visible">
+        {/* 修复：移除 aspect 约束，增加明确的最小高度 */}
+        <div className="md:col-span-3 relative w-full min-h-[350px] md:min-h-[450px] bg-black/40 rounded-xl border border-white/5 p-6 md:p-10 overflow-hidden">
+          <svg viewBox="-10 -10 120 125" className="w-full h-full overflow-visible" preserveAspectRatio="none">
             <defs>
               <linearGradient id="timeGrad" x1="0" y1="1" x2="0" y2="0">
                 <stop offset="0%" stopColor="#ef4444" stopOpacity="0.2" />
                 <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
               </linearGradient>
             </defs>
-            <line x1="0" y1="100" x2="100" y2="100" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" />
-            <line x1="0" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" />
-            <text x="50" y="112" className="text-[4px] fill-white/30" textAnchor="middle">Distance from Singularity (r)</text>
-            <text x="-6" y="50" className="text-[4px] fill-white/30" textAnchor="middle" transform="rotate(-90 -6 50)">Time Flow Rate</text>
+            {/* 修复：增加线宽和字号 */}
+            <line x1="0" y1="100" x2="100" y2="100" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8" />
+            <line x1="0" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8" />
+            <text x="50" y="110" className="text-[5px] fill-white/40 font-bold" textAnchor="middle">Distance from Singularity (r)</text>
+            <text x="-6" y="50" className="text-[5px] fill-white/40 font-bold" textAnchor="middle" transform="rotate(-90 -6 50)">Time Flow Rate</text>
             <polygon points={`0,100 ${points.join(' ')} 100,100`} fill="url(#timeGrad)" />
-            <polyline points={points.join(' ')} fill="none" stroke="#f97316" strokeWidth="1.5" />
-            <line x1={currentX} y1="0" x2={currentX} y2="100" stroke="rgba(255,255,255,0.1)" strokeDasharray="2 2" />
-            <circle cx={currentX} cy={currentY} r="2.5" fill="#f97316" className="animate-pulse" />
+            <polyline points={points.join(' ')} fill="none" stroke="#f97316" strokeWidth="2" />
+            <line x1={currentX} y1="0" x2={currentX} y2="100" stroke="rgba(255,255,255,0.3)" strokeDasharray="2 2" strokeWidth="0.8" />
+            <circle cx={currentX} cy={currentY} r="3" fill="#f97316" className="animate-pulse" />
           </svg>
-          <div className="absolute top-4 left-4 text-[10px] text-orange-400 font-bold tracking-widest uppercase">Metric Gradient</div>
+          <div className="absolute top-4 left-4 text-[10px] md:text-[12px] text-orange-400 font-bold tracking-widest uppercase">Metric Gradient</div>
         </div>
 
         <div className="md:col-span-2 space-y-6">
@@ -187,9 +189,9 @@ const EffectivePotentialLab = ({ katexReady }) => {
     <div className="my-10 p-6 md:p-8 bg-[#050b14] border border-white/10 rounded-2xl shadow-2xl font-mono">
       <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-center">
         
-        {/* 左图: SVG 图表 */}
-        <div className="md:col-span-3 relative aspect-square md:aspect-video bg-black/40 rounded-xl border border-white/5 p-8 overflow-hidden">
-          <svg viewBox="-10 -10 120 125" className="w-full h-full overflow-visible">
+        {/* 修复：移除 aspect 约束，增加明确的最小高度 */}
+        <div className="md:col-span-3 relative w-full min-h-[350px] md:min-h-[450px] bg-black/40 rounded-xl border border-white/5 p-6 md:p-10 overflow-hidden">
+          <svg viewBox="-10 -10 120 125" className="w-full h-full overflow-visible" preserveAspectRatio="none">
             <defs>
               <linearGradient id="vEffGrad" x1="0" y1="1" x2="0" y2="0">
                 <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.2" />
@@ -201,33 +203,33 @@ const EffectivePotentialLab = ({ katexReady }) => {
               </clipPath>
             </defs>
 
-            {/* 坐标轴背景 */}
-            <line x1="0" y1="100" x2="100" y2="100" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" />
-            <line x1="0" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" />
-            <text x="50" y="112" className="text-[4px] fill-white/30" textAnchor="middle">Radius (r)</text>
-            <text x="-6" y="50" className="text-[4px] fill-white/30" textAnchor="middle" transform="rotate(-90 -6 50)">V_eff(r)</text>
+            {/* 修复：坐标轴背景字体和线宽 */}
+            <line x1="0" y1="100" x2="100" y2="100" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8" />
+            <line x1="0" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8" />
+            <text x="50" y="110" className="text-[5px] fill-white/40 font-bold" textAnchor="middle">Radius (r)</text>
+            <text x="-6" y="50" className="text-[5px] fill-white/40 font-bold" textAnchor="middle" transform="rotate(-90 -6 50)">V_eff(r)</text>
             
             {/* Zero Energy Line (V = 0) */}
             <line x1="0" y1={yZero} x2="100" y2={yZero} stroke="rgba(255,255,255,0.4)" strokeWidth="0.5" strokeDasharray="2 2" />
-            <text x="102" y={yZero + 1} className="text-[3px] fill-white/40">E=0</text>
+            <text x="102" y={yZero + 1} className="text-[4px] fill-white/40">E=0</text>
 
             <g clipPath="url(#chart-clip)">
               {/* 势能面积填充与折线 */}
               <polygon points={`0,100 ${points.join(' ')} 100,100`} fill="url(#vEffGrad)" />
-              <polyline points={points.join(' ')} fill="none" stroke="#f97316" strokeWidth="1.5" />
+              <polyline points={points.join(' ')} fill="none" stroke="#f97316" strokeWidth="2" />
               
               {/* 标注稳定/不稳定轨道 */}
               {hasStable && rStable <= maxR && (
-                <circle cx={getSvgCoords(rStable).x} cy={getSvgCoords(rStable).y} r="2.5" fill="#38bdf8" className="drop-shadow-[0_0_5px_#38bdf8]" />
+                <circle cx={getSvgCoords(rStable).x} cy={getSvgCoords(rStable).y} r="3" fill="#38bdf8" className="drop-shadow-[0_0_5px_#38bdf8]" />
               )}
               {hasStable && rUnstable <= maxR && rUnstable >= minR && (
-                <circle cx={getSvgCoords(rUnstable).x} cy={getSvgCoords(rUnstable).y} r="2.5" fill="#ef4444" className="drop-shadow-[0_0_5px_#ef4444]" />
+                <circle cx={getSvgCoords(rUnstable).x} cy={getSvgCoords(rUnstable).y} r="3" fill="#ef4444" className="drop-shadow-[0_0_5px_#ef4444]" />
               )}
             </g>
           </svg>
           
-          <div className="absolute top-4 left-4 text-[10px] text-orange-400 font-bold tracking-widest uppercase">Effective Potential</div>
-          <div className="absolute top-4 right-4 flex flex-col gap-1 text-[8px] tracking-widest text-right">
+          <div className="absolute top-4 left-4 text-[10px] md:text-[12px] text-orange-400 font-bold tracking-widest uppercase">Effective Potential</div>
+          <div className="absolute top-4 right-4 flex flex-col gap-1 text-[8px] md:text-[10px] tracking-widest text-right font-bold bg-black/50 p-2 rounded-md border border-white/5">
              <div className="text-cyan-400">● Stable Orbit</div>
              <div className="text-red-400">● Unstable Orbit</div>
           </div>
