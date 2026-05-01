@@ -1,120 +1,87 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRight, Terminal, AlertTriangle } from 'lucide-react';
-import { BlackHoleBackground } from '../App'; 
-import GiscusComments from './GiscusComments';
+import React, { useEffect } from 'react';
+import { ArrowLeft, Terminal, ShieldCheck, Clock, FileText } from 'lucide-react';
 
-const LogLayout = ({ title, category, date, children, isError = false }) => {
-  const isVoid = isError || !children;
+// LogMode 模板组件
+// 接收参数: title (标题), category (分类), date (日期), children (你的正文内容)
+const LogMode = ({ title, category, date, children }) => {
+  // 每次进入文章时自动滚动到顶部
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
-    /* 核心布局方案：
-       1. 去掉 h-screen 和 overflow-y-auto，将滚动权交给全局 window。
-       2. 确保 NavBar 的滚动监听逻辑能被触发。
-    */
-    <div className="relative w-full min-h-screen bg-black text-white font-mono selection:bg-cyan-500/30">
+    <div className="relative w-full min-h-screen bg-[#020408] text-white font-mono selection:bg-cyan-500/30">
       
-      {/* 1. 全局背景层：使用 fixed 固定黑洞位置 */}
-      <div className={`fixed inset-0 z-0 pointer-events-none flex items-center justify-center transition-all duration-1000 
-        ${isVoid ? 'grayscale-[100%] contrast-[150%] brightness-[60%] blur-[4px]' : 'opacity-40'}`}>
+      {/* 1. 军工级背景：极暗的扫描网格 (不会干扰阅读) */}
+      <div className="fixed inset-0 pointer-events-none opacity-20" 
+           style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '30px 30px' }} 
+      />
+
+      {/* 2. 顶部系统导航栏 (Fixed Navbar) */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-[#020408]/90 backdrop-blur-md border-b border-white/10 px-4 md:px-8 py-3 flex justify-between items-center shadow-lg">
+        {/* 返回按钮 (如果在 React Router 里，请把 a 标签换回 Link 标签) */}
+        <a 
+          href="/logs" 
+          className="flex items-center gap-2 text-[10px] md:text-xs text-white/50 hover:text-cyan-400 transition-colors uppercase tracking-[0.2em] font-bold group"
+        >
+          <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> 
+          Return_to_Index
+        </a>
         
-        {/* 针对移动端视觉重心优化的 transform：
-            -translate-y-[20%]: 手机端黑洞中心上提，防止落在屏幕底部。
-            scale-[1.8]: 手机端横向完全覆盖。
-        */}
-        <div className="w-full h-full transform -translate-y-[20%] md:-translate-y-[10%] scale-[1.8] md:scale-125">
-          <BlackHoleBackground />
+        <div className="hidden md:flex items-center gap-4 text-[10px] text-cyan-500/60 uppercase tracking-widest font-bold">
+          <span className="flex items-center gap-1.5"><ShieldCheck size={14}/> ACCESS: GRANTED</span>
+          <span className="text-white/20">|</span>
+          <span className="flex items-center gap-1.5"><Terminal size={14}/> TERMINAL_ACTIVE</span>
         </div>
       </div>
 
-      {/* 2. 环境纹理层：固定噪点 */}
-      <div className={`fixed inset-0 z-10 pointer-events-none transition-opacity duration-1000 
-        ${isVoid ? 'opacity-20' : 'opacity-[0.03]'} bg-[url('https://grainy-gradients.vercel.app/noise.svg')]`}>
-      </div>
-
-      {/* 3. 滚动内容区 */}
-      <div className="relative z-20 w-full pt-32 pb-20 px-4 md:px-6">
-        <div className="max-w-3xl mx-auto">
+      {/* 3. 核心阅读区容器 (拉宽到 max-w-5xl, 并提供极高的阅读对比度) */}
+      <div className="relative z-10 max-w-5xl mx-auto pt-24 md:pt-32 pb-32 px-4 md:px-6">
+        
+        {/* "加密文档" 实体容器 */}
+        <article className="bg-[#050b14] border border-white/10 rounded-sm shadow-2xl relative overflow-hidden">
           
-          {/* 内容毛玻璃背板 */}
-          <div className={`backdrop-blur-md border transition-all duration-700 
-            p-6 sm:p-10 md:p-16 rounded-2xl md:rounded-[2rem] shadow-2xl
-            ${isVoid ? 'bg-black/40 border-white/5' : 'bg-white/[0.02] border-white/10'}`}>
-            
-            {!isVoid ? (
-              <>
-                {/* 文章头部 */}
-                <header className="mb-8 md:mb-12 border-b border-white/5 pb-6 md:pb-10">
-                  <div className="flex flex-wrap items-center gap-3 mb-6">
-                    <div className="px-2 md:px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded text-cyan-400 text-[9px] md:text-[10px] tracking-[0.2em] uppercase flex items-center gap-2">
-                      <Terminal size={12} /> {category}
-                    </div>
-                    <div className="h-[1px] flex-grow bg-gradient-to-r from-cyan-500/30 to-transparent"></div>
-                  </div>
-                  
-                  <h1 className="text-2xl sm:text-4xl md:text-6xl font-black mb-6 md:mb-8 leading-tight tracking-tighter uppercase italic break-words">
-                    {title}
-                  </h1>
-                  
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-[9px] md:text-[10px] tracking-[0.3em] uppercase mt-4">
-                    <span className="text-white/60 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
-                      Timestamp: {date}
-                    </span>
-                    <span className="text-cyan-400/80 drop-shadow-[0_0_10px_rgba(34,211,238,0.4)] flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                      Status: Access_Granted
-                    </span>
-                  </div>
-                </header>
+          {/* 顶部青色装饰线 */}
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyan-500/80 to-transparent" />
 
-                {/* 文章主体 */}
-                <article className="prose prose-invert max-w-none text-white/80 leading-relaxed text-sm sm:text-base md:text-lg space-y-6 md:space-y-8">
-                  {children}
-                </article>
-
-                {/* --- 新增：Giscus 互动区 --- */}
-                <GiscusComments />
-              </>
-            ) : (
-              /* 404 错误状态视图 */
-              <div className="text-left py-6 md:py-10">
-                <div className="inline-block border border-white/10 bg-white/5 px-3 py-1 mb-8 rounded-sm">
-                  <span className="text-white/30 text-[8px] md:text-[9px] tracking-[0.3em] md:tracking-[0.4em] uppercase flex items-center gap-2">
-                    <AlertTriangle size={12} /> Signal_Interrupted // 404
-                  </span>
-                </div>
-                
-                <h1 className="text-4xl sm:text-5xl md:text-7xl font-light mb-6 md:mb-8 tracking-[0.1em] md:tracking-[0.15em] uppercase text-white/90">
-                  Void <span className="opacity-20 block sm:inline mt-2 sm:mt-0">Space</span>
-                </h1>
-                
-                <div className="space-y-3 md:space-y-4 text-[9px] md:text-xs tracking-widest uppercase text-white/30 leading-relaxed border-l border-white/10 pl-4 md:pl-6">
-                  <p>Target: Beyond_Observation</p>
-                  <p>Status: Disconnected</p>
-                </div>
+          {/* 文章头部 (Header) */}
+          <header className="px-6 md:px-12 pt-10 md:pt-14 pb-8 border-b border-white/5 bg-white/[0.01]">
+            <div className="flex flex-col gap-6">
+              {/* 分类与时间 */}
+              <div className="flex flex-wrap items-center gap-4 text-[10px] md:text-xs tracking-[0.2em] font-bold uppercase">
+                <span className="bg-cyan-500/10 text-cyan-400 px-3 py-1.5 border border-cyan-500/20 flex items-center gap-2">
+                  <FileText size={12}/> {category}
+                </span>
+                <span className="text-white/40 flex items-center gap-2">
+                  <Clock size={12}/> {date}
+                </span>
+                <span className="text-white/20 hidden md:block">|</span>
+                <span className="text-cyan-500/40 hidden md:block animate-pulse">STATUS: DECRYPTED</span>
               </div>
-            )}
+              
+              {/* 大标题 */}
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter text-white leading-tight uppercase italic">
+                {title}
+              </h1>
+            </div>
+          </header>
 
-            {/* 页脚返回按钮 */}
-            <footer className="mt-16 pt-10 border-t border-white/5">
-              <Link 
-                to="/logs" 
-                className={`group flex items-center gap-3 text-[9px] md:text-[10px] tracking-[0.3em] transition-all uppercase font-bold
-                ${isVoid ? 'text-white/40 hover:text-white' : 'text-cyan-500 hover:text-white'}`}
-              >
-                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full border flex items-center justify-center transition-all duration-300 
-                  ${isVoid ? 'border-white/10 group-hover:border-white' : 'border-cyan-500/30 group-hover:border-white group-hover:bg-white/10'}`}>
-                  <ArrowRight className="rotate-180" size={14} />
-                </div>
-                <span>{isVoid ? 'Reset_Connection' : 'Return'}</span>
-              </Link>
-            </footer>
-
+          {/* 文章正文 (Content Body) - 加大了两侧内边距 */}
+          <div className="px-6 md:px-12 py-10 md:py-14 text-white/80 leading-relaxed text-sm md:text-base">
+            {children}
           </div>
-        </div>
+
+          {/* 文章尾部 */}
+          <footer className="px-6 md:px-12 py-6 bg-black/40 border-t border-white/5 flex justify-between items-center text-[10px] text-white/30 tracking-[0.3em] uppercase">
+            <span>End_Of_Document</span>
+            <span className="w-2 h-4 bg-cyan-500/50 animate-pulse inline-block" />
+          </footer>
+
+        </article>
       </div>
+
     </div>
   );
 };
 
-export default LogLayout;
+export default LogMode;
