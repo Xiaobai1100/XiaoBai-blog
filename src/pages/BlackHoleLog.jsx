@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // =========================================================
-// 1. 正常导入 Layout 组件 (如果本地有该组件请取消注释，并删除下方的 fallback)
+// 1. 正常导入 Layout 组件 (记得一定要解开这个注释，换回你自己的 Layout！不然纯色背景会挡住黑洞)
 // =========================================================
 import LogLayout from '../components/LogLayout';
 
-// 预览环境临时变量 (防止预览环境报错的 Fallback Layout)
+// 预览环境临时变量 (如果本地有 LogLayout，请删除下面这个)
 const LogLayout = ({ title, category, date, children }) => (
   <div className="min-h-screen bg-[#0d1117] text-white p-4 md:p-8 selection:bg-orange-500/30">
     <div className="max-w-5xl mx-auto">
@@ -24,7 +24,7 @@ const LogLayout = ({ title, category, date, children }) => (
 );
 
 // =========================================================
-// 🛡️ 静态资源隔离区
+// 🛡️ 静态资源隔离区 (公式库，优化了 \mathrm 下角标)
 // =========================================================
 const FORMULAS = {
   eq1: "ds^2 = dx^2 + dy^2 + dz^2",
@@ -64,7 +64,7 @@ class ErrorBoundary extends React.Component {
 }
 
 // =========================================================
-// 组件: 数学渲染器
+// 组件: 数学渲染器 
 // =========================================================
 const MathDisplay = ({ tex, katexReady }) => {
   const container = useRef(null);
@@ -123,11 +123,10 @@ const TimeDilationLab = ({ katexReady }) => {
   return (
     <div className="my-10 p-6 md:p-8 bg-[#050b14] border border-white/10 rounded-2xl shadow-2xl font-mono">
       <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-center">
-        
-        <div className="md:col-span-3 relative aspect-square md:aspect-video bg-black/40 rounded-xl border border-white/5 p-8 overflow-hidden">
+        <div className="md:col-span-3 relative aspect-square bg-black/40 rounded-xl border border-white/5 p-8">
           <svg viewBox="-10 -10 120 125" className="w-full h-full overflow-visible">
             <defs>
-              <linearGradient id="timeGrad" x1="0" y1="1" x2="0" y2="0">
+              <linearGradient id="curveGrad" x1="0" y1="1" x2="0" y2="0">
                 <stop offset="0%" stopColor="#ef4444" stopOpacity="0.2" />
                 <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
               </linearGradient>
@@ -136,14 +135,13 @@ const TimeDilationLab = ({ katexReady }) => {
             <line x1="0" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" />
             <text x="50" y="112" className="text-[4px] fill-white/30" textAnchor="middle">Distance from Singularity (r)</text>
             <text x="-6" y="50" className="text-[4px] fill-white/30" textAnchor="middle" transform="rotate(-90 -6 50)">Time Flow Rate</text>
-            <polygon points={`0,100 ${points.join(' ')} 100,100`} fill="url(#timeGrad)" />
+            <polygon points={`0,100 ${points.join(' ')} 100,100`} fill="url(#curveGrad)" />
             <polyline points={points.join(' ')} fill="none" stroke="#f97316" strokeWidth="1.5" />
             <line x1={currentX} y1="0" x2={currentX} y2="100" stroke="rgba(255,255,255,0.1)" strokeDasharray="2 2" />
             <circle cx={currentX} cy={currentY} r="2.5" fill="#f97316" className="animate-pulse" />
           </svg>
           <div className="absolute top-4 left-4 text-[10px] text-orange-400 font-bold tracking-widest uppercase">Metric Gradient</div>
         </div>
-
         <div className="md:col-span-2 space-y-6">
           <div className="bg-white/[0.03] p-6 rounded-xl border border-white/5 space-y-4">
             <div className="text-[10px] text-white/40 uppercase tracking-[0.2em]">Effective Flow</div>
@@ -166,25 +164,26 @@ const TimeDilationLab = ({ katexReady }) => {
   );
 };
 
+
 // =========================================================
-// 互动实验室 2：有效势能与 ISCO (彻底修复越界 Bug 与统一样式)
+// 互动实验室 2：有效势能与 ISCO
 // =========================================================
 const EffectivePotentialLab = ({ katexReady }) => {
   const [L, setL] = useState(4.3);
+  
   const calcV = (r, L_val) => -1/r + (L_val*L_val)/(2*r*r) - (L_val*L_val)/(r*r*r);
   
   const minR = 2.05;
   const maxR = 20.0;
-  const minV = -0.06;
+  const minV = -0.10;
   const maxV = 0.05;
-  const yZero = 100 - ((0 - minV) / (maxV - minV)) * 100;
 
   const points = [];
   for (let r = minR; r <= maxR; r += 0.1) {
     const v = calcV(r, L);
     const x = ((r - minR) / (maxR - minR)) * 100;
     const y = 100 - ((v - minV) / (maxV - minV)) * 100;
-    points.push(`${x},${y}`); // 不在 JS 层做限制，交给 SVG 的 clipPath 处理
+    points.push(`${x},${Math.min(150, Math.max(-50, y))}`); 
   }
 
   const disc = L*L*L*L - 12*L*L; 
@@ -203,77 +202,56 @@ const EffectivePotentialLab = ({ katexReady }) => {
   return (
     <div className="my-10 p-6 md:p-8 bg-[#050b14] border border-white/10 rounded-2xl shadow-2xl font-mono">
       <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-center">
-        
-        {/* 左图: SVG 图表 */}
-        <div className="md:col-span-3 relative aspect-square md:aspect-video bg-black/40 rounded-xl border border-white/5 p-8 overflow-hidden">
-          <svg viewBox="-10 -10 120 125" className="w-full h-full overflow-visible">
-            <defs>
-              <linearGradient id="vEffGrad" x1="0" y1="1" x2="0" y2="0">
-                <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.2" />
-                <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
-              </linearGradient>
-              {/* 关键修复: 利用 clipPath 防止势能线画到格子外面 */}
-              <clipPath id="chart-clip">
-                <rect x="0" y="0" width="100" height="100" />
-              </clipPath>
-            </defs>
+        <div className="md:col-span-2 space-y-6">
+          <div>
+            <h4 className="text-orange-400 text-xs tracking-[0.2em] uppercase font-bold mb-2">Effective Potential</h4>
+            <p className="text-[11px] text-white/60 leading-relaxed">
+              In General Relativity, the effective potential gains a fatal attractive term proportional to <InlineMath tex="-1/r^3" katexReady={katexReady}/>. 
+              This pit destroys the possibility of stable orbits close to the black hole.
+            </p>
+          </div>
+          <div className="space-y-4 bg-white/[0.02] p-6 rounded-xl border border-white/5">
+            <div className="flex justify-between text-[10px] tracking-widest text-white/40 uppercase">
+              <span>Angular Momentum (L)</span>
+              <span className="text-orange-400 font-bold">{L.toFixed(2)}</span>
+            </div>
+            <input 
+              type="range" min="3.0" max="5.5" step="0.01" value={L} 
+              onChange={e => setL(parseFloat(e.target.value))}
+              className="w-full accent-orange-500 cursor-pointer"
+            />
+          </div>
+          <div className="text-[10px] text-white/40 italic leading-relaxed">
+            {hasStable ? 
+              <span className="text-cyan-200/80">A local minimum exists. Particles can maintain a stable circular orbit at this radius.</span> :
+              <span className="text-red-400">L is too low (below ISCO critical value). The "pit" and "hill" have merged. All particles unconditionally plunge into the singularity!</span>
+            }
+          </div>
+        </div>
 
-            {/* 坐标轴背景 */}
-            <line x1="0" y1="100" x2="100" y2="100" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" />
-            <line x1="0" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" />
+        <div className="md:col-span-3 relative aspect-video bg-black/40 rounded-xl border border-white/5 p-6">
+          <svg viewBox="-10 -10 120 120" className="w-full h-full overflow-visible">
+            {/* Zero line */}
+            <line x1="0" y1={100 - ((0 - minV)/(maxV - minV))*100} x2="100" y2={100 - ((0 - minV)/(maxV - minV))*100} stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" strokeDasharray="2 2" />
             <text x="50" y="112" className="text-[4px] fill-white/30" textAnchor="middle">Radius (r)</text>
             <text x="-6" y="50" className="text-[4px] fill-white/30" textAnchor="middle" transform="rotate(-90 -6 50)">V_eff(r)</text>
             
-            {/* Zero Energy Line (V = 0) */}
-            <line x1="0" y1={yZero} x2="100" y2={yZero} stroke="rgba(255,255,255,0.4)" strokeWidth="0.5" strokeDasharray="2 2" />
-            <text x="102" y={yZero + 1} className="text-[3px] fill-white/40">E=0</text>
-
-            <g clipPath="url(#chart-clip)">
-              {/* 势能面积填充与折线 */}
-              <polygon points={`0,100 ${points.join(' ')} 100,100`} fill="url(#vEffGrad)" />
-              <polyline points={points.join(' ')} fill="none" stroke="#f97316" strokeWidth="1.5" />
-              
-              {/* 标注稳定/不稳定轨道 */}
-              {hasStable && rStable <= maxR && (
-                <circle cx={getSvgCoords(rStable).x} cy={getSvgCoords(rStable).y} r="2.5" fill="#38bdf8" className="drop-shadow-[0_0_5px_#38bdf8]" />
-              )}
-              {hasStable && rUnstable <= maxR && rUnstable >= minR && (
-                <circle cx={getSvgCoords(rUnstable).x} cy={getSvgCoords(rUnstable).y} r="2.5" fill="#ef4444" className="drop-shadow-[0_0_5px_#ef4444]" />
-              )}
-            </g>
+            {/* V_eff Curve */}
+            <polyline points={points.join(' ')} fill="none" stroke="#f97316" strokeWidth="1.5" />
+            
+            {/* Highlight Orbits */}
+            {hasStable && rStable <= maxR && (
+              <circle cx={getSvgCoords(rStable).x} cy={getSvgCoords(rStable).y} r="2" fill="#38bdf8" />
+            )}
+            {hasStable && rUnstable <= maxR && rUnstable >= minR && (
+              <circle cx={getSvgCoords(rUnstable).x} cy={getSvgCoords(rUnstable).y} r="2" fill="#ef4444" />
+            )}
           </svg>
-          
-          <div className="absolute top-4 left-4 text-[10px] text-orange-400 font-bold tracking-widest uppercase">Effective Potential</div>
           <div className="absolute top-4 right-4 flex flex-col gap-1 text-[8px] tracking-widest text-right">
              <div className="text-cyan-400">● Stable Orbit</div>
              <div className="text-red-400">● Unstable Orbit</div>
           </div>
         </div>
-
-        {/* 右控: 物理状态参数 */}
-        <div className="md:col-span-2 space-y-6">
-          <div className="bg-white/[0.03] p-6 rounded-xl border border-white/5 space-y-4">
-            <div className="text-[10px] text-white/40 uppercase tracking-[0.2em] mb-2">Angular Momentum (L)</div>
-            <div className={`text-4xl font-black tracking-tighter ${hasStable ? 'text-white' : 'text-red-500 animate-pulse'}`}>
-              {L.toFixed(2)}
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <input 
-              type="range" min="2.5" max="5.5" step="0.01" value={L} 
-              onChange={e => setL(parseFloat(e.target.value))}
-              className={`w-full cursor-pointer h-1 rounded-lg appearance-none ${hasStable ? 'accent-orange-500 bg-white/10' : 'accent-red-500 bg-red-500/30'}`}
-            />
-            <div className="text-[11px] leading-relaxed italic h-24">
-              {hasStable ? 
-                <span className="text-white/50">"A local minimum exists. Particles can maintain a stable circular orbit at this radius without falling in."</span> :
-                <span className="text-red-400">"L is below the ISCO critical threshold! The 'pit' and 'hill' have merged. All particles unconditionally plunge into the singularity."</span>
-              }
-            </div>
-          </div>
-        </div>
-        
       </div>
     </div>
   );
@@ -281,7 +259,7 @@ const EffectivePotentialLab = ({ katexReady }) => {
 
 
 // =========================================================
-// 互动实验室 3：多普勒波纹原理 (Doppler Wavefront Lab)
+// 互动实验室 3：多普勒波纹原理 (✅ 彻底修复了内存与 CPU 泄漏)
 // =========================================================
 const DopplerWaveLab = () => {
   const [velocity, setVelocity] = useState(0.5); 
@@ -293,6 +271,9 @@ const DopplerWaveLab = () => {
     const ctx = canvas.getContext('2d');
     let waves = [];
     let frame = 0;
+    
+    // ✅ 定义准确的 animationId 用于追踪
+    let animationId; 
 
     const render = () => {
       frame++;
@@ -329,11 +310,16 @@ const DopplerWaveLab = () => {
       });
 
       waves = waves.filter(w => w.r < 300);
-      requestAnimationFrame(render);
+      
+      // ✅ 将下一次调用的 ID 赋值给变量
+      animationId = requestAnimationFrame(render);
     };
 
-    const anim = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(anim);
+    // 首次启动循环
+    animationId = requestAnimationFrame(render);
+    
+    // ✅ 确保在组件卸载或 velocity 更新前，杀死上一批循环
+    return () => cancelAnimationFrame(animationId);
   }, [velocity]);
 
   return (
@@ -371,7 +357,7 @@ const DopplerWaveLab = () => {
 
 
 // =========================================================
-// 互动实验室 4：引力透镜测地线积分器 (Lensing Raytracer Lab)
+// 互动实验室 4：引力透镜测地线积分器 
 // =========================================================
 const LensingRaytracerLab = ({ katexReady }) => {
   const [b, setB] = useState(5.5);
@@ -388,9 +374,11 @@ const LensingRaytracerLab = ({ katexReady }) => {
     const Rs = 2.0;
     const scale = 25; 
 
+    // Clear
     ctx.fillStyle = '#050b14';
     ctx.fillRect(0, 0, W, H);
 
+    // Event Horizon
     ctx.fillStyle = '#000000';
     ctx.beginPath();
     ctx.arc(cx, cy, Rs * scale, 0, 2 * Math.PI);
@@ -399,6 +387,7 @@ const LensingRaytracerLab = ({ katexReady }) => {
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
+    // Photon Sphere
     ctx.strokeStyle = 'rgba(249,115,22,0.3)';
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
@@ -406,12 +395,14 @@ const LensingRaytracerLab = ({ katexReady }) => {
     ctx.stroke();
     ctx.setLineDash([]);
 
+    // Impact Parameter Line
     ctx.strokeStyle = 'rgba(255,255,255,0.1)';
     ctx.beginPath();
     ctx.moveTo(0, cy - b * scale);
     ctx.lineTo(W, cy - b * scale);
     ctx.stroke();
 
+    // === EXACT GEODESIC INTEGRATION ===
     let currentPhi = Math.PI - 0.001; 
     let currentU = Math.sin(currentPhi) / b;
     let currentDu = Math.cos(currentPhi) / b;
@@ -427,7 +418,7 @@ const LensingRaytracerLab = ({ katexReady }) => {
     for (let i = 0; i < 3000; i++) {
         let r = 1 / currentU;
         let x = cx + r * Math.cos(currentPhi) * scale;
-        let y = cy - r * Math.sin(currentPhi) * scale; 
+        let y = cy - r * Math.sin(currentPhi) * scale;
 
         if (!started) { ctx.moveTo(x, y); started = true; } 
         else { ctx.lineTo(x, y); }
@@ -510,7 +501,7 @@ const RelativityLog = () => {
   }, []);
 
   return (
-    <LogLayout title="RELATIVITY: GARGANTUA & THE SCHWARZSCHILD BEYOND" category="ASTROPHYSICS" date="2026-05-01">
+    <LogLayout title="RELATIVITY & BLACKHOLE" category="ASTROPHYSICS" date="2026-05-01">
       <div className="space-y-12 font-mono text-white/80 text-sm md:text-base leading-relaxed max-w-5xl mx-auto pb-20">
         
         {/* Abstract */}
