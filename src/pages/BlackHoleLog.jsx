@@ -5,23 +5,6 @@ import React, { useState, useEffect, useRef } from 'react';
 // =========================================================
 import LogLayout from '../components/LogLayout';
 
-// 预览环境临时变量 (如果本地有 LogLayout，请删除下面这个)
-const LogLayout = ({ title, category, date, children }) => (
-  <div className="min-h-screen bg-[#0d1117] text-white p-4 md:p-8 selection:bg-orange-500/30">
-    <div className="max-w-5xl mx-auto">
-      <header className="mb-12 border-b border-white/10 pb-6">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
-          <div>
-            <div className="text-orange-400 text-[10px] tracking-[0.3em] uppercase mb-2 font-mono">Category: {category}</div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-widest uppercase font-mono">{title}</h1>
-          </div>
-          <div className="text-white/40 font-mono text-sm tracking-widest">{date}</div>
-        </div>
-      </header>
-      <main>{children}</main>
-    </div>
-  </div>
-);
 
 // =========================================================
 // 🛡️ 静态资源隔离区 (公式库，优化了 \mathrm 下角标)
