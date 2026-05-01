@@ -617,7 +617,7 @@ const RelativityLog = () => {
           <h4 className="text-xl font-bold tracking-[0.4em] text-white uppercase mb-4">Observation Complete</h4>
           <p className="text-sm text-white/40 mb-10">All theoretical frameworks have been integrated into the primary simulation engine.</p>
           <a 
-            href="/blackhole.html" 
+            href="models//blackhole.html" 
             className="inline-block px-12 py-5 bg-orange-600/10 border border-orange-500/50 text-orange-400 font-bold tracking-[0.4em] uppercase hover:bg-orange-500/20 hover:shadow-[0_0_30px_rgba(249,115,22,0.3)] transition-all duration-300"
           >
             Terminal: Gargantua Engine
