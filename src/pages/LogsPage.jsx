@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { ArrowLeft, Share2, Printer, ChevronUp } from 'lucide-react';
 
 const LogLayout = ({ title, category, date, children }) => {
@@ -13,24 +12,25 @@ const LogLayout = ({ title, category, date, children }) => {
   };
 
   return (
-    // 💡 核心改变 1：背景彻底改为纯实心深色，不再透明！极大地提高阅读对比度。
+    // 背景彻底改为纯实心深色，不再透明！极大地提高阅读对比度。
     <div className="min-h-screen bg-[#0d1117] text-[#c9d1d9] font-mono selection:bg-cyan-500/30">
       
       {/* 顶部导航栏 (Fixed Navbar) */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0d1117]/90 backdrop-blur-md border-b border-white/10 px-4 md:px-8 py-3 flex justify-between items-center">
-        <Link 
-          to="/logs" 
+        {/* 修复：将 Link 换成普通的 a 标签，防止 Router 报错 */}
+        <a 
+          href="/" 
           className="flex items-center gap-2 text-xs md:text-sm text-white/50 hover:text-cyan-400 transition-colors uppercase tracking-widest font-bold"
         >
           <ArrowLeft size={16} /> Return_to_Archive
-        </Link>
+        </a>
         <div className="flex gap-4">
           <button className="text-white/40 hover:text-white transition-colors" title="Share Log"><Share2 size={16} /></button>
           <button className="text-white/40 hover:text-white transition-colors" title="Print Log"><Printer size={16} /></button>
         </div>
       </nav>
 
-      {/* 💡 核心改变 2：容器加宽 (max-w-5xl/6xl)，充分利用电脑屏幕宽度 */}
+      {/* 容器加宽 (max-w-5xl)，充分利用电脑屏幕宽度 */}
       <div className="max-w-5xl mx-auto pt-24 md:pt-32 pb-32 px-4 md:px-8">
         
         {/* 文章头部 (Article Header) */}
@@ -48,7 +48,6 @@ const LogLayout = ({ title, category, date, children }) => {
         </header>
 
         {/* 文章主体 (Article Content) */}
-        {/* 💡 核心改变 3：移除了所有导致分心的 drop-shadow 和 mix-blend */}
         <main className="prose prose-invert prose-cyan max-w-none">
           {children}
         </main>
