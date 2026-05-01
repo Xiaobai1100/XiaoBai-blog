@@ -495,7 +495,7 @@ const RelativityLog = () => {
   }, []);
 
   return (
-    <LogLayout title="RELATIVITY: GARGANTUA & THE SCHWARZSCHILD BEYOND" category="ASTROPHYSICS" date="2026-05-01">
+    <LogLayout title="Gravity & BlackHole" category="RESEARCH" date="2026-05-01">
       <div className="space-y-12 font-mono text-white/80 text-sm md:text-base leading-relaxed max-w-5xl mx-auto pb-20">
         
         {/* Abstract */}
