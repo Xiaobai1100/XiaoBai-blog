@@ -24,7 +24,7 @@ const LogLayout = ({ title, category, date, children }) => (
 );
 
 // =========================================================
-// 🛡️ 静态资源隔离区 (优化了下角标的 \mathrm 格式，并增加合理空格)
+// 🛡️ 静态资源隔离区
 // =========================================================
 const FORMULAS = {
   eq1: "ds^2 = dx^2 + dy^2 + dz^2",
@@ -64,7 +64,7 @@ class ErrorBoundary extends React.Component {
 }
 
 // =========================================================
-// 组件: 数学渲染器 (增加严格的类型保护 String(tex))
+// 组件: 数学渲染器
 // =========================================================
 const MathDisplay = ({ tex, katexReady }) => {
   const container = useRef(null);
@@ -100,7 +100,7 @@ const InlineMath = ({ tex, katexReady }) => {
 
 
 // =========================================================
-// 互动实验室 1：时间膨胀与史瓦西度规 (Time Dilation Lab)
+// 互动实验室 1：时间膨胀与史瓦西度规
 // =========================================================
 const TimeDilationLab = ({ katexReady }) => {
   const [distance, setDistance] = useState(5.0);
@@ -123,10 +123,11 @@ const TimeDilationLab = ({ katexReady }) => {
   return (
     <div className="my-10 p-6 md:p-8 bg-[#050b14] border border-white/10 rounded-2xl shadow-2xl font-mono">
       <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-center">
-        <div className="md:col-span-3 relative aspect-square bg-black/40 rounded-xl border border-white/5 p-8">
+        
+        <div className="md:col-span-3 relative aspect-square md:aspect-video bg-black/40 rounded-xl border border-white/5 p-8 overflow-hidden">
           <svg viewBox="-10 -10 120 125" className="w-full h-full overflow-visible">
             <defs>
-              <linearGradient id="curveGrad" x1="0" y1="1" x2="0" y2="0">
+              <linearGradient id="timeGrad" x1="0" y1="1" x2="0" y2="0">
                 <stop offset="0%" stopColor="#ef4444" stopOpacity="0.2" />
                 <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
               </linearGradient>
@@ -135,13 +136,14 @@ const TimeDilationLab = ({ katexReady }) => {
             <line x1="0" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" />
             <text x="50" y="112" className="text-[4px] fill-white/30" textAnchor="middle">Distance from Singularity (r)</text>
             <text x="-6" y="50" className="text-[4px] fill-white/30" textAnchor="middle" transform="rotate(-90 -6 50)">Time Flow Rate</text>
-            <polygon points={`0,100 ${points.join(' ')} 100,100`} fill="url(#curveGrad)" />
+            <polygon points={`0,100 ${points.join(' ')} 100,100`} fill="url(#timeGrad)" />
             <polyline points={points.join(' ')} fill="none" stroke="#f97316" strokeWidth="1.5" />
             <line x1={currentX} y1="0" x2={currentX} y2="100" stroke="rgba(255,255,255,0.1)" strokeDasharray="2 2" />
             <circle cx={currentX} cy={currentY} r="2.5" fill="#f97316" className="animate-pulse" />
           </svg>
           <div className="absolute top-4 left-4 text-[10px] text-orange-400 font-bold tracking-widest uppercase">Metric Gradient</div>
         </div>
+
         <div className="md:col-span-2 space-y-6">
           <div className="bg-white/[0.03] p-6 rounded-xl border border-white/5 space-y-4">
             <div className="text-[10px] text-white/40 uppercase tracking-[0.2em]">Effective Flow</div>
@@ -164,33 +166,28 @@ const TimeDilationLab = ({ katexReady }) => {
   );
 };
 
-
 // =========================================================
-// 互动实验室 2：有效势能与 ISCO (Effective Potential Lab)
+// 互动实验室 2：有效势能与 ISCO (彻底修复越界 Bug 与统一样式)
 // =========================================================
 const EffectivePotentialLab = ({ katexReady }) => {
-  // L is angular momentum. ISCO happens when L = sqrt(12) ≈ 3.464 (for M=1)
   const [L, setL] = useState(4.3);
-  
-  // Normalized GR effective potential: V(r) = -1/r + L^2/(2r^2) - L^2/r^3
-  // where M=1, Rs=2. (The -L^2/r^3 term is the crucial GR addition missing in Newton)
   const calcV = (r, L_val) => -1/r + (L_val*L_val)/(2*r*r) - (L_val*L_val)/(r*r*r);
   
   const minR = 2.05;
   const maxR = 20.0;
-  const minV = -0.10;
+  const minV = -0.06;
   const maxV = 0.05;
+  const yZero = 100 - ((0 - minV) / (maxV - minV)) * 100;
 
   const points = [];
   for (let r = minR; r <= maxR; r += 0.1) {
     const v = calcV(r, L);
     const x = ((r - minR) / (maxR - minR)) * 100;
     const y = 100 - ((v - minV) / (maxV - minV)) * 100;
-    points.push(`${x},${Math.min(150, Math.max(-50, y))}`); // Clamp y for SVG safety
+    points.push(`${x},${y}`); // 不在 JS 层做限制，交给 SVG 的 clipPath 处理
   }
 
-  // Find local minimum (Stable Circular Orbit) and maximum (Unstable)
-  const disc = L*L*L*L - 12*L*L; // M=1
+  const disc = L*L*L*L - 12*L*L; 
   let hasStable = disc >= 0;
   let rStable = hasStable ? (L*L + Math.sqrt(disc)) / 2 : null;
   let rUnstable = hasStable ? (L*L - Math.sqrt(disc)) / 2 : null;
@@ -206,56 +203,77 @@ const EffectivePotentialLab = ({ katexReady }) => {
   return (
     <div className="my-10 p-6 md:p-8 bg-[#050b14] border border-white/10 rounded-2xl shadow-2xl font-mono">
       <div className="grid grid-cols-1 md:grid-cols-5 gap-8 items-center">
-        <div className="md:col-span-2 space-y-6">
-          <div>
-            <h4 className="text-orange-400 text-xs tracking-[0.2em] uppercase font-bold mb-2">Effective Potential</h4>
-            <p className="text-[11px] text-white/60 leading-relaxed">
-              In General Relativity, the effective potential gains a fatal attractive term proportional to <InlineMath tex="-1/r^3" katexReady={katexReady}/>. 
-              This pit destroys the possibility of stable orbits close to the black hole.
-            </p>
-          </div>
-          <div className="space-y-4 bg-white/[0.02] p-6 rounded-xl border border-white/5">
-            <div className="flex justify-between text-[10px] tracking-widest text-white/40 uppercase">
-              <span>Angular Momentum (L)</span>
-              <span className="text-orange-400 font-bold">{L.toFixed(2)}</span>
-            </div>
-            <input 
-              type="range" min="3.0" max="5.5" step="0.01" value={L} 
-              onChange={e => setL(parseFloat(e.target.value))}
-              className="w-full accent-orange-500 cursor-pointer"
-            />
-          </div>
-          <div className="text-[10px] text-white/40 italic leading-relaxed">
-            {hasStable ? 
-              <span className="text-cyan-200/80">A local minimum exists. Particles can maintain a stable circular orbit at this radius.</span> :
-              <span className="text-red-400">L is too low (below ISCO critical value). The "pit" and "hill" have merged. All particles unconditionally plunge into the singularity!</span>
-            }
-          </div>
-        </div>
+        
+        {/* 左图: SVG 图表 */}
+        <div className="md:col-span-3 relative aspect-square md:aspect-video bg-black/40 rounded-xl border border-white/5 p-8 overflow-hidden">
+          <svg viewBox="-10 -10 120 125" className="w-full h-full overflow-visible">
+            <defs>
+              <linearGradient id="vEffGrad" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.2" />
+                <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
+              </linearGradient>
+              {/* 关键修复: 利用 clipPath 防止势能线画到格子外面 */}
+              <clipPath id="chart-clip">
+                <rect x="0" y="0" width="100" height="100" />
+              </clipPath>
+            </defs>
 
-        <div className="md:col-span-3 relative aspect-video bg-black/40 rounded-xl border border-white/5 p-6">
-          <svg viewBox="-10 -10 120 120" className="w-full h-full overflow-visible">
-            {/* Zero line */}
-            <line x1="0" y1={100 - ((0 - minV)/(maxV - minV))*100} x2="100" y2={100 - ((0 - minV)/(maxV - minV))*100} stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" strokeDasharray="2 2" />
+            {/* 坐标轴背景 */}
+            <line x1="0" y1="100" x2="100" y2="100" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" />
+            <line x1="0" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5" />
             <text x="50" y="112" className="text-[4px] fill-white/30" textAnchor="middle">Radius (r)</text>
             <text x="-6" y="50" className="text-[4px] fill-white/30" textAnchor="middle" transform="rotate(-90 -6 50)">V_eff(r)</text>
             
-            {/* V_eff Curve */}
-            <polyline points={points.join(' ')} fill="none" stroke="#f97316" strokeWidth="1.5" />
-            
-            {/* Highlight Orbits */}
-            {hasStable && rStable <= maxR && (
-              <circle cx={getSvgCoords(rStable).x} cy={getSvgCoords(rStable).y} r="2" fill="#38bdf8" />
-            )}
-            {hasStable && rUnstable <= maxR && rUnstable >= minR && (
-              <circle cx={getSvgCoords(rUnstable).x} cy={getSvgCoords(rUnstable).y} r="2" fill="#ef4444" />
-            )}
+            {/* Zero Energy Line (V = 0) */}
+            <line x1="0" y1={yZero} x2="100" y2={yZero} stroke="rgba(255,255,255,0.4)" strokeWidth="0.5" strokeDasharray="2 2" />
+            <text x="102" y={yZero + 1} className="text-[3px] fill-white/40">E=0</text>
+
+            <g clipPath="url(#chart-clip)">
+              {/* 势能面积填充与折线 */}
+              <polygon points={`0,100 ${points.join(' ')} 100,100`} fill="url(#vEffGrad)" />
+              <polyline points={points.join(' ')} fill="none" stroke="#f97316" strokeWidth="1.5" />
+              
+              {/* 标注稳定/不稳定轨道 */}
+              {hasStable && rStable <= maxR && (
+                <circle cx={getSvgCoords(rStable).x} cy={getSvgCoords(rStable).y} r="2.5" fill="#38bdf8" className="drop-shadow-[0_0_5px_#38bdf8]" />
+              )}
+              {hasStable && rUnstable <= maxR && rUnstable >= minR && (
+                <circle cx={getSvgCoords(rUnstable).x} cy={getSvgCoords(rUnstable).y} r="2.5" fill="#ef4444" className="drop-shadow-[0_0_5px_#ef4444]" />
+              )}
+            </g>
           </svg>
+          
+          <div className="absolute top-4 left-4 text-[10px] text-orange-400 font-bold tracking-widest uppercase">Effective Potential</div>
           <div className="absolute top-4 right-4 flex flex-col gap-1 text-[8px] tracking-widest text-right">
              <div className="text-cyan-400">● Stable Orbit</div>
              <div className="text-red-400">● Unstable Orbit</div>
           </div>
         </div>
+
+        {/* 右控: 物理状态参数 */}
+        <div className="md:col-span-2 space-y-6">
+          <div className="bg-white/[0.03] p-6 rounded-xl border border-white/5 space-y-4">
+            <div className="text-[10px] text-white/40 uppercase tracking-[0.2em] mb-2">Angular Momentum (L)</div>
+            <div className={`text-4xl font-black tracking-tighter ${hasStable ? 'text-white' : 'text-red-500 animate-pulse'}`}>
+              {L.toFixed(2)}
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <input 
+              type="range" min="2.5" max="5.5" step="0.01" value={L} 
+              onChange={e => setL(parseFloat(e.target.value))}
+              className={`w-full cursor-pointer h-1 rounded-lg appearance-none ${hasStable ? 'accent-orange-500 bg-white/10' : 'accent-red-500 bg-red-500/30'}`}
+            />
+            <div className="text-[11px] leading-relaxed italic h-24">
+              {hasStable ? 
+                <span className="text-white/50">"A local minimum exists. Particles can maintain a stable circular orbit at this radius without falling in."</span> :
+                <span className="text-red-400">"L is below the ISCO critical threshold! The 'pit' and 'hill' have merged. All particles unconditionally plunge into the singularity."</span>
+              }
+            </div>
+          </div>
+        </div>
+        
       </div>
     </div>
   );
@@ -271,7 +289,7 @@ const DopplerWaveLab = () => {
   
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return; // 安全防御
+    if (!canvas) return; 
     const ctx = canvas.getContext('2d');
     let waves = [];
     let frame = 0;
@@ -356,13 +374,12 @@ const DopplerWaveLab = () => {
 // 互动实验室 4：引力透镜测地线积分器 (Lensing Raytracer Lab)
 // =========================================================
 const LensingRaytracerLab = ({ katexReady }) => {
-  // Impact parameter b. Critical b = 3*sqrt(3)*M ≈ 5.196 (for Rs=2)
   const [b, setB] = useState(5.5);
   const canvasRef = useRef(null);
   
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return; // 安全防御
+    if (!canvas) return; 
     const ctx = canvas.getContext('2d');
     const W = canvas.width;
     const H = canvas.height;
@@ -371,11 +388,9 @@ const LensingRaytracerLab = ({ katexReady }) => {
     const Rs = 2.0;
     const scale = 25; 
 
-    // Clear
     ctx.fillStyle = '#050b14';
     ctx.fillRect(0, 0, W, H);
 
-    // Event Horizon
     ctx.fillStyle = '#000000';
     ctx.beginPath();
     ctx.arc(cx, cy, Rs * scale, 0, 2 * Math.PI);
@@ -384,7 +399,6 @@ const LensingRaytracerLab = ({ katexReady }) => {
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // Photon Sphere (1.5 Rs)
     ctx.strokeStyle = 'rgba(249,115,22,0.3)';
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
@@ -392,15 +406,12 @@ const LensingRaytracerLab = ({ katexReady }) => {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Impact Parameter Guide Line
     ctx.strokeStyle = 'rgba(255,255,255,0.1)';
     ctx.beginPath();
     ctx.moveTo(0, cy - b * scale);
     ctx.lineTo(W, cy - b * scale);
     ctx.stroke();
 
-    // === EXACT GEODESIC INTEGRATION ===
-    // d^2u/dphi^2 + u = 1.5 * Rs * u^2  (where u = 1/r)
     let currentPhi = Math.PI - 0.001; 
     let currentU = Math.sin(currentPhi) / b;
     let currentDu = Math.cos(currentPhi) / b;
@@ -416,19 +427,18 @@ const LensingRaytracerLab = ({ katexReady }) => {
     for (let i = 0; i < 3000; i++) {
         let r = 1 / currentU;
         let x = cx + r * Math.cos(currentPhi) * scale;
-        let y = cy - r * Math.sin(currentPhi) * scale; // -y because canvas Y goes down
+        let y = cy - r * Math.sin(currentPhi) * scale; 
 
         if (!started) { ctx.moveTo(x, y); started = true; } 
         else { ctx.lineTo(x, y); }
 
-        // Euler Integration Step
         let d2u = -currentU + 1.5 * Rs * currentU * currentU;
         currentDu += d2u * d_phi;
         currentU += currentDu * d_phi;
         currentPhi += d_phi;
 
-        if (currentU <= 0) break; // Escaped to infinity
-        if ((1 / currentU) < Rs) { // Plunged into Event Horizon
+        if (currentU <= 0) break; 
+        if ((1 / currentU) < Rs) { 
             ctx.lineTo(cx + (1/currentU) * Math.cos(currentPhi) * scale, cy - (1/currentU) * Math.sin(currentPhi) * scale);
             break; 
         }
@@ -480,7 +490,6 @@ const RelativityLog = () => {
   const [katexReady, setKatexReady] = useState(false);
 
   useEffect(() => {
-    // 切换到稳定的 CDN (cdnjs) 保障 CSS 正确加载
     if (!document.getElementById('katex-cdn-css')) {
       const link = document.createElement('link');
       link.id = 'katex-cdn-css'; 

@@ -15,8 +15,8 @@ id: 'BlackHoleLog',
 title: 'BlackHoleLog',
 category: 'RESEARCH',
 date: '2026-05-1',
-description: 'Relativity & BlackHole.',
-component: BlackHoleLog
+description: 'Gravity & BlackHole.',
+component: ChaosLog_4 
 },
 
 {
