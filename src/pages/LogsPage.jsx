@@ -1,71 +1,72 @@
 import React, { useEffect } from 'react';
-import { ArrowLeft, Share2, Printer, ChevronUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Terminal, Calendar, ArrowRight, Database } from 'lucide-react';
+import { BlackHoleBackground, POSTS } from '../App'; 
 
-const LogLayout = ({ title, category, date, children }) => {
-  // 进入文章时自动回到顶部
+const LogsPage = () => {
+  // 每次进入页面强制置顶
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   return (
-    // 背景彻底改为纯实心深色，不再透明！极大地提高阅读对比度。
-    <div className="min-h-screen bg-[#0d1117] text-[#c9d1d9] font-mono selection:bg-cyan-500/30">
+    <div className="relative w-full min-h-screen bg-black text-white font-mono selection:bg-cyan-500/30">
       
-      {/* 顶部导航栏 (Fixed Navbar) */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0d1117]/90 backdrop-blur-md border-b border-white/10 px-4 md:px-8 py-3 flex justify-between items-center">
-        {/* 修复：将 Link 换成普通的 a 标签，防止 Router 报错 */}
-        <a 
-          href="/" 
-          className="flex items-center gap-2 text-xs md:text-sm text-white/50 hover:text-cyan-400 transition-colors uppercase tracking-widest font-bold"
-        >
-          <ArrowLeft size={16} /> Return_to_Archive
-        </a>
-        <div className="flex gap-4">
-          <button className="text-white/40 hover:text-white transition-colors" title="Share Log"><Share2 size={16} /></button>
-          <button className="text-white/40 hover:text-white transition-colors" title="Print Log"><Printer size={16} /></button>
+      {/* 1. 背景层 (与 LogLayout 保持一致) */}
+      <div className="fixed inset-0 z-0 opacity-30 flex items-center justify-center pointer-events-none">
+        <div className="w-full h-full transform -translate-y-[20%] md:-translate-y-[10%] scale-[1.8] md:scale-125">
+          <BlackHoleBackground />
         </div>
-      </nav>
+      </div>
 
-      {/* 容器加宽 (max-w-5xl)，充分利用电脑屏幕宽度 */}
-      <div className="max-w-5xl mx-auto pt-24 md:pt-32 pb-32 px-4 md:px-8">
+      {/* 2. 列表内容 */}
+      <div className="relative z-20 max-w-4xl mx-auto pt-40 pb-32 px-6">
         
-        {/* 文章头部 (Article Header) */}
-        <header className="mb-16 border-b border-white/10 pb-8">
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3 text-[10px] tracking-[0.2em] font-bold uppercase">
-              <span className="bg-cyan-500/10 text-cyan-400 px-2 py-1 rounded-sm border border-cyan-500/20">{category}</span>
-              <span className="text-white/30">{date}</span>
-            </div>
-            
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight uppercase">
-              {title}
-            </h1>
+        {/* 页眉状态 */}
+        <div className="mb-16 border-l-2 border-cyan-500 pl-6 py-2">
+          <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-2 italic">
+            Archive<span className="text-cyan-500">_Index</span>
+          </h1>
+          <div className="flex items-center gap-4 text-[10px] tracking-[0.3em] text-white/40 uppercase font-bold">
+            <span className="flex items-center gap-2"><Database size={12}/> Records: {POSTS?.length || 0}</span>
+            <span className="text-white/10">|</span>
+            <span className="animate-pulse text-cyan-500/60">System: Ready</span>
           </div>
-        </header>
-
-        {/* 文章主体 (Article Content) */}
-        <main className="prose prose-invert prose-cyan max-w-none">
-          {children}
-        </main>
-        
-        {/* 文章底部控制台 */}
-        <div className="mt-20 pt-8 border-t border-white/10 flex justify-between items-center text-xs text-white/40 tracking-widest uppercase">
-          <span>End_Of_Log</span>
-          <button 
-            onClick={scrollToTop}
-            className="flex items-center gap-2 hover:text-cyan-400 transition-colors"
-          >
-            Top <ChevronUp size={14} />
-          </button>
         </div>
 
+        {/* 列表项 */}
+        <div className="grid gap-4">
+          {POSTS && POSTS.map((post) => (
+            <Link 
+              key={post.id} 
+              to={`/logs/${post.id}`}
+              className="group relative block bg-white/[0.02] border border-white/5 p-6 md:p-8 hover:border-cyan-500/40 hover:bg-white/[0.05] transition-all duration-500 overflow-hidden"
+            >
+              {/* 背景修饰 */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-[50px] group-hover:bg-cyan-500/10 transition-colors" />
+              
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4 text-[9px] tracking-[0.2em] text-white/30 uppercase">
+                    <span className="text-cyan-400/60">{post.category}</span>
+                    <span>{post.date}</span>
+                  </div>
+                  <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white/90 group-hover:text-white transition-colors uppercase italic">
+                    {post.title}
+                  </h2>
+                </div>
+                
+                <div className="flex items-center gap-3 text-white/20 group-hover:text-cyan-400 transition-all transform group-hover:translate-x-2">
+                  <span className="text-[10px] tracking-[0.4em] uppercase hidden sm:block">Open_Log</span>
+                  <ArrowRight size={20} />
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );
 };
 
-export default LogLayout;
+export default LogsPage;
