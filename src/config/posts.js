@@ -5,10 +5,20 @@ import ChaosLog_2 from '../pages/ChaosLog_2';
 import ChaosLog_3 from '../pages/ChaosLog_3';
 import ChaosLog_4 from '../pages/ChaosLog_4';
 import ChaosLog_5 from '../pages/ChaosLog_5';
+import BlackHoleLog from '../pages/BlackHoleLog';
 
 
 
 export const POSTS = [
+{
+id: 'BlackHoleLog', 
+title: 'BlackHoleLog',
+category: 'RESEARCH',
+date: '2026-05-1',
+description: 'Relativity & BlackHole.',
+component: BlackHoleLog
+},
+
 {
 id: 'CHAOS 5: CHAOS & STRANGE ATTRACTOR', 
 title: 'CHAOS 5: CHAOS & STRANGE ATTRACTOR',
