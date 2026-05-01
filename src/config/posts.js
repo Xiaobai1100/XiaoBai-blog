@@ -16,7 +16,7 @@ title: 'BlackHoleLog',
 category: 'RESEARCH',
 date: '2026-05-1',
 description: 'Gravity & BlackHole.',
-component: ChaosLog_4 
+component: BlackHoleLog 
 },
 
 {
