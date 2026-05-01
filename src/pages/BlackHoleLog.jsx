@@ -24,22 +24,22 @@ const LogLayout = ({ title, category, date, children }) => (
 );
 
 // =========================================================
-// 🛡️ 静态资源隔离区 (完全对应 PDF 笔记的公式库)
+// 🛡️ 静态资源隔离区 (优化了下角标的 \mathrm 格式，并增加合理空格)
 // =========================================================
 const FORMULAS = {
   eq1: "ds^2 = dx^2 + dy^2 + dz^2",
-  eq2: "ds^2 = -c^2dt^2 + dx^2 + dy^2 + dz^2",
-  eq3: "ds^2 = -\\left(1 - \\frac{2GM}{c^2r}\\right)c^2 dt^2 + \\left(1 - \\frac{2GM}{c^2r}\\right)^{-1} dr^2 + r^2(d\\theta^2 + \\sin^2\\theta d\\phi^2)",
+  eq2: "ds^2 = -c^2 dt^2 + dx^2 + dy^2 + dz^2",
+  eq3: "ds^2 = -\\left(1 - \\frac{2GM}{c^2r}\\right) c^2 dt^2 + \\left(1 - \\frac{2GM}{c^2r}\\right)^{-1} dr^2 + r^2(d\\theta^2 + \\sin^2\\theta d\\phi^2)",
   eq4: "1 - \\frac{2GM}{c^2r} = 0 \\implies r = \\frac{2GM}{c^2}",
   eq5: "\\text{KE} + \\text{PE} = \\frac{1}{2}mc^2 - \\frac{GMm}{r} = 0 \\implies R_s = \\frac{2GM}{c^2}",
-  eq6: "R_{ISCO} = 3R_s = \\frac{6GM}{c^2}",
-  eq7: "d\\tau = dt\\sqrt{1 - \\frac{R_s}{r}}",
-  eq8: "D = \\frac{1}{\\gamma(1 - \\beta \\cos\\theta)}",
+  eq6: "R_{\\mathrm{ISCO}} = 3R_s = \\frac{6GM}{c^2}",
+  eq7: "d\\tau = dt \\sqrt{1 - \\frac{R_s}{r}}",
+  eq8: "D = \\frac{1}{\\gamma (1 - \\beta \\cos\\theta)}",
   eq9: "\\alpha \\approx \\frac{2R_s}{b} + \\frac{15R_s^2}{b^2}",
-  eq10: "\\epsilon(r) \\propto \\frac{3GM\\dot{M}}{8\\pi r^3}\\left(1 - \\sqrt{\\frac{R_{ISCO}}{r}}\\right)",
+  eq10: "\\epsilon(r) \\propto \\frac{3GM\\dot{M}}{8\\pi r^3} \\left(1 - \\sqrt{\\frac{R_{\\mathrm{ISCO}}}{r}}\\right)",
   eq11: "v_r \\approx -\\alpha\\left(\\frac{H}{R}\\right)^2 v_{\\phi}",
   riemann: "R^{\\hat{r}\\hat{t}}_{\\hat{r}\\hat{t}} = -\\frac{R_s}{r^3}, \\quad R^{\\hat{\\theta}\\hat{t}}_{\\hat{\\theta}\\hat{t}} = \\frac{R_s}{2r^3}",
-  stretch: "a_{radial} = \\frac{R_s c^2 L}{r^3}, \\quad a_{perp} = -\\frac{R_s c^2 L}{2r^3}"
+  stretch: "a_{\\mathrm{radial}} = \\frac{R_s c^2 L}{r^3}, \\quad a_{\\mathrm{perp}} = -\\frac{R_s c^2 L}{2r^3}"
 };
 
 // =========================================================
@@ -56,7 +56,7 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) return (
       <div className="min-h-screen bg-[#0d1117] text-white p-10 font-mono">
         <h2 className="text-orange-400 mb-4">⚠️ System Crash</h2>
-        <pre className="text-xs">{this.state.error?.toString()}</pre>
+        <pre className="text-xs text-red-400">{this.state.error?.toString()}</pre>
       </div>
     );
     return this.props.children;
@@ -70,8 +70,13 @@ const MathDisplay = ({ tex, katexReady }) => {
   const container = useRef(null);
   useEffect(() => {
     if (katexReady && window.katex && container.current) {
-      try { window.katex.render(String(tex || ""), container.current, { throwOnError: false, displayMode: true }); } 
-      catch (e) { console.error("KaTeX Render Error:", e); }
+      try { 
+        window.katex.render(String(tex || ""), container.current, { 
+          throwOnError: false, 
+          displayMode: true,
+          strict: false
+        }); 
+      } catch (e) { console.error("KaTeX Render Error:", e); }
     }
   }, [tex, katexReady]);
   return <div ref={container} className="my-8 py-6 bg-white/[0.02] rounded-xl border border-white/5 shadow-inner overflow-x-auto text-center"></div>;
@@ -81,8 +86,13 @@ const InlineMath = ({ tex, katexReady }) => {
   const container = useRef(null);
   useEffect(() => {
     if (katexReady && window.katex && container.current) {
-      try { window.katex.render(String(tex || ""), container.current, { throwOnError: false, displayMode: false }); } 
-      catch (e) { console.error("KaTeX Inline Error:", e); }
+      try { 
+        window.katex.render(String(tex || ""), container.current, { 
+          throwOnError: false, 
+          displayMode: false,
+          strict: false
+        }); 
+      } catch (e) { console.error("KaTeX Inline Error:", e); }
     }
   }, [tex, katexReady]);
   return <span ref={container} className="mx-1 font-serif text-orange-200/90">{`$${tex}$`}</span>;
@@ -261,6 +271,7 @@ const DopplerWaveLab = () => {
   
   useEffect(() => {
     const canvas = canvasRef.current;
+    if (!canvas) return; // 安全防御
     const ctx = canvas.getContext('2d');
     let waves = [];
     let frame = 0;
@@ -351,7 +362,7 @@ const LensingRaytracerLab = ({ katexReady }) => {
   
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return; // 安全防御
     const ctx = canvas.getContext('2d');
     const W = canvas.width;
     const H = canvas.height;
@@ -469,10 +480,21 @@ const RelativityLog = () => {
   const [katexReady, setKatexReady] = useState(false);
 
   useEffect(() => {
-    if (window.katex) setKatexReady(true);
-    else {
+    // 切换到稳定的 CDN (cdnjs) 保障 CSS 正确加载
+    if (!document.getElementById('katex-cdn-css')) {
+      const link = document.createElement('link');
+      link.id = 'katex-cdn-css'; 
+      link.rel = 'stylesheet'; 
+      link.href = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css';
+      document.head.appendChild(link);
+    }
+    
+    if (window.katex) {
+      setKatexReady(true);
+    } else if (!document.getElementById('katex-cdn-js')) {
       const script = document.createElement('script');
-      script.src = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js";
+      script.id = 'katex-cdn-js';
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js';
       script.onload = () => setKatexReady(true);
       document.head.appendChild(script);
     }
@@ -616,7 +638,7 @@ const RelativityLog = () => {
 export default function BlackHoleLogWrapped() {
   return (
     <ErrorBoundary>
-      <BlackHoleLog />
+      <RelativityLog />
     </ErrorBoundary>
   );
 }
