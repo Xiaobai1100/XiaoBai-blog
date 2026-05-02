@@ -1,9 +1,43 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Clock, FileText, Crosshair, Target } from 'lucide-react';
 
 /**
- * LogMode: 精密观测窗口模板 (极简清理版)
- * 删除了侧边和底部的冗余装饰文字，保留核心视觉聚焦与指示灯细节
+ * GiscusComments 内置组件
+ * 为了解决外部引用导致的编译错误，我们将评论区逻辑直接集成在模板中。
+ */
+const GiscusComments = () => {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    // 动态创建并注入 Giscus 脚本
+    const script = document.createElement('script');
+    script.src = "https://giscus.app/client.js";
+    script.setAttribute('data-repo', "YOUR_REPO_HERE"); // 请在此处替换您的仓库
+    script.setAttribute('data-repo-id', "YOUR_REPO_ID_HERE");
+    script.setAttribute('data-category', "Announcements");
+    script.setAttribute('data-category-id', "DIC_kwDOKy-Z684CbN7X");
+    script.setAttribute('data-mapping', "pathname");
+    script.setAttribute('data-strict', "0");
+    script.setAttribute('data-reactions-enabled', "1");
+    script.setAttribute('data-emit-metadata', "0");
+    script.setAttribute('data-input-position', "bottom");
+    script.setAttribute('data-theme', "dark_dimmed");
+    script.setAttribute('data-lang', "zh-CN");
+    script.crossOrigin = "anonymous";
+    script.async = true;
+
+    if (containerRef.current) {
+      containerRef.current.innerHTML = '';
+      containerRef.current.appendChild(script);
+    }
+  }, []);
+
+  return <section ref={containerRef} className="giscus-container w-full" />;
+};
+
+/**
+ * LogMode: 精密观测窗口模板
+ * 包含：径向渐变聚焦、UI 零件、指示灯、90% 不透明度背板以及集成的评论区
  */
 const LogMode = ({ title, category, date, children }) => {
   useEffect(() => {
@@ -11,7 +45,7 @@ const LogMode = ({ title, category, date, children }) => {
   }, []);
 
   return (
-    // 根容器保持透明，透出底层 WebGL 背景
+    // 根容器保持透明，透出底层 App.jsx 渲染的 WebGL 背景
     <div className="relative w-full min-h-screen bg-transparent text-[#c9d1d9] font-mono selection:bg-cyan-500/30 overflow-x-hidden">
       
       {/* 1. 环境层 (环境纹理与聚焦渐变) */}
@@ -22,14 +56,14 @@ const LogMode = ({ title, category, date, children }) => {
         />
         
         {/* B. 核心：径向渐变聚焦 - 确保中心区域最黑最干净，边缘有环境深度感 */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(2,4,8,0.8)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(2,4,8,0.85)_100%)]" />
 
-        {/* C. 屏幕左右边缘的纯粹装饰刻度线 (无数字) */}
+        {/* C. 屏幕左右边缘的纯粹装饰刻度线 */}
         <div className="absolute top-0 bottom-0 left-4 w-1 flex flex-col justify-between py-24 opacity-30">
-          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((i) => <div key={i} className="w-full h-[1.5px] bg-white/40" />)}
+          {[...Array(12)].map((_, i) => <div key={i} className="w-full h-[1.5px] bg-white/40" />)}
         </div>
         <div className="absolute top-0 bottom-0 right-4 w-1 flex flex-col justify-between py-24 opacity-30">
-          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((i) => <div key={i} className="w-full h-[1.5px] bg-white/40" />)}
+          {[...Array(12)].map((_, i) => <div key={i} className="w-full h-[1.5px] bg-white/40" />)}
         </div>
       </div>
 
@@ -53,7 +87,7 @@ const LogMode = ({ title, category, date, children }) => {
             <div className="space-y-8">
               {/* 状态行与指示灯 */}
               <div className="flex items-center gap-6 text-[10px] tracking-[0.4em] font-bold uppercase">
-                {/* 硬件风格指示灯 (保留) */}
+                {/* 硬件风格指示灯 */}
                 <div className="flex items-center gap-2 px-2.5 py-1 bg-black/40 rounded border border-white/5 shadow-inner">
                   <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" style={{ animationDelay: '0.2s' }} />
@@ -76,13 +110,25 @@ const LogMode = ({ title, category, date, children }) => {
             </div>
           </header>
 
-          {/* 文章正文 */}
+          {/* 文章正文区域 */}
           <div className="px-6 md:px-16 py-12 md:py-16">
             <div className="prose prose-invert max-w-none 
                  text-white/90 leading-relaxed text-base md:text-lg
                  prose-headings:text-white prose-headings:tracking-widest prose-headings:uppercase
                  prose-strong:text-cyan-400 prose-code:text-cyan-300">
               {children}
+            </div>
+
+            {/* --- 评论区 --- */}
+            <div className="mt-24 pt-12 border-t border-white/10">
+              <div className="mb-10 flex items-center gap-4">
+                <div className="px-3 py-1 bg-white/5 border border-white/10 text-[10px] text-white/40 tracking-[0.3em] uppercase">
+                  Discussion_Thread
+                </div>
+                <div className="flex-grow h-[1px] bg-gradient-to-r from-white/10 to-transparent" />
+              </div>
+              {/* 直接渲染集成的组件 */}
+              <GiscusComments />
             </div>
           </div>
 
