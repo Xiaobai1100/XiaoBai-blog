@@ -1,43 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { Clock, FileText, Crosshair, Target } from 'lucide-react';
-
-/**
- * GiscusComments 内置组件
- * 为了解决外部引用导致的编译错误，我们将评论区逻辑直接集成在模板中。
- */
-const GiscusComments = () => {
-  const containerRef = useRef(null);
-
-  useEffect(() => {
-    // 动态创建并注入 Giscus 脚本
-    const script = document.createElement('script');
-    script.src = "https://giscus.app/client.js";
-    script.setAttribute('data-repo', "YOUR_REPO_HERE"); // 请在此处替换您的仓库
-    script.setAttribute('data-repo-id', "YOUR_REPO_ID_HERE");
-    script.setAttribute('data-category', "Announcements");
-    script.setAttribute('data-category-id', "DIC_kwDOKy-Z684CbN7X");
-    script.setAttribute('data-mapping', "pathname");
-    script.setAttribute('data-strict', "0");
-    script.setAttribute('data-reactions-enabled', "1");
-    script.setAttribute('data-emit-metadata', "0");
-    script.setAttribute('data-input-position', "bottom");
-    script.setAttribute('data-theme', "dark_dimmed");
-    script.setAttribute('data-lang', "zh-CN");
-    script.crossOrigin = "anonymous";
-    script.async = true;
-
-    if (containerRef.current) {
-      containerRef.current.innerHTML = '';
-      containerRef.current.appendChild(script);
-    }
-  }, []);
-
-  return <section ref={containerRef} className="giscus-container w-full" />;
-};
+// 💡 关键修复：重新引入你本地已经配置好 ID 的评论组件！
+import GiscusComments from './GiscusComments';
 
 /**
  * LogMode: 精密观测窗口模板
- * 包含：径向渐变聚焦、UI 零件、指示灯、90% 不透明度背板以及集成的评论区
  */
 const LogMode = ({ title, category, date, children }) => {
   useEffect(() => {
@@ -45,7 +12,7 @@ const LogMode = ({ title, category, date, children }) => {
   }, []);
 
   return (
-    // 根容器保持透明，透出底层 App.jsx 渲染的 WebGL 背景
+    // 根容器保持透明，透出底层 WebGL 背景
     <div className="relative w-full min-h-screen bg-transparent text-[#c9d1d9] font-mono selection:bg-cyan-500/30 overflow-x-hidden">
       
       {/* 1. 环境层 (环境纹理与聚焦渐变) */}
@@ -55,7 +22,7 @@ const LogMode = ({ title, category, date, children }) => {
              style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '30px 30px' }} 
         />
         
-        {/* B. 核心：径向渐变聚焦 - 确保中心区域最黑最干净，边缘有环境深度感 */}
+        {/* B. 核心：径向渐变聚焦 - 确保中心区域最黑最干净 */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(2,4,8,0.85)_100%)]" />
 
         {/* C. 屏幕左右边缘的纯粹装饰刻度线 */}
@@ -127,8 +94,10 @@ const LogMode = ({ title, category, date, children }) => {
                 </div>
                 <div className="flex-grow h-[1px] bg-gradient-to-r from-white/10 to-transparent" />
               </div>
-              {/* 直接渲染集成的组件 */}
+              
+              {/* 💡 直接渲染你本地的评论组件 */}
               <GiscusComments />
+              
             </div>
           </div>
 
