@@ -6,10 +6,20 @@ import ChaosLog_3 from '../pages/ChaosLog_3';
 import ChaosLog_4 from '../pages/ChaosLog_4';
 import ChaosLog_5 from '../pages/ChaosLog_5';
 import BlackHoleLog from '../pages/BlackHoleLog';
+import FemChapter1 from '../pages/FemChapter1';
 
 
 
 export const POSTS = [
+{
+id: 'FemChapter1', 
+title: 'FemChapter1',
+category: 'GUEST_RESEARCH',
+date: '2026-07-21',
+description: 'FemChapter 1.',
+component: BlackHoleLog 
+},
+
 {
 id: 'BlackHoleLog', 
 title: 'BlackHoleLog',
