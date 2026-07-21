@@ -17,7 +17,7 @@ title: 'FemChapter1',
 category: 'GUEST_RESEARCH',
 date: '2026-07-21',
 description: 'FemChapter 1.',
-component: BlackHoleLog 
+component: FemChapter1 
 },
 
 {
