@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 // =========================================================
 // Note: Ensure your local assets & components are correct!
 // =========================================================
-import LogLayout from '../components/LogLayout';
+import LogMode from '../components/LogMode'; // 💡 替换为了最新的 LogMode
 import figure1 from '../assets/Fem_Convergence.png';
 
 // =========================================================
@@ -280,8 +280,9 @@ const FemLogContent = () => {
   }, []);
 
   return (
-    <LogLayout title="FEM 1: 1D SELF-ADJOINT SOLVER" category="NUMERICAL_ANALYSIS" date="2026-07-17">
-      <div className="space-y-12 font-mono text-white/80 text-sm md:text-base leading-relaxed max-w-5xl mx-auto pb-20">
+    // 💡 已替换为 LogMode 模板
+    <LogMode title="FEM 1: 1D SELF-ADJOINT SOLVER" category="EXTERNAL_TRANSMISSION" date="2026-07-17">
+      <div className="space-y-12">
         
         {/* Preface */}
         <section className="space-y-4">
@@ -318,7 +319,7 @@ const FemLogContent = () => {
             <ul className="list-decimal list-inside space-y-1.5 text-xs text-white/70">
               <li>Derive the Weak Formulation of the variable-coefficient differential system.</li>
               <li>Formulate the discrete system using piecewise linear (Hat) basis functions on a uniform mesh of step size <InlineMath tex="h = 1/n" katexReady={katexReady} />.</li>
-              <li>Construct a complete Python solver, executing exact $L^2$ and $H^1$ error convergence audits.</li>
+              <li>Construct a complete Python solver, executing exact <InlineMath tex="L^2" katexReady={katexReady} /> and <InlineMath tex="H^1" katexReady={katexReady} /> error convergence audits.</li>
             </ul>
           </div>
         </section>
@@ -338,7 +339,8 @@ const FemLogContent = () => {
           <MathDisplay tex="-\left[ p(x) \frac{du}{dx} v(x) \right]_0^1 + \int_0^1 p(x) \frac{du}{dx} \frac{dv}{dx} \, dx + \int_0^1 q(x) u(x) v(x) \, dx = \int_0^1 f(x) v(x) \, dx" katexReady={katexReady} />
           
           <p>
-            Because any test function <InlineMath tex="v \in V_0" katexReady={katexReady} /> vanishes at the boundaries ($v(0)=v(1)=0$), the boundary terms seamlessly vanish. The continuous weak form is then defined as: find <InlineMath tex="u \in V_0" katexReady={katexReady} /> such that:
+            {/* 💡 修复：将报错的纯文本 $v(0)=v(1)=0$ 替换为组件 */}
+            Because any test function <InlineMath tex="v \in V_0" katexReady={katexReady} /> vanishes at the boundaries (<InlineMath tex="v(0)=v(1)=0" katexReady={katexReady} />), the boundary terms seamlessly vanish. The continuous weak form is then defined as: find <InlineMath tex="u \in V_0" katexReady={katexReady} /> such that:
           </p>
           <MathDisplay tex={FORMULAS.weakForm} katexReady={katexReady} />
           <p>where the bilinear form and linear functional are defined respectively as:</p>
@@ -346,7 +348,8 @@ const FemLogContent = () => {
 
           <h4 className="text-lg font-bold text-cyan-400 mt-6">2.2 Finite Element Space Discretization & Assembly</h4>
           <p>
-            We decompose the domain into $n$ equal elements with node coordinates <InlineMath tex="x_i = ih" katexReady={katexReady} />.
+            {/* 💡 修复：将报错的纯文本 $n$ 替换为组件 */}
+            We decompose the domain into <InlineMath tex="n" katexReady={katexReady} /> equal elements with node coordinates <InlineMath tex="x_i = ih" katexReady={katexReady} />.
             Let the finite-dimensional space <InlineMath tex="V_h \subset V_0" katexReady={katexReady} /> be spanned by the continuous piecewise linear basis functions (Hat functions) <InlineMath tex="\{\phi_i(x)\}_{i=1}^{n-1}" katexReady={katexReady} />:
           </p>
           <MathDisplay tex={FORMULAS.discretization} katexReady={katexReady} />
@@ -355,12 +358,16 @@ const FemLogContent = () => {
             Substituting this representation into the weak form leads directly to the discrete matrix system:
           </p>
           <MathDisplay tex={FORMULAS.system} katexReady={katexReady} />
-          <p>where the stiffness matrix $K$, mass matrix $M$, and load vector $F$ entries are computed locally:</p>
+          <p>
+            {/* 💡 修复：将报错的纯文本 $K$, $M$, $F$ 替换为组件 */}
+            where the stiffness matrix <InlineMath tex="K" katexReady={katexReady} />, mass matrix <InlineMath tex="M" katexReady={katexReady} />, and load vector <InlineMath tex="F" katexReady={katexReady} /> entries are computed locally:
+          </p>
           <MathDisplay tex={FORMULAS.matrixK} katexReady={katexReady} />
           <MathDisplay tex={FORMULAS.loadVector} katexReady={katexReady} />
           
           <p>
-            Since the variable coefficients $p(x)$ and $q(x)$ prevent direct analytical integration on the element domain, we must utilize a **2-point Gaussian quadrature** for high-precision numerical approximation on each local element.
+            {/* 💡 修复：将报错的纯文本 $p(x)$ 和 $q(x)$ 替换为组件 */}
+            Since the variable coefficients <InlineMath tex="p(x)" katexReady={katexReady} /> and <InlineMath tex="q(x)" katexReady={katexReady} /> prevent direct analytical integration on the element domain, we must utilize a **2-point Gaussian quadrature** for high-precision numerical approximation on each local element.
           </p>
 
           <FemLab />
@@ -379,17 +386,20 @@ const FemLogContent = () => {
         <section className="space-y-4">
           <h3 className="text-xl font-bold text-white tracking-widest uppercase border-b border-white/10 pb-2">4. Numerical Convergence Analysis</h3>
           <p>
-            Executing numerical error convergence checks on progressively refined meshes ($n = 4, 8, 16, 32, 64, 128$) reveals the robust precision of the formulation:
+            {/* 💡 修复：将报错的纯文本 $n=...$ 替换为组件 */}
+            Executing numerical error convergence checks on progressively refined meshes (<InlineMath tex="n = 4, 8, 16, 32, 64, 128" katexReady={katexReady} />) reveals the robust precision of the formulation:
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs tracking-widest my-6">
             <div className="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded">
               <span className="text-cyan-400 font-black block mb-1">L² NORM CONVERGENCE</span>
-              The numerical solution $u_h$ converges to the exact solution at an optimal quadratic rate of $\mathcal{O}(h^2)$ in the $L^2$-norm.
+              {/* 💡 核心修复点：将引发致命崩溃的纯文本 $\mathcal{O}(h^2)$ 和 $L^2$、$u_h$ 替换为组件 */}
+              The numerical solution <InlineMath tex="u_h" katexReady={katexReady} /> converges to the exact solution at an optimal quadratic rate of <InlineMath tex="\mathcal{O}(h^2)" katexReady={katexReady} /> in the <InlineMath tex="L^2" katexReady={katexReady} />-norm.
             </div>
             <div className="p-4 bg-pink-500/5 border border-pink-500/20 rounded">
               <span className="text-pink-400 font-black block mb-1">H¹ SEMI-NORM CONVERGENCE</span>
-              The derivative error $u'_h$ converges linearly at a rate of $\mathcal{O}(h)$ under the energy norm (the $H^1$-semi-norm).
+              {/* 💡 修复：将相关的散落公式全部替换 */}
+              The derivative error <InlineMath tex="u'_h" katexReady={katexReady} /> converges linearly at a rate of <InlineMath tex="\mathcal{O}(h)" katexReady={katexReady} /> under the energy norm (the <InlineMath tex="H^1" katexReady={katexReady} />-semi-norm).
             </div>
           </div>
 
@@ -428,7 +438,7 @@ const FemLogContent = () => {
         </div>
 
       </div>
-    </LogLayout>
+    </LogMode>
   );
 };
 
