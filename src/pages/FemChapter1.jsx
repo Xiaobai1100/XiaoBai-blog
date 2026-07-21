@@ -283,6 +283,14 @@ const FemLogContent = () => {
     <LogLayout title="FEM 1: 1D SELF-ADJOINT SOLVER" category="NUMERICAL_ANALYSIS" date="2026-07-17">
       <div className="space-y-12 font-mono text-white/80 text-sm md:text-base leading-relaxed max-w-5xl mx-auto pb-20">
         
+        {/* ========================================= */}
+        {/* 💡 新增：文章头部署名 (Guest Author) */}
+        {/* ========================================= */}
+        <div className="mb-8 flex items-center gap-4 text-cyan-400/80 text-xs tracking-[0.2em] uppercase font-bold border-l-2 border-cyan-500/50 pl-4 bg-cyan-500/5 py-2 rounded-r">
+          <span className="w-4 h-[1px] bg-cyan-500/50"></span>
+          <span>Data Contributor: BaruchChen</span>
+        </div>
+
         {/* Preface */}
         <section className="space-y-4">
           <p>
@@ -339,7 +347,7 @@ const FemLogContent = () => {
           <MathDisplay tex="-\left[ p(x) \frac{du}{dx} v(x) \right]_0^1 + \int_0^1 p(x) \frac{du}{dx} \frac{dv}{dx} \, dx + \int_0^1 q(x) u(x) v(x) \, dx = \int_0^1 f(x) v(x) \, dx" katexReady={katexReady} />
           
           <p>
-            {/* 💡 修复：替换掉了纯文本的 $v(0)=v(1)=0$ */}
+            {/* 💡 修复：替换掉了纯文本的 v(0)=v(1)=0 */}
             Because any test function <InlineMath tex="v \in V_0" katexReady={katexReady} /> vanishes at the boundaries (<InlineMath tex="v(0)=v(1)=0" katexReady={katexReady} />), the boundary terms seamlessly vanish. The continuous weak form is then defined as: find <InlineMath tex="u \in V_0" katexReady={katexReady} /> such that:
           </p>
           <MathDisplay tex={FORMULAS.weakForm} katexReady={katexReady} />
@@ -348,7 +356,7 @@ const FemLogContent = () => {
 
           <h4 className="text-lg font-bold text-cyan-400 mt-6">2.2 Finite Element Space Discretization & Assembly</h4>
           <p>
-            {/* 💡 修复：替换掉了纯文本的 $n$ */}
+            {/* 💡 修复：替换掉了纯文本的 n */}
             We decompose the domain into <InlineMath tex="n" katexReady={katexReady} /> equal elements with node coordinates <InlineMath tex="x_i = ih" katexReady={katexReady} />.
             Let the finite-dimensional space <InlineMath tex="V_h \subset V_0" katexReady={katexReady} /> be spanned by the continuous piecewise linear basis functions (Hat functions) <InlineMath tex="\{\phi_i(x)\}_{i=1}^{n-1}" katexReady={katexReady} />:
           </p>
@@ -366,7 +374,6 @@ const FemLogContent = () => {
           <MathDisplay tex={FORMULAS.loadVector} katexReady={katexReady} />
           
           <p>
-            {/* 💡 修复：替换掉了纯文本的 p(x) 和 q(x) */}
             Since the variable coefficients <InlineMath tex="p(x)" katexReady={katexReady} /> and <InlineMath tex="q(x)" katexReady={katexReady} /> prevent direct analytical integration on the element domain, we must utilize a **2-point Gaussian quadrature** for high-precision numerical approximation on each local element.
           </p>
 
@@ -393,12 +400,12 @@ const FemLogContent = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs tracking-widest my-6">
             <div className="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded">
               <span className="text-cyan-400 font-black block mb-1">L² NORM CONVERGENCE</span>
-              {/* 💡 修复：替换掉了引发致命崩溃的纯文本 \mathcal{O}(h^2) 等 */}
+              {/* 💡 修复：替换掉了纯文本公式 */}
               The numerical solution <InlineMath tex="u_h" katexReady={katexReady} /> converges to the exact solution at an optimal quadratic rate of <InlineMath tex="\mathcal{O}(h^2)" katexReady={katexReady} /> in the <InlineMath tex="L^2" katexReady={katexReady} />-norm.
             </div>
             <div className="p-4 bg-pink-500/5 border border-pink-500/20 rounded">
               <span className="text-pink-400 font-black block mb-1">H¹ SEMI-NORM CONVERGENCE</span>
-              {/* 💡 修复：替换掉了纯文本的 \mathcal{O}(h) 等 */}
+              {/* 💡 修复：替换掉了纯文本公式 */}
               The derivative error <InlineMath tex="u'_h" katexReady={katexReady} /> converges linearly at a rate of <InlineMath tex="\mathcal{O}(h)" katexReady={katexReady} /> under the energy norm (the <InlineMath tex="H^1" katexReady={katexReady} />-semi-norm).
             </div>
           </div>
@@ -425,9 +432,18 @@ const FemLogContent = () => {
           <p className="text-sm text-white/30 tracking-[0.4em] uppercase font-light italic">
             // End_Transmission: FEM Appendix Subsystem Built
           </p>
+          
+          {/* ========================================= */}
+          {/* 💡 新增：文章结尾终端风格署名 */}
+          {/* ========================================= */}
           <div className="inline-block px-10 py-5 bg-cyan-600/10 border border-cyan-500/30 text-cyan-400 text-[11px] tracking-[0.6em] uppercase shadow-[0_0_40px_rgba(34,211,238,0.1)]">
             Finite Element Workspace has been built
           </div>	
+          
+          <p className="text-xs text-white/40 tracking-[0.3em] uppercase mt-6 flex items-center justify-center gap-2">
+            <span className="w-2 h-2 bg-cyan-500/50 rounded-full animate-ping"></span>
+            Signal Originated By: BaruchChen
+          </p>
         </div>
 
         {/* References */}
