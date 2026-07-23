@@ -7,10 +7,22 @@ import ChaosLog_4 from '../pages/ChaosLog_4';
 import ChaosLog_5 from '../pages/ChaosLog_5';
 import BlackHoleLog from '../pages/BlackHoleLog';
 import FemChapter1 from '../pages/FemChapter1';
+import FemChapter2 from '../pages/FemChapter2';
+
 
 
 
 export const POSTS = [
+{
+id: 'FemChapter2', 
+title: 'FemChapter2',
+category: 'GUEST_RESEARCH',
+date: '2026-07-23',
+description: 'FemChapter 2.',
+component: FemChapter2 
+},
+
+
 {
 id: 'FemChapter1', 
 title: 'FemChapter1',
