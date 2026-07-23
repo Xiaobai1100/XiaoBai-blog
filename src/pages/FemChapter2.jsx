@@ -104,6 +104,14 @@ const FemCh8LogContent = () => {
 
   return (
     <LogLayout title="FEM 2: CRITICAL ISSUES IN 1D & STABILITY" category="NUMERICAL_ANALYSIS" date="2026-07-22">
+        {/* ========================================= */}
+        {/* 💡 新增：文章头部署名 (Guest Author) */}
+        {/* ========================================= */}
+        <div className="mb-8 flex items-center gap-4 text-cyan-400/80 text-xs tracking-[0.2em] uppercase font-bold border-l-2 border-cyan-500/50 pl-4 bg-cyan-500/5 py-2 rounded-r">
+          <span className="w-4 h-[1px] bg-cyan-500/50"></span>
+          <span>Data Contributor: BaruchChen</span>
+        </div>
+
       <div className="space-y-12 font-mono text-white/80 text-sm md:text-base leading-relaxed max-w-5xl mx-auto pb-20">
         
         {/* Executive Summary */}
