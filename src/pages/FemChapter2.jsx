@@ -10,7 +10,7 @@ const figureCh8 = "https://images.unsplash.com/photo-1509228468518-180dd4864904?
 // so they survive JS string parsing and reach KaTeX properly.
 // =========================================================
 const FORMULAS = {
-  generalAdvective: "-\\\\;\\varepsilon \\\\frac{d^2 u}{dx^2} + b(x) \\\\frac{du}{dx} = f(x), \\\\quad x \\\\in (a, b)",
+  generalAdvective: "-\\\\varepsilon \\\\frac{d^2 u}{dx^2} + b(x) \\\\frac{du}{dx} = f(x), \\\\quad x \\\\in (a, b)",
   pecletNum: "Pe = \\\\frac{|b| h}{2\\\\varepsilon} > 1",
   supgForm: "a_{supg}(u, v) = a(u, v) + \\\\sum_e \\\\int_{K_e} \\\\delta \\\\left(b \\\\frac{dv}{dx}\\\\right) \\\\left(-\\\\varepsilon u'' + b u' - f\\\\right) dx"
 };
