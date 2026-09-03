@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { Suspense, useState, useEffect, useRef } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import * as THREE from "three";
 import { 
@@ -14,9 +14,7 @@ import {
 
 // 导入你的页面组件
 import LogsPage from './pages/LogsPage';
-import AboutBlog from './pages/AboutBlog';
 import {POSTS} from './config/posts';
-export { POSTS }; // 显式重新导出，让 LogsPage 能搜到
 
 // 后面直接开始写 export const BlackHoleBackground = ...
 
@@ -170,8 +168,10 @@ export const BlackHoleBackground = () => {
     let frameId;
     let holdTimer = 0; 
     let isHolding = false;
+    let isDisposed = false;
 
     const animate = () => {
+      if (isDisposed) return;
       frameId = requestAnimationFrame(animate);
       const delta = clock.getDelta();
       const positions = geometry.attributes.position.array;
@@ -197,14 +197,16 @@ export const BlackHoleBackground = () => {
       }
       material.uniforms.explosion.value = pulseState.current.factor;
 
+      const pulseFactor = pulseState.current.factor;
+      const speedFactor = CONFIG.baseSpeed * (1.0 - Math.sqrt(pulseFactor) * 0.9);
+      const { radii, phases, yOffsets, randomSpeeds } = uData;
       for (let i = 0; i < CONFIG.particleCount; i++) {
         const i3 = i * 3;
-        const speedFactor = CONFIG.baseSpeed * (1.0 - Math.pow(pulseState.current.factor, 0.5) * 0.9);
-        uData.phases[i] += Math.sqrt(400.0 / Math.pow(uData.radii[i], 1.5)) * speedFactor * delta * uData.randomSpeeds[i];
+        phases[i] += Math.sqrt(400.0 / Math.pow(radii[i], 1.5)) * speedFactor * delta * randomSpeeds[i];
         
-        positions[i3] = Math.cos(uData.phases[i]) * uData.radii[i];
-        positions[i3+1] = uData.yOffsets[i];
-        positions[i3+2] = Math.sin(uData.phases[i]) * uData.radii[i];
+        positions[i3] = Math.cos(phases[i]) * radii[i];
+        positions[i3+1] = yOffsets[i];
+        positions[i3+2] = Math.sin(phases[i]) * radii[i];
       }
       
       geometry.attributes.position.needsUpdate = true;
@@ -213,11 +215,17 @@ export const BlackHoleBackground = () => {
     animate();
 
     return () => {
+      isDisposed = true;
       cancelAnimationFrame(frameId);
       window.removeEventListener('resize', onWindowResize);
       window.removeEventListener('singularity-pulse', handlePulse);
       window.removeEventListener('deviceorientation', handleOrientation);
+      geometry.dispose();
+      material.dispose();
+      blackHole.geometry.dispose();
+      blackHole.material.dispose();
       renderer.dispose();
+      renderer.domElement.remove();
     };
   }, []);
 
@@ -233,13 +241,17 @@ const Home = () => {
   const [glitchState, setGlitchState] = useState('stable');
 
   useEffect(() => {
+    const timers = [];
     const onPulse = () => {
       setGlitchState('shaking');
-      setTimeout(() => setGlitchState('abnormal'), 500);
-      setTimeout(() => setGlitchState('stable'), 1500);
+      timers.push(window.setTimeout(() => setGlitchState('abnormal'), 500));
+      timers.push(window.setTimeout(() => setGlitchState('stable'), 1500));
     };
     window.addEventListener('singularity-pulse', onPulse);
-    return () => window.removeEventListener('singularity-pulse', onPulse);
+    return () => {
+      window.removeEventListener('singularity-pulse', onPulse);
+      timers.forEach(window.clearTimeout);
+    };
   }, []);
 
   // 内部 ArticleCard 组件保持不变
@@ -351,7 +363,7 @@ const NavBar = () => {
   const location = useLocation();
 
   const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollY = useRef(0);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -362,19 +374,20 @@ const NavBar = () => {
       }
       if (currentScrollY < 20) {
         setIsVisible(true);
-      } else if (currentScrollY > lastScrollY) {
+      } else if (currentScrollY > lastScrollY.current) {
         setIsVisible(false);
       } else {
         setIsVisible(true);
       }
-      setLastScrollY(currentScrollY);
+      lastScrollY.current = currentScrollY;
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY, isMenuOpen]);
+  }, [isMenuOpen]);
 
   useEffect(() => {
-    setIsMenuOpen(false);
+    const frameId = window.requestAnimationFrame(() => setIsMenuOpen(false));
+    return () => window.cancelAnimationFrame(frameId);
   }, [location]);
 
   const triggerPulse = () => {
@@ -560,18 +573,20 @@ const App = () => (
     
     <NavBar />
     
-    <Routes>
-      <Route path="/" element={<Home />} />
-	  <Route path="/logs" element={<LogsPage />} />
-      <Route path="/models/black-hole" element={<BlackHoleModel />} />
-      
-      {POSTS.map(post => (
-        <Route key={post.id} path={`/logs/${post.id}`} element={<post.component />} />
-      ))}
-      
-      {/* 404 路由 */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/logs" element={<LogsPage backgroundComponent={BlackHoleBackground} />} />
+        <Route path="/models/black-hole" element={<BlackHoleModel />} />
+
+        {POSTS.map(post => (
+          <Route key={post.id} path={`/logs/${post.id}`} element={<post.component />} />
+        ))}
+
+        {/* 404 路由 */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   </Router>
 );
 

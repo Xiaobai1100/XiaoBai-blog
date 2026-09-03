@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Terminal, Calendar, ArrowRight, Database } from 'lucide-react';
-import { BlackHoleBackground, POSTS } from '../App'; 
+import { POSTS } from '../config/posts';
 
-const LogsPage = () => {
+const LogsPage = ({ backgroundComponent }) => {
+  const Background = backgroundComponent;
   // 每次进入页面强制置顶
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -15,7 +16,7 @@ const LogsPage = () => {
       {/* 1. 背景层 (与 LogLayout 保持一致) */}
       <div className="fixed inset-0 z-0 opacity-30 flex items-center justify-center pointer-events-none">
         <div className="w-full h-full transform -translate-y-[20%] md:-translate-y-[10%] scale-[1.8] md:scale-125">
-          <BlackHoleBackground />
+          <Background />
         </div>
       </div>
 
