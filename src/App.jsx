@@ -8,8 +8,7 @@ import {
   Menu, 
   X, 
   ArrowRight, 
-  Zap, 
-  AlertTriangle 
+  Zap
 } from 'lucide-react';
 
 // 导入你的页面组件

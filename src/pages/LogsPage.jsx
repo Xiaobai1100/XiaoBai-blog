@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Terminal, Calendar, ArrowRight, Database } from 'lucide-react';
+import { ArrowRight, Database } from 'lucide-react';
 import { POSTS } from '../config/posts';
 
 const LogsPage = ({ backgroundComponent }) => {

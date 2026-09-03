@@ -1,16 +1,35 @@
-# React + Vite
+# XiaoBai Blog
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A personal science and mathematics blog focused on black holes, nonlinear dynamics, chaos, and finite element methods.
 
-Currently, two official plugins are available:
+Live site: [xiao-bai-blog.vercel.app](https://xiao-bai-blog.vercel.app)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Tech stack
 
-## React Compiler
+- React 19 and React Router
+- Vite
+- Tailwind CSS
+- Three.js
+- KaTeX
+- Giscus comments
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Development
 
-## Expanding the ESLint configuration
+```bash
+npm install
+npm run dev
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Before submitting a change:
+
+```bash
+npm run lint
+npm run build
+```
+
+## Project structure
+
+- `src/config/posts.js` contains the post index and route metadata.
+- `src/pages/` contains the individual posts and interactive demonstrations.
+- `src/components/` contains shared article and comment layouts.
+- `public/blackhole.html` contains the standalone black-hole simulation.
