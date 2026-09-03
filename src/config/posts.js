@@ -1,13 +1,15 @@
-import AboutBlog from '../pages/AboutBlog'; 
-import ChristmasLog from '../pages/ChristmasLog';
-import ChaosLog_1 from '../pages/ChaosLog_1';
-import ChaosLog_2 from '../pages/ChaosLog_2';
-import ChaosLog_3 from '../pages/ChaosLog_3';
-import ChaosLog_4 from '../pages/ChaosLog_4';
-import ChaosLog_5 from '../pages/ChaosLog_5';
-import BlackHoleLog from '../pages/BlackHoleLog';
-import FemChapter1 from '../pages/FemChapter1';
-import FemChapter2 from '../pages/FemChapter2';
+import { lazy } from 'react';
+
+const AboutBlog = lazy(() => import('../pages/AboutBlog'));
+const ChristmasLog = lazy(() => import('../pages/ChristmasLog'));
+const ChaosLog_1 = lazy(() => import('../pages/ChaosLog_1'));
+const ChaosLog_2 = lazy(() => import('../pages/ChaosLog_2'));
+const ChaosLog_3 = lazy(() => import('../pages/ChaosLog_3'));
+const ChaosLog_4 = lazy(() => import('../pages/ChaosLog_4'));
+const ChaosLog_5 = lazy(() => import('../pages/ChaosLog_5'));
+const BlackHoleLog = lazy(() => import('../pages/BlackHoleLog'));
+const FemChapter1 = lazy(() => import('../pages/FemChapter1'));
+const FemChapter2 = lazy(() => import('../pages/FemChapter2'));
 
 
 
