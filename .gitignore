@@ -9,6 +9,8 @@ lerna-debug.log*
 
 node_modules
 .npm-cache
+.vercel-cli
+.vercel
 dist
 dist-ssr
 *.local
