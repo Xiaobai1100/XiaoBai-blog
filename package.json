@@ -7,9 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "library:secrets": "node scripts/generate-library-secrets.mjs",
+    "library:publish": "node scripts/publish-library.mjs"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.0",
     "lucide-react": "^0.562.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

@@ -8,11 +8,13 @@ import {
   Menu, 
   X, 
   ArrowRight, 
-  Zap
+  Zap,
+  LockKeyhole
 } from 'lucide-react';
 
 // 导入你的页面组件
 import LogsPage from './pages/LogsPage';
+import PrivateLibrary from './pages/PrivateLibrary';
 import {POSTS} from './config/posts';
 
 // 后面直接开始写 export const BlackHoleBackground = ...
@@ -399,6 +401,8 @@ const NavBar = () => {
     setTimeout(() => setIsGlowing(false), 1200);
   };
 
+  if (location.pathname === '/library') return null;
+
   return (
     <>
       <nav 
@@ -452,6 +456,8 @@ const NavBar = () => {
             </div>
 
             <Link to="/lab" className="hover:text-cyan-400 transition-colors">Lab</Link>
+
+            <Link to="/library" className="hover:text-cyan-400 transition-colors flex items-center gap-2"><LockKeyhole size={14} /> Library</Link>
             
             <a 
               href="https://github.com/Xiaobai1100" 
@@ -489,6 +495,7 @@ const NavBar = () => {
           </div>
           
           <Link to="/lab" className="text-sm tracking-[0.2em] text-white uppercase font-black">Lab</Link>
+          <Link to="/library" className="text-sm tracking-[0.2em] text-white uppercase font-black flex items-center gap-2"><LockKeyhole size={14} /> Library</Link>
           <a href="https://github.com/Xiaobai1100" target="_blank" className="text-sm tracking-[0.2em] text-white uppercase font-black">Github</a>
         </div>
       </div>
@@ -577,6 +584,7 @@ const App = () => (
         <Route path="/" element={<Home />} />
         <Route path="/logs" element={<LogsPage backgroundComponent={BlackHoleBackground} />} />
         <Route path="/models/black-hole" element={<BlackHoleModel />} />
+        <Route path="/library" element={<PrivateLibrary />} />
 
         {POSTS.map(post => (
           <Route key={post.id} path={`/logs/${post.id}`} element={<post.component />} />

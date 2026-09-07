@@ -33,3 +33,10 @@ npm run build
 - `src/pages/` contains the individual posts and interactive demonstrations.
 - `src/components/` contains shared article and comment layouts.
 - `public/blackhole.html` contains the standalone black-hole simulation.
+
+# Private library
+
+The Blog includes a password-protected `/library` PDF reader backed by Vercel
+Private Blob. See [LIBRARY-SETUP.md](./LIBRARY-SETUP.md) for the one-time setup and
+incremental publishing workflow. The public repository never contains the source
+documents or secrets.
