@@ -16,8 +16,7 @@ dist-ssr
 *.local
 
 # Environment files and private keys
-.env
-.env.*
+.env*
 !.env.example
 *.pem
 *.key

@@ -39,6 +39,7 @@ const next = { schemaVersion: 1, publishedAt: new Date().toISOString(), complete
 const activeItems = catalog.items.filter(item => !item.archived);
 let uploaded = 0;
 let skipped = 0;
+let publishError = null;
 await mkdir(libraryDir, { recursive: true });
 
 for (const [index, item] of activeItems.entries()) {
@@ -48,29 +49,42 @@ for (const [index, item] of activeItems.entries()) {
   const extension = path.extname(absolute).toLowerCase().replace(/[^.a-z0-9]/g, '');
   const remotePath = `library/files/${item.id}${extension}`;
   const fingerprint = `${fileStat.size}:${Math.trunc(fileStat.mtimeMs)}`;
-  next.files[item.id] = { fingerprint, remotePath, relativePath: item.relativePath };
+  const manifestEntry = { fingerprint, remotePath, relativePath: item.relativePath };
   if (previous.files?.[item.id]?.fingerprint === fingerprint && previous.files[item.id]?.remotePath === remotePath) {
+    next.files[item.id] = manifestEntry;
     skipped += 1;
     console.log(`[${index + 1}/${activeItems.length}] unchanged  ${item.title}`);
     await writeFile(manifestPath, JSON.stringify(next, null, 2) + '\n', 'utf8');
     continue;
   }
   console.log(`[${index + 1}/${activeItems.length}] uploading  ${item.title}`);
-  await put(remotePath, createReadStream(absolute), {
-    access: 'private', addRandomSuffix: false, allowOverwrite: true, multipart: true,
-    contentType: item.mimeType || undefined, token
-  });
+  try {
+    await put(remotePath, createReadStream(absolute), {
+      access: 'private', addRandomSuffix: false, allowOverwrite: true, multipart: true,
+      contentType: item.mimeType || undefined, token
+    });
+  } catch (error) {
+    publishError = error;
+    console.error(`上传在 ${item.title} 处停止：${error.message}`);
+    break;
+  }
+  next.files[item.id] = manifestEntry;
   uploaded += 1;
   await writeFile(manifestPath, JSON.stringify(next, null, 2) + '\n', 'utf8');
 }
 
 const favorites = new Set(userData.favorites || []);
+const publishedItems = activeItems.filter(item => next.files[item.id]);
 const remoteCatalog = {
   schemaVersion: 1,
   generatedAt: catalog.generatedAt,
   publishedAt: next.publishedAt,
-  stats: { totalItems: activeItems.length },
-  items: activeItems.map(item => ({
+  stats: {
+    totalItems: publishedItems.length,
+    sourceItems: activeItems.length,
+    unavailableItems: activeItems.length - publishedItems.length
+  },
+  items: publishedItems.map(item => ({
     id: item.id,
     title: item.title,
     authors: item.authors || [],
@@ -93,6 +107,11 @@ await put('library/catalog.json', Buffer.from(JSON.stringify(remoteCatalog)), {
   access: 'private', addRandomSuffix: false, allowOverwrite: true,
   contentType: 'application/json; charset=utf-8', token
 });
-next.complete = true;
+next.complete = !publishError && publishedItems.length === activeItems.length;
 await writeFile(manifestPath, JSON.stringify(next, null, 2) + '\n', 'utf8');
-console.log(`发布完成：上传 ${uploaded}，跳过 ${skipped}，共 ${activeItems.length} 项。`);
+if (next.complete) {
+  console.log(`发布完成：上传 ${uploaded}，跳过 ${skipped}，共 ${activeItems.length} 项。`);
+} else {
+  console.warn(`部分发布完成：远程可用 ${publishedItems.length}/${activeItems.length} 项；上传 ${uploaded}，跳过 ${skipped}。`);
+  process.exitCode = 2;
+}
