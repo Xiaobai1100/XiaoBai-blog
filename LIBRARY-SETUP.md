@@ -1,43 +1,46 @@
 # Private Library setup
 
-The `/library` route is a private reader layered onto this public Blog repository.
-No PDF, catalog, annotation, password, or storage URL is committed to Git. The
-browser receives those resources only after a signed, HTTP-only session cookie is
-created by the Blog API.
+The public Blog keeps only the `/library` reader and authentication API. The
+catalog, notes, and binary files live in the private repository
+`Xiaobai1100/ebook-library`; reading formats and Office files are stored through
+Git LFS.
 
-## One-time Vercel setup
+## GitHub access token
 
-1. In the Vercel project connected to this repository, create a **Private Vercel
-   Blob** store and connect it to the project.
-2. Generate a password hash and session secret locally:
+Create a fine-grained personal access token dedicated to this reader:
 
-   ```powershell
-   npm run library:secrets -- "choose-a-long-private-password"
-   ```
+1. Open GitHub Settings → Developer settings → Personal access tokens →
+   Fine-grained tokens.
+2. Select the `Xiaobai1100` resource owner and **Only select repositories** →
+   `ebook-library`.
+3. Grant only **Repository permissions → Contents: Read-only**. Metadata read
+   access is added automatically. Do not grant write or administration access.
+4. Save the token as `GITHUB_LIBRARY_TOKEN` in the Vercel project, for
+   Production, Preview, and Development. Treat it as a secret.
 
-3. Add the two printed values to Vercel Project Settings → Environment Variables:
-   `LIBRARY_PASSWORD_HASH` and `LIBRARY_SESSION_SECRET`. Apply them to Production,
-   Preview, and Development as needed.
-4. Pull the linked Blob token into the local Blog project with `vercel env pull
-   .env.local`, or place `BLOB_READ_WRITE_TOKEN=...` in `.env.local` manually.
-   `.env.local` is ignored by Git.
-5. Deploy the Blog code. The navigation now includes a locked `Library` entry at
-   `/library`.
+The optional variables `GITHUB_LIBRARY_REPOSITORY` and `GITHUB_LIBRARY_REF`
+default to `Xiaobai1100/ebook-library` and `main`.
 
-## Publishing the local collection
+The existing `LIBRARY_PASSWORD_HASH` and `LIBRARY_SESSION_SECRET` continue to
+protect the browser-facing library. No plaintext password or GitHub token is
+committed to either repository.
 
-The local library at `D:\E-Book & Resource` has a **发布到 Blog** action in its Git
-dialog. It runs this project's `scripts/publish-library.mjs` script. The first run
-uploads every active file to Private Blob; later runs compare file size and exact
-modification time, and upload only new or changed files. A local manifest is kept
-at `library/publish-manifest.json` in the e-book repository.
+## Updating the collection
 
-You can also publish from a terminal:
+The local library at `D:\E-Book & Resource` is the private Git repository. Its
+top-right Git action commits, rebases, and pushes both the lightweight catalog
+and any new Git LFS objects. The Blog reads the latest `main` branch directly,
+so there is no second publishing or object-storage upload step.
+
+From a terminal, the equivalent flow is:
 
 ```powershell
-npm run library:publish -- --source "D:\E-Book & Resource"
+git -C 'D:\E-Book & Resource' add -A
+git -C 'D:\E-Book & Resource' commit -m 'Update library'
+git -C 'D:\E-Book & Resource' pull --rebase
+git -C 'D:\E-Book & Resource' push
 ```
 
-The remote catalog includes the local metadata and current annotations at publish
-time. Moving, archiving, and metadata editing remain local-first operations; run a
-new publish after those changes to refresh the private Blog reader.
+The Blog API fetches the LFS pointer only after a valid library session, obtains
+a short-lived Git LFS download action, and streams PDF range responses without
+exposing the repository token to the browser.

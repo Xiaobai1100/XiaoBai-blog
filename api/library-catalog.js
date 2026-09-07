@@ -1,17 +1,15 @@
-import { get } from '@vercel/blob';
 import { requireLibrarySession } from '../server/libraryAuth.js';
+import { GitHubLibraryError, readLibraryCatalog } from '../server/githubLibrary.js';
 
 export default async function handler(request, response) {
   if (request.method !== 'GET') return response.status(405).json({ error: 'Method not allowed' });
   if (!requireLibrarySession(request, response)) return;
   try {
-    const result = await get('library/catalog.json', { access: 'private', useCache: false });
-    if (!result?.stream) return response.status(404).json({ error: '远程馆藏尚未发布。' });
-    const text = await new Response(result.stream).text();
     response.setHeader('Cache-Control', 'private, no-store');
-    return response.status(200).json(JSON.parse(text));
+    return response.status(200).json(await readLibraryCatalog());
   } catch (error) {
     console.error(error);
-    return response.status(503).json({ error: '暂时无法读取私人馆藏。' });
+    const status = error instanceof GitHubLibraryError ? error.status : 503;
+    return response.status(status).json({ error: status === 404 ? '远程馆藏尚未发布。' : '暂时无法读取私人馆藏。' });
   }
 }

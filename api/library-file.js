@@ -1,23 +1,28 @@
 import { Readable } from 'node:stream';
-import { get } from '@vercel/blob';
 import { requireLibrarySession } from '../server/libraryAuth.js';
+import { contentTypeForPath, getLfsDownload, GitHubLibraryError, isSafeLibraryPath } from '../server/githubLibrary.js';
 
 export default async function handler(request, response) {
   if (request.method !== 'GET') return response.status(405).json({ error: 'Method not allowed' });
   if (!requireLibrarySession(request, response)) return;
   const pathname = String(request.query?.pathname || '');
-  if (!/^library\/files\/[a-zA-Z0-9_-]+\.[a-zA-Z0-9]+$/.test(pathname)) {
+  if (!isSafeLibraryPath(pathname) || !/\.(pdf|epub|mobi|azw3?|djvu|chm|cb[rz]|docx?|xlsx?|pptx?)$/i.test(pathname)) {
     return response.status(400).json({ error: '无效的馆藏文件路径。' });
   }
   try {
-    const result = await get(pathname, {
-      access: 'private',
-      headers: request.headers.range ? { Range: request.headers.range } : undefined
+    const { action } = await getLfsDownload(pathname);
+    const upstreamHeaders = {
+      ...(action.header || {}),
+      ...(request.headers.range ? { Range: request.headers.range } : {})
+    };
+    const result = await fetch(action.href, {
+      headers: upstreamHeaders,
+      redirect: 'follow'
     });
-    if (!result?.stream) return response.status(404).json({ error: '文件不存在。' });
+    if (!result.ok || !result.body) throw new GitHubLibraryError(`Git LFS download failed (${result.status}).`, result.status === 404 ? 404 : 502);
     const headers = result.headers;
-    response.status(headers.get('content-range') ? 206 : 200);
-    response.setHeader('Content-Type', result.blob.contentType || 'application/octet-stream');
+    response.status(result.status);
+    response.setHeader('Content-Type', contentTypeForPath(pathname));
     response.setHeader('Accept-Ranges', headers.get('accept-ranges') || 'bytes');
     for (const name of ['content-range', 'content-length', 'etag', 'last-modified']) {
       const value = headers.get(name);
@@ -30,7 +35,8 @@ export default async function handler(request, response) {
     Readable.fromWeb(result.stream).pipe(response);
   } catch (error) {
     console.error(error);
-    if (!response.headersSent) response.status(503).json({ error: '文件读取失败。' });
+    const status = error instanceof GitHubLibraryError ? error.status : 503;
+    if (!response.headersSent) response.status(status).json({ error: status === 404 ? '文件不存在。' : '文件读取失败。' });
     else response.end();
   }
 }

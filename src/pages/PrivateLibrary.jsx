@@ -107,7 +107,7 @@ export default function PrivateLibrary() {
           {!catalog && !error && <div className="library-loading">正在从私有存储载入目录…</div>}
           <div className="remote-catalog-heading"><h2>{category}</h2><span>{visible.length} 项</span></div>
           <div className="remote-grid">{visible.map(item => {
-            const fileUrl = `/api/library-file?pathname=${encodeURIComponent(item.remotePath)}&filename=${encodeURIComponent(item.title + '.' + item.kind.toLowerCase())}`;
+            const fileUrl = `/api/library-file?pathname=${encodeURIComponent(item.relativePath)}&filename=${encodeURIComponent(item.title + item.extension)}`;
             const isPdf = item.kind.toLowerCase() === 'pdf';
             return <article key={item.id}>
               <div className="remote-card-top"><span>{item.kind}</span>{item.favorite && <Star size={15} fill="currentColor" />}</div>

@@ -3,7 +3,7 @@ import { clearSessionCookie, createSessionCookie, hasValidSession, verifyPasswor
 export default async function handler(request, response) {
   response.setHeader('Cache-Control', 'no-store');
   if (request.method === 'GET') {
-    const configured = Boolean(process.env.LIBRARY_PASSWORD_HASH && process.env.LIBRARY_SESSION_SECRET && process.env.BLOB_READ_WRITE_TOKEN);
+    const configured = Boolean(process.env.LIBRARY_PASSWORD_HASH && process.env.LIBRARY_SESSION_SECRET && process.env.GITHUB_LIBRARY_TOKEN);
     return response.status(200).json({ authenticated: hasValidSession(request), configured });
   }
   if (request.method === 'DELETE') {
