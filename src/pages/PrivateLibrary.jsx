@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Download, LockKeyhole, LogOut, Star, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import './PrivateLibrary.css';
+
+const LibraryPdfReader = lazy(() => import('../components/LibraryPdfReader.jsx'));
 
 const RECENTS_KEY = 'xiaobai-library:remote-recents:v1';
 const VIEW_KEY = 'xiaobai-library:remote-view:v1';
@@ -153,7 +155,7 @@ export default function PrivateLibrary() {
 
   const openReader = item => {
     recordOpen(item);
-    setReader({ ...item, fileUrl: fileUrl(item) });
+    setReader({ ...item, fileUrl: fileUrl(item), downloadUrl: fileUrl(item, true) });
   };
 
   const chooseMode = nextMode => {
@@ -367,7 +369,7 @@ export default function PrivateLibrary() {
 
       {detail && <><button className="drawer-backdrop" onClick={() => setDetail(null)} aria-label="Close details" /><aside className="detail-drawer is-open" aria-label="Item details"><button className="drawer-close" onClick={() => setDetail(null)} aria-label="Close details">×</button><span className="drawer-category">{detail.category}{detail.subcategory ? ` / ${detail.subcategory}` : ''}</span><h2>{detail.title}</h2><p className="drawer-authors">{(detail.authors || []).join(' · ') || 'Author information not yet available'}</p>{coverUrl(detail) && <div className="drawer-cover"><img src={coverUrl(detail)} alt={`Cover of ${detail.title}`} /></div>}<div className="tag-row">{(detail.tags || []).map(tag => <span className="tag" key={tag}>{tag}</span>)}</div><p className="drawer-summary">{detail.summary || 'No abstract is available yet.'}</p><dl className="detail-list"><dt>Year</dt><dd>{detail.year || '—'}</dd><dt>Source</dt><dd>{detail.venue || '—'}</dd><dt>DOI</dt><dd>{detail.doi || '—'}</dd><dt>File</dt><dd>{detail.relativePath}</dd><dt>Size</dt><dd>{formatBytes(detail.sizeBytes)} · {detail.kind}</dd><dt>Last Updated</dt><dd>{detail.modified}</dd></dl>{detail.personalNote && <><label className="note-label">Reading Note</label><p className="saved-note">{detail.personalNote}</p></>}<div className="drawer-actions">{detail.kind.toLowerCase() === 'pdf' && <button className="open-button" onClick={() => { setDetail(null); openReader(detail); }}>Read PDF</button>}<a className="detail-button" href={fileUrl(detail, true)}><Download size={14} /> Download</a></div></aside></>}
 
-      {reader && <div className="pdf-reader" role="dialog" aria-modal="true" aria-label={`Read ${reader.title}`}><div className="reader-toolbar"><button onClick={() => setReader(null)}><ArrowLeft size={17} /> Back to Library</button><strong>{reader.title}</strong><a href={`${reader.fileUrl}&download=1`}><Download size={16} /> Download</a></div><iframe title={reader.title} src={reader.fileUrl} /></div>}
+      {reader && <Suspense fallback={<div className="pdf-reader reader-module-loading" role="status">Loading PDF reader…</div>}><LibraryPdfReader item={reader} onClose={() => setReader(null)} /></Suspense>}
     </main>
   );
 }
