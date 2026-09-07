@@ -66,6 +66,7 @@ export async function readLibraryCatalog() {
     generatedAt: catalog.generatedAt,
     publishedAt: catalog.generatedAt,
     storage: 'github-lfs',
+    layout: userData.layout || { categoryOrder: [], density: 'comfortable' },
     stats: { ...catalog.stats, totalItems: activeItems.length },
     items: activeItems.map(item => ({
       ...item,
