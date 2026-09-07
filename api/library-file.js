@@ -32,7 +32,7 @@ export default async function handler(request, response) {
     const disposition = request.query?.download === '1' ? 'attachment' : 'inline';
     response.setHeader('Content-Disposition', `${disposition}; filename*=UTF-8''${encodeURIComponent(filename)}`);
     response.setHeader('Cache-Control', 'private, no-store');
-    Readable.fromWeb(result.stream).pipe(response);
+    Readable.fromWeb(result.body).pipe(response);
   } catch (error) {
     console.error(error);
     const status = error instanceof GitHubLibraryError ? error.status : 503;
