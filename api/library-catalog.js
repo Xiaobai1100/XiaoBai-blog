@@ -10,6 +10,6 @@ export default async function handler(request, response) {
   } catch (error) {
     console.error(error);
     const status = error instanceof GitHubLibraryError ? error.status : 503;
-    return response.status(status).json({ error: status === 404 ? '远程馆藏尚未发布。' : '暂时无法读取私人馆藏。' });
+    return response.status(status).json({ error: status === 404 ? 'The remote catalog has not been published.' : 'The private catalog is temporarily unavailable.' });
   }
 }

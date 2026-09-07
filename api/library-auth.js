@@ -13,7 +13,7 @@ export default async function handler(request, response) {
   if (request.method !== 'POST') return response.status(405).json({ error: 'Method not allowed' });
   if (!verifyPassword(request.body?.password)) {
     await new Promise(resolve => setTimeout(resolve, 350));
-    return response.status(401).json({ error: '访问密码不正确。' });
+    return response.status(401).json({ error: 'Incorrect access password.' });
   }
   response.setHeader('Set-Cookie', createSessionCookie());
   return response.status(200).json({ authenticated: true });

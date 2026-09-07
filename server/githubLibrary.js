@@ -128,6 +128,10 @@ export function contentTypeForPath(relativePath) {
     xls: 'application/vnd.ms-excel',
     xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     ppt: 'application/vnd.ms-powerpoint',
-    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    webp: 'image/webp'
   }[extension] || 'application/octet-stream';
 }

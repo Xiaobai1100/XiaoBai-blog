@@ -16,7 +16,7 @@ async function api(endpoint, options) {
     headers: { 'Content-Type': 'application/json', ...(options?.headers || {}) }
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || '请求失败');
+  if (!response.ok) throw new Error(data.error || 'Request failed.');
   return data;
 }
 
@@ -26,7 +26,7 @@ export default function PrivateLibrary() {
   const [error, setError] = useState('');
   const [catalog, setCatalog] = useState(null);
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('全部');
+  const [category, setCategory] = useState('All');
   const [reader, setReader] = useState(null);
 
   useEffect(() => {
@@ -47,11 +47,11 @@ export default function PrivateLibrary() {
     }).catch(() => setAuth('locked'));
   }, []);
 
-  const categories = useMemo(() => ['全部', ...new Set((catalog?.items || []).map(item => item.category))], [catalog]);
+  const categories = useMemo(() => ['All', ...new Set((catalog?.items || []).map(item => item.category))], [catalog]);
   const visible = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
     return (catalog?.items || []).filter(item => {
-      if (category !== '全部' && item.category !== category) return false;
+      if (category !== 'All' && item.category !== category) return false;
       return !needle || [item.title, item.category, item.summary, ...(item.authors || []), ...(item.tags || [])]
         .join(' ').toLocaleLowerCase().includes(needle);
     });
@@ -77,16 +77,16 @@ export default function PrivateLibrary() {
 
   if (auth !== 'ready') return (
     <main className="private-library private-library--gate">
-      <Link className="library-back" to="/"><ArrowLeft size={15} /> 返回 Blog</Link>
+      <Link className="library-back" to="/"><ArrowLeft size={15} /> Back to Blog</Link>
       <form className="library-gate" onSubmit={login}>
         <span className="gate-icon"><LockKeyhole size={24} /></span>
         <p className="library-kicker">PRIVATE ARCHIVE</p>
-        <h1>私人资料库</h1>
-        <p>这里存放工作文献与个人批注。访问密码只用于建立本设备的安全会话。</p>
-        {auth === 'checking' ? <div className="library-loading">正在确认访问状态…</div> : auth === 'setup' ?
-          <div className="library-error">私人存储尚未完成一次性配置。站点所有者可按 Blog 仓库中的 LIBRARY-SETUP.md 启用。</div> : <>
-          <label><span>访问密码</span><input type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} autoFocus /></label>
-          <button type="submit" disabled={!password}>进入资料库</button>
+        <h1>Private Library</h1>
+        <p>A personal archive for research literature and reading notes. Your password only establishes a secure session on this device.</p>
+        {auth === 'checking' ? <div className="library-loading">Checking access…</div> : auth === 'setup' ?
+          <div className="library-error">The private archive has not completed its one-time configuration. See LIBRARY-SETUP.md in the Blog repository.</div> : <>
+          <label><span>Access Password</span><input type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} autoFocus /></label>
+          <button type="submit" disabled={!password}>Enter Library</button>
         </>}
         {error && <div className="library-error">{error}</div>}
       </form>
@@ -96,32 +96,34 @@ export default function PrivateLibrary() {
   return (
     <main className="private-library">
       <header className="library-header">
-        <div><p className="library-kicker">XIAOBAI · PRIVATE ARCHIVE</p><h1>随身资料库</h1><p>{catalog ? `${catalog.items.length} 份资料 · 更新于 ${new Date(catalog.publishedAt).toLocaleString('zh-CN')}` : '正在读取馆藏…'}</p></div>
-        <div className="library-header-actions"><Link to="/"><ArrowLeft size={15} /> Blog</Link><button onClick={logout}><LogOut size={15} /> 退出</button></div>
+        <div><p className="library-kicker">XIAOBAI · PRIVATE ARCHIVE</p><h1>Research Library</h1><p>{catalog ? `${catalog.items.length} items · Updated ${new Date(catalog.publishedAt).toLocaleString('en-GB')}` : 'Loading collection…'}</p></div>
+        <div className="library-header-actions"><Link to="/"><ArrowLeft size={15} /> Blog</Link><button onClick={logout}><LogOut size={15} /> Sign Out</button></div>
       </header>
-      <div className="library-search"><Search size={18} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="搜索标题、作者、摘要或标签…" />{query && <button onClick={() => setQuery('')} aria-label="清空"><X size={16} /></button>}</div>
+      <div className="library-search"><Search size={18} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search title, author, summary, or tag…" />{query && <button onClick={() => setQuery('')} aria-label="Clear search"><X size={16} /></button>}</div>
       <div className="library-layout">
-        <aside><p>馆藏目录</p>{categories.map(name => <button key={name} className={category === name ? 'active' : ''} onClick={() => setCategory(name)}><span>{name}</span><b>{name === '全部' ? catalog?.items.length : catalog?.items.filter(item => item.category === name).length}</b></button>)}</aside>
+        <aside><p>Collections</p>{categories.map(name => <button key={name} className={category === name ? 'active' : ''} onClick={() => setCategory(name)}><span>{name}</span><b>{name === 'All' ? catalog?.items.length : catalog?.items.filter(item => item.category === name).length}</b></button>)}</aside>
         <section className="remote-catalog">
-          {error && <div className="library-error">{error} <button onClick={loadCatalog}>重试</button></div>}
-          {!catalog && !error && <div className="library-loading">正在从私有存储载入目录…</div>}
-          <div className="remote-catalog-heading"><h2>{category}</h2><span>{visible.length} 项</span></div>
+          {error && <div className="library-error">{error} <button onClick={loadCatalog}>Retry</button></div>}
+          {!catalog && !error && <div className="library-loading">Loading the private catalog…</div>}
+          <div className="remote-catalog-heading"><h2>{category}</h2><span>{visible.length} {visible.length === 1 ? 'item' : 'items'}</span></div>
           <div className="remote-grid">{visible.map(item => {
             const fileUrl = `/api/library-file?pathname=${encodeURIComponent(item.relativePath)}&filename=${encodeURIComponent(item.title + item.extension)}`;
+            const coverUrl = item.coverPath ? `/api/library-file?pathname=${encodeURIComponent(item.coverPath)}&filename=cover.jpg` : '';
             const isPdf = item.kind.toLowerCase() === 'pdf';
             return <article key={item.id}>
+              {coverUrl ? <div className="remote-cover"><img src={coverUrl} alt={`Cover of ${item.title}`} loading="lazy" /></div> : <div className="remote-cover remote-cover--empty"><span>{item.kind}</span><small>NO PREVIEW</small></div>}
               <div className="remote-card-top"><span>{item.kind}</span>{item.favorite && <Star size={15} fill="currentColor" />}</div>
               <h3>{item.title}</h3>
               <p className="remote-byline">{(item.authors || []).join(' · ') || item.category}</p>
-              <p className="remote-summary">{item.summary || item.personalNote || '暂无摘要，打开文件继续阅读。'}</p>
+              <p className="remote-summary">{item.summary || item.personalNote || 'No summary is available. Open the file to continue reading.'}</p>
               {item.personalNote && <blockquote>{item.personalNote}</blockquote>}
-              <footer><span>{formatBytes(item.sizeBytes)} · {item.modified}</span><div>{isPdf && <button onClick={() => setReader({ ...item, fileUrl })}><BookOpen size={14} /> 阅读</button>}<a href={`${fileUrl}&download=1`}><Download size={14} /> 下载</a></div></footer>
+              <footer><span>{formatBytes(item.sizeBytes)} · {item.modified}</span><div>{isPdf && <button onClick={() => setReader({ ...item, fileUrl })}><BookOpen size={14} /> Read</button>}<a href={`${fileUrl}&download=1`}><Download size={14} /> Download</a></div></footer>
             </article>;
           })}</div>
         </section>
       </div>
-      {reader && <div className="pdf-reader" role="dialog" aria-modal="true" aria-label={`阅读 ${reader.title}`}>
-        <div className="reader-toolbar"><button onClick={() => setReader(null)}><ArrowLeft size={17} /> 返回馆藏</button><strong>{reader.title}</strong><a href={`${reader.fileUrl}&download=1`}><Download size={16} /> 下载</a></div>
+      {reader && <div className="pdf-reader" role="dialog" aria-modal="true" aria-label={`Read ${reader.title}`}>
+        <div className="reader-toolbar"><button onClick={() => setReader(null)}><ArrowLeft size={17} /> Back to Library</button><strong>{reader.title}</strong><a href={`${reader.fileUrl}&download=1`}><Download size={16} /> Download</a></div>
         <iframe title={reader.title} src={reader.fileUrl} />
       </div>}
     </main>

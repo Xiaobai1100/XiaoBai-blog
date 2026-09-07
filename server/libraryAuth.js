@@ -59,6 +59,6 @@ export function hasValidSession(request) {
 
 export function requireLibrarySession(request, response) {
   if (hasValidSession(request)) return true;
-  response.status(401).json({ error: '请先进入私人资料库。' });
+  response.status(401).json({ error: 'Enter the private library first.' });
   return false;
 }

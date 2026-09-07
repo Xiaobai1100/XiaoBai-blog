@@ -6,8 +6,8 @@ export default async function handler(request, response) {
   if (request.method !== 'GET') return response.status(405).json({ error: 'Method not allowed' });
   if (!requireLibrarySession(request, response)) return;
   const pathname = String(request.query?.pathname || '');
-  if (!isSafeLibraryPath(pathname) || !/\.(pdf|epub|mobi|azw3?|djvu|chm|cb[rz]|docx?|xlsx?|pptx?)$/i.test(pathname)) {
-    return response.status(400).json({ error: '无效的馆藏文件路径。' });
+  if (!isSafeLibraryPath(pathname) || !/\.(pdf|epub|mobi|azw3?|djvu|chm|cb[rz]|docx?|xlsx?|pptx?|jpe?g|png|webp)$/i.test(pathname)) {
+    return response.status(400).json({ error: 'Invalid library file path.' });
   }
   try {
     const { action } = await getLfsDownload(pathname);
@@ -36,7 +36,7 @@ export default async function handler(request, response) {
   } catch (error) {
     console.error(error);
     const status = error instanceof GitHubLibraryError ? error.status : 503;
-    if (!response.headersSent) response.status(status).json({ error: status === 404 ? '文件不存在。' : '文件读取失败。' });
+    if (!response.headersSent) response.status(status).json({ error: status === 404 ? 'File not found.' : 'Unable to read the file.' });
     else response.end();
   }
 }
