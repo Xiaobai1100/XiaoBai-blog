@@ -6,11 +6,22 @@ import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
+const RANGE_CHUNK_SIZE = 256 * 1024;
+const PAGE_BATCH_SIZE = 10;
+
+const waitForIdle = () => new Promise(resolve => {
+  if (window.requestIdleCallback) window.requestIdleCallback(resolve, { timeout: 450 });
+  else window.setTimeout(resolve, 40);
+});
 
 export default function LibraryPdfReader({ item, onClose }) {
   const stageRef = useRef(null);
   const canvasRef = useRef(null);
   const renderTaskRef = useRef(null);
+  const loadSettledRef = useRef(false);
+  const pageCacheRef = useRef(new Map());
+  const prefetchedPagesRef = useRef(new Set());
+  const prefetchGenerationRef = useRef(0);
   const [pdfDocument, setPdfDocument] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [zoom, setZoom] = useState('fit');
@@ -18,33 +29,45 @@ export default function LibraryPdfReader({ item, onClose }) {
   const [resizeVersion, setResizeVersion] = useState(0);
   const [status, setStatus] = useState('Loading document…');
   const [error, setError] = useState('');
+  const [hasRenderedPage, setHasRenderedPage] = useState(false);
 
   useEffect(() => {
     let active = true;
+    loadSettledRef.current = false;
+    pageCacheRef.current.clear();
+    prefetchedPagesRef.current.clear();
+    prefetchGenerationRef.current += 1;
     const loadingTask = getDocument({
       url: item.fileUrl,
       cMapUrl: '/pdfjs/cmaps/',
       cMapPacked: true,
       standardFontDataUrl: '/pdfjs/standard_fonts/',
       wasmUrl: '/pdfjs/wasm/',
-      withCredentials: true
+      withCredentials: true,
+      disableAutoFetch: true,
+      disableStream: true,
+      rangeChunkSize: RANGE_CHUNK_SIZE
     });
     loadingTask.onProgress = ({ loaded, total }) => {
-      if (!active || !total) return;
+      if (!active || loadSettledRef.current || !total) return;
       setStatus(`Loading document… ${Math.round((loaded / total) * 100)}%`);
     };
     loadingTask.promise.then(documentProxy => {
       if (!active) return;
+      loadSettledRef.current = true;
       setPdfDocument(documentProxy);
       setStatus('Rendering page…');
     }).catch(loadError => {
       if (!active) return;
+      loadSettledRef.current = true;
       console.error(loadError);
       setError('The PDF could not be loaded. You can still download the original file.');
       setStatus('');
     });
     return () => {
       active = false;
+      loadSettledRef.current = true;
+      prefetchGenerationRef.current += 1;
       renderTaskRef.current?.cancel();
       loadingTask.destroy();
     };
@@ -68,7 +91,12 @@ export default function LibraryPdfReader({ item, onClose }) {
         setError('');
         setStatus(`Rendering page ${pageNumber}…`);
         renderTaskRef.current?.cancel();
-        const page = await pdfDocument.getPage(pageNumber);
+        let pagePromise = pageCacheRef.current.get(pageNumber);
+        if (!pagePromise) {
+          pagePromise = pdfDocument.getPage(pageNumber);
+          pageCacheRef.current.set(pageNumber, pagePromise);
+        }
+        const page = await pagePromise;
         if (!active) return;
         const baseViewport = page.getViewport({ scale: 1 });
         const availableWidth = Math.max(240, stageRef.current.clientWidth - 32);
@@ -76,7 +104,8 @@ export default function LibraryPdfReader({ item, onClose }) {
           ? clamp(availableWidth / baseViewport.width, 0.35, 2.5)
           : zoom;
         const viewport = page.getViewport({ scale });
-        const outputScale = clamp(window.devicePixelRatio || 1, 1, 2);
+        const maximumOutputScale = stageRef.current.clientWidth < 600 ? 1.5 : 2;
+        const outputScale = clamp(window.devicePixelRatio || 1, 1, maximumOutputScale);
         const canvas = canvasRef.current;
         const context = canvas.getContext('2d', { alpha: false });
         canvas.width = Math.floor(viewport.width * outputScale);
@@ -93,8 +122,34 @@ export default function LibraryPdfReader({ item, onClose }) {
         await renderTask.promise;
         if (!active) return;
         setRenderedScale(scale);
+        setHasRenderedPage(true);
         setStatus('');
         stageRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+
+        const generation = ++prefetchGenerationRef.current;
+        const batchStart = Math.floor((pageNumber - 1) / PAGE_BATCH_SIZE) * PAGE_BATCH_SIZE + 1;
+        const batchEnd = Math.min(pdfDocument.numPages, batchStart + PAGE_BATCH_SIZE - 1);
+        const candidates = [];
+        for (let number = pageNumber + 1; number <= batchEnd; number += 1) candidates.push(number);
+        for (let number = pageNumber - 1; number >= batchStart; number -= 1) candidates.push(number);
+        for (const number of candidates) {
+          if (!active || generation !== prefetchGenerationRef.current) break;
+          if (prefetchedPagesRef.current.has(number)) continue;
+          await waitForIdle();
+          if (!active || generation !== prefetchGenerationRef.current) break;
+          try {
+            let candidatePromise = pageCacheRef.current.get(number);
+            if (!candidatePromise) {
+              candidatePromise = pdfDocument.getPage(number);
+              pageCacheRef.current.set(number, candidatePromise);
+            }
+            const candidate = await candidatePromise;
+            await candidate.getOperatorList();
+            prefetchedPagesRef.current.add(number);
+          } catch {
+            pageCacheRef.current.delete(number);
+          }
+        }
       } catch (renderError) {
         if (!active || renderError?.name === 'RenderingCancelledException') return;
         console.error(renderError);
@@ -105,6 +160,7 @@ export default function LibraryPdfReader({ item, onClose }) {
     render();
     return () => {
       active = false;
+      prefetchGenerationRef.current += 1;
       renderTaskRef.current?.cancel();
     };
   }, [pageNumber, pdfDocument, resizeVersion, zoom]);
@@ -132,7 +188,7 @@ export default function LibraryPdfReader({ item, onClose }) {
       </div>
       <div className="pdf-stage" ref={stageRef}>
         <div className="pdf-canvas-sheet"><canvas ref={canvasRef} aria-label={`Page ${pageNumber}`} /></div>
-        {(status || error) && <div className={`reader-status ${error ? 'is-error' : ''}`} role="status"><span>{error || status}</span>{error && <a href={item.downloadUrl}>Download PDF</a>}</div>}
+        {(status || error) && <div className={`reader-status ${error ? 'is-error' : hasRenderedPage ? 'is-passive' : ''}`} role="status"><span>{error || status}</span>{error && <a href={item.downloadUrl}>Download PDF</a>}</div>}
       </div>
     </div>
   );

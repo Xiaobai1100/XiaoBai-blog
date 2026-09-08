@@ -10,7 +10,8 @@ export default async function handler(request, response) {
     return response.status(400).json({ error: 'Invalid library file path.' });
   }
   try {
-    const { action } = await getLfsDownload(pathname);
+    const version = String(request.query?.v || '').slice(0, 80);
+    const { action } = await getLfsDownload(pathname, { version });
     const upstreamHeaders = {
       ...(action.header || {}),
       ...(request.headers.range ? { Range: request.headers.range } : {})
@@ -31,7 +32,8 @@ export default async function handler(request, response) {
     const filename = String(request.query?.filename || 'document').replace(/[\r\n"\\]/g, '_');
     const disposition = request.query?.download === '1' ? 'attachment' : 'inline';
     response.setHeader('Content-Disposition', `${disposition}; filename*=UTF-8''${encodeURIComponent(filename)}`);
-    response.setHeader('Cache-Control', 'private, no-store');
+    response.setHeader('Cache-Control', version ? 'private, max-age=300' : 'private, no-store');
+    response.setHeader('Vary', 'Cookie, Range');
     Readable.fromWeb(result.body).pipe(response);
   } catch (error) {
     console.error(error);

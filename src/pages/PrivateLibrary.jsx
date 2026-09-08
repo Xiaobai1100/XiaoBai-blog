@@ -34,7 +34,8 @@ async function api(endpoint, options) {
 }
 
 function fileUrl(item, download = false) {
-  const base = `/api/library-file?pathname=${encodeURIComponent(item.relativePath)}&filename=${encodeURIComponent(item.title + item.extension)}`;
+  const version = encodeURIComponent(`${item.sizeBytes || 0}-${item.modified || ''}`);
+  const base = `/api/library-file?pathname=${encodeURIComponent(item.relativePath)}&filename=${encodeURIComponent(item.title + item.extension)}&v=${version}`;
   return download ? `${base}&download=1` : base;
 }
 

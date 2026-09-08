@@ -1,6 +1,9 @@
 const DEFAULT_REPOSITORY = 'Xiaobai1100/ebook-library';
 const DEFAULT_REF = 'main';
 const API_VERSION = '2022-11-28';
+const LFS_DOWNLOAD_CACHE_TTL = 60 * 1000;
+const lfsDownloadCache = new Map();
+const lfsDownloadRequests = new Map();
 
 export class GitHubLibraryError extends Error {
   constructor(message, status = 502) {
@@ -88,9 +91,9 @@ function parseLfsPointer(text) {
   return { oid, size };
 }
 
-export async function getLfsDownload(relativePath) {
+async function requestLfsDownload(relativePath, configurationValue) {
   const pointer = parseLfsPointer(await readRepositoryText(relativePath));
-  const { token, repository, ref } = configuration();
+  const { token, repository, ref } = configurationValue;
   const owner = repository.split('/')[0];
   const authorization = Buffer.from(`${owner}:${token}`).toString('base64');
   const result = await fetch(`https://github.com/${repository}.git/info/lfs/objects/batch`, {
@@ -116,6 +119,32 @@ export async function getLfsDownload(relativePath) {
   }
   if (!object?.actions?.download?.href) throw new GitHubLibraryError('Git LFS did not return a download action.', 502);
   return { ...pointer, action: object.actions.download };
+}
+
+export async function getLfsDownload(relativePath, { version = '' } = {}) {
+  const configurationValue = configuration();
+  const cacheKey = `${configurationValue.repository}@${configurationValue.ref}:${relativePath}:${version}`;
+  const now = Date.now();
+  const cached = lfsDownloadCache.get(cacheKey);
+  if (cached?.expiresAt > now) return cached.value;
+  if (cached) lfsDownloadCache.delete(cacheKey);
+
+  const activeRequest = lfsDownloadRequests.get(cacheKey);
+  if (activeRequest) return activeRequest;
+
+  const request = requestLfsDownload(relativePath, configurationValue)
+    .then(value => {
+      if (lfsDownloadCache.size > 200) {
+        for (const [key, entry] of lfsDownloadCache) {
+          if (entry.expiresAt <= now) lfsDownloadCache.delete(key);
+        }
+      }
+      lfsDownloadCache.set(cacheKey, { value, expiresAt: Date.now() + LFS_DOWNLOAD_CACHE_TTL });
+      return value;
+    })
+    .finally(() => lfsDownloadRequests.delete(cacheKey));
+  lfsDownloadRequests.set(cacheKey, request);
+  return request;
 }
 
 export function contentTypeForPath(relativePath) {
