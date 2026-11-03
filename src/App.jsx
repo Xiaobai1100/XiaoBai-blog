@@ -19,442 +19,327 @@ import { POSTS } from './config/posts';
 
 /**
  * =================================================================
- * 核心引擎：BlackHoleBackground v5.0 (Gargantua 物理引擎 + 电影级滚动运镜)
- * 融合了你 blackhole.html 中的 ISCO 坠落、引力时间膨胀、多普勒集束与引力透镜
+ * 核心引擎：BlackHoleBackground v6.0 (纯连续相对论流体着色器 + 史诗开场运镜)
+ * 彻底告别散点颗粒！采用 GLSL 连续开普勒湍流噪声场 + 爱因斯坦引力透镜 + 多普勒集束
  * =================================================================
  */
-export const BlackHoleBackground = ({ interactive = false }) => {
+export const BlackHoleBackground = ({ mode = "home" }) => {
   const containerRef = useRef(null);
-  const chargeBarRef = useRef(null);
-  const chargeContainerRef = useRef(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
     const isMobile = /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    
-    // 物理常量配置 (源自你的 Gargantua V24)
-    const CONFIG = {
-      particleCount: isMobile ? 85000 : 260000,
-      horizonRadius: 2.0,      // 史瓦西半径 Rs = 2
-      iscoRadius: 6.0,         // 最内稳定轨道 ISCO = 3 * Rs
-      diskOuterBase: 42.0,
-      spawnZoneBase: 22.0,
-      baseSpeed: 0.42,
-      colAccretion: new THREE.Color(0xffaa33),
-    };
-
-    const state = {
-      mass: 1.0,
-      simSpeed: 1.0,
-      lensingTarget: 1.0,
-      lensingCurrent: 1.0,
-      isExploding: false,
-      explosionFactor: 0.0,
-      isCharging: false,
-      chargeLevel: 0.0,
-      gyro: { x: 0, y: 0 },
-      mouse: { x: 0, y: 0, targetX: 0, targetY: 0 },
-      scrollProgress: 0,
-      targetScroll: 0
-    };
-
-    // --- 初始化 Three.js 场景 ---
-    const scene = new THREE.Scene();
-    const universeGroup = new THREE.Group();
-    scene.add(universeGroup);
-
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 2000);
-    
-    // 根据屏幕宽高比动态计算基准距离，彻底解决不同分辨率偏位或裁剪问题
-    const getResponsiveDistance = () => {
-      const aspect = window.innerWidth / window.innerHeight;
-      if (aspect < 0.7) return 310; // 手机竖屏拉远，保证吸积盘完整
-      if (aspect < 1.2) return 240; // 平板/方屏
-      return 185;                   // 桌面宽屏，极具压迫感的近景
-    };
-
-    const renderer = new THREE.WebGLRenderer({ 
-      antialias: !isMobile, 
+    const renderer = new THREE.WebGLRenderer({
+      antialias: false,
       powerPreference: "high-performance",
-      alpha: true
+      alpha: false
     });
-    renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2.0));
+    renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.25) : Math.min(window.devicePixelRatio, 1.75));
     renderer.setSize(window.innerWidth, window.innerHeight);
     containerRef.current.appendChild(renderer.domElement);
 
-    // 1. 事件视界核心 (纯黑球体 + 微弱光子环背光)
-    const blackHole = new THREE.Mesh(
-      new THREE.SphereGeometry(2.92, 64, 64),
-      new THREE.MeshBasicMaterial({ color: 0x000000 })
-    );
-    universeGroup.add(blackHole);
+    const scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
-    // 2. 初始化相对论流体粒子系统
-    const count = CONFIG.particleCount;
-    const positions = new Float32Array(count * 3);
-    const colors = new Float32Array(count * 3);
-    const sizes = new Float32Array(count);
-    const alphas = new Float32Array(count);
-    
-    const uData = {
-      phases: new Float32Array(count),
-      radii: new Float32Array(count),
-      yOffsets: new Float32Array(count),
-      speeds: new Float32Array(count),
-      infallMod: new Float32Array(count),
-      count
+    // 运镜与物理状态机
+    const state = {
+      time: 0,
+      intro: 0.0,            // 0 -> 1 开场运镜进度
+      scroll: 0.0,           // 滚动运镜
+      targetScroll: 0.0,
+      overdrive: 0.0,        // 彩蛋：相对论超频/时间膨胀模式 (0: 正常琥珀金, 1: 高能切伦科夫蓝移)
+      overdriveActive: false,
+      mouse: { x: 0, y: 0, tx: 0, ty: 0 }
     };
 
-    const currentRs = CONFIG.horizonRadius * state.mass;
-    const isco = currentRs * 3.0;
-    const spawnRadius = CONFIG.diskOuterBase * state.mass;
-    const spawnZone = CONFIG.spawnZoneBase * state.mass;
+    const uniforms = {
+      uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+      uTime: { value: 0 },
+      uCamPos: { value: new THREE.Vector3(0, 1.2, 11.0) },
+      uCamTarget: { value: new THREE.Vector3(0, 0, 0) },
+      uCamRoll: { value: -0.15 },
+      uOverdrive: { value: 0.0 },
+      uDimmer: { value: mode === "home" ? 1.0 : mode === "archive" ? 0.72 : 0.35 }
+    };
 
-    // 预热初始化：让粒子一开始就分布在吸积盘上，无需等待漫长的生成
-    for (let i = 0; i < count; i++) {
-      // 使用指数分布让内圈(ISCO附近)更密集，还原流体吸积密度
-      const randomRatio = Math.pow(Math.random(), 1.35);
-      const r = currentRs * 1.05 + (spawnRadius + spawnZone - currentRs) * randomRatio;
-      const angle = Math.random() * Math.PI * 2;
-      
-      uData.radii[i] = r;
-      uData.phases[i] = angle;
-      // 流体盘厚度随半径向外微张，加入螺旋波纹扰动
-      const spiralWave = Math.sin(angle * 3.0 - r * 0.25) * 0.15;
-      uData.yOffsets[i] = ((Math.random() - 0.5) * 0.038 + spiralWave * 0.01) * r;
-      uData.speeds[i] = Math.random() * 0.2 + 0.9;
-      uData.infallMod[i] = 0.8 + Math.random() * 0.4;
-
-      positions[i * 3] = Math.cos(angle) * r;
-      positions[i * 3 + 1] = uData.yOffsets[i];
-      positions[i * 3 + 2] = Math.sin(angle) * r;
-
-      colors[i * 3] = CONFIG.colAccretion.r;
-      colors[i * 3 + 1] = CONFIG.colAccretion.g;
-      colors[i * 3 + 2] = CONFIG.colAccretion.b;
-
-      sizes[i] = Math.random() * 0.55 + 0.45;
-      alphas[i] = 0.0; // 开场渐显
-    }
-
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('customColor', new THREE.BufferAttribute(colors, 3));
-    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-    geometry.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
-
-    // 3. 电影级相对论着色器 (升级版 Gargantua Shader)
     const material = new THREE.ShaderMaterial({
-      uniforms: {
-        massScale: { value: 1.0 },
-        lensingStrength: { value: 1.0 }
-      },
+      uniforms,
       vertexShader: `
-        #ifdef GL_ES
-        precision mediump float;
-        #endif
-
-        uniform float massScale;
-        uniform float lensingStrength;
-
-        attribute float size;
-        attribute float alpha;
-        attribute vec3 customColor;
-        varying vec3 vColor;
-        varying float vAlpha;
-
+        varying vec2 vUv;
         void main() {
-          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          float rPhys = length(position.xyz);
-          float rsPhys = massScale * 3.0;
-
-          // 引力时间膨胀因子 gFactor
-          float gFactor = sqrt(clamp(1.0 - rsPhys / (rPhys + 0.001), 0.0, 1.0));
-
-          // 相对论多普勒集束效应 (Relativistic Doppler Beaming)
-          vec3 velDir = normalize(vec3(-position.z, 0.0, position.x));
-          vec3 velView = normalize(normalMatrix * velDir);
-          vec3 viewDir = normalize(-mvPosition.xyz);
-          float dopplerDot = dot(velView, viewDir);
-          float beaming = pow(1.0 + 0.52 * dopplerDot, 3.2);
-
-          // 电影级黑体辐射色谱：内圈极热白金，中圈琥珀橙，外圈深邃暗红，蓝移端泛轻微高能青白光
-          vec3 hotCore = vec3(1.0, 0.96, 0.88);
-          vec3 midGold = customColor;
-          vec3 deepRed = vec3(0.55, 0.03, 0.01);
-          vec3 blueShiftTint = vec3(0.85, 0.95, 1.0);
-
-          float radialTemp = clamp((rPhys - 6.0) / 36.0, 0.0, 1.0);
-          vec3 baseTempColor = mix(hotCore, midGold, pow(radialTemp, 0.45));
-          baseTempColor = mix(baseTempColor, deepRed, pow(radialTemp, 1.4));
-
-          // 叠加引力红移与多普勒蓝移色偏
-          float colorShift = pow(1.0 - gFactor, 2.5);
-          vec3 diskColor = mix(baseTempColor, deepRed, colorShift * 0.7);
-          if (dopplerDot > 0.0) {
-            diskColor = mix(diskColor, blueShiftTint, pow(dopplerDot, 2.0) * 0.35);
-          }
-
-          vColor = diskColor * beaming * (gFactor + 0.15);
-          vAlpha = alpha;
-
-          // 爱因斯坦引力透镜偏折 (Einstein Gravitational Lensing)
-          if (lensingStrength > 0.01) {
-            float r = length(mvPosition.xy);
-            float rs = massScale * 12.0; 
-            float b = max(r, 0.1);
-            float deflection = (2.0 * rs / b) + (15.0 * rs * rs / (b * b));
-            mvPosition.xy += normalize(mvPosition.xy) * deflection * lensingStrength;
-          }
-
-          gl_Position = projectionMatrix * mvPosition;
-          #ifdef GL_ES
-          gl_PointSize = size * (1.15 + massScale * 0.1) * (900.0 / -mvPosition.z);
-          #else
-          gl_PointSize = size * (1.0 + massScale * 0.1) * (900.0 / -mvPosition.z);
-          #endif
+          vUv = uv;
+          gl_Position = vec4(position, 1.0);
         }
       `,
       fragmentShader: `
-        #ifdef GL_ES
-        precision mediump float;
-        #endif
-        varying vec3 vColor;
-        varying float vAlpha;
-        
-        void main() {
-          vec2 center = gl_PointCoord - 0.5;
-          float dist = length(center);
-          if (dist > 0.5) discard;
-          
-          float strength = 1.0 - (dist * 2.0);
-          strength = pow(strength, 2.4);
+        precision highp float;
+        varying vec2 vUv;
+        uniform vec2 uResolution;
+        uniform float uTime;
+        uniform vec3 uCamPos;
+        uniform vec3 uCamTarget;
+        uniform float uCamRoll;
+        uniform float uOverdrive;
+        uniform float uDimmer;
 
-          gl_FragColor = vec4(vColor, vAlpha * strength);
+        // 连续平滑哈希与 2D 价值噪声 (用于生成丝滑连续的等离子体流线)
+        float hash21(vec2 p) {
+          p = fract(p * vec2(234.34, 435.345));
+          p += dot(p, p + 34.23);
+          return fract(p.x * p.y);
+        }
+
+        float noise(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          float a = hash21(i);
+          float b = hash21(i + vec2(1.0, 0.0));
+          float c = hash21(i + vec2(0.0, 1.0));
+          float d = hash21(i + vec2(1.0, 1.0));
+          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+
+        // 连续流体分形布朗运动 (FBM)
+        float fbm(vec2 p) {
+          float v = 0.0;
+          float a = 0.5;
+          mat2 rot = mat2(0.8, 0.6, -0.6, 0.8);
+          for (int i = 0; i < 4; i++) {
+            v += a * noise(p);
+            p = rot * p * 2.02 + vec2(1.7, 9.2);
+            a *= 0.5;
+          }
+          return v;
+        }
+
+        // 计算连续吸积盘在交点 p 处的辐射亮度与色彩
+        vec4 sampleAccretionDisk(vec3 p, vec3 rd, float r) {
+          float rIn = 1.65;
+          float rOut = 9.5;
+          if (r < rIn || r > rOut) return vec4(0.0);
+
+          // 径向软边界包络 (内圈陡峭如刀切，外圈自然弥散入深空)
+          float innerFade = smoothstep(rIn, rIn + 0.45, r);
+          float outerFade = 1.0 - smoothstep(rIn + 1.2, rOut, r);
+          float radialProfile = innerFade * pow(outerFade, 1.55);
+
+          // 开普勒剪切角速度：越靠近内圈转得越快，拉出完全连续的螺旋丝带
+          float angle = atan(p.z, p.x);
+          float speed = (1.1 + uOverdrive * 1.4) * uTime;
+          float shearPhase = angle + speed * (3.6 / pow(r, 1.15)) - r * 2.2;
+
+          // 使用无缝周期三角坐标采样连续流体噪声，彻底消除接缝与颗粒感
+          vec2 flowCoord = vec2(cos(shearPhase), sin(shearPhase)) * (1.8 + r * 0.35) + vec2(r * 1.6, uTime * 0.15);
+          float stream1 = fbm(flowCoord);
+          float stream2 = fbm(flowCoord * 2.1 - vec2(uTime * 0.25));
+          
+          // 连续同心高密度等离子流环
+          float rings = 0.65 + 0.35 * sin(r * 7.5 - stream1 * 4.5 + uTime * 0.8);
+          float fluidDensity = mix(stream1, stream2, 0.5) * rings;
+          fluidDensity = smoothstep(0.12, 0.88, fluidDensity);
+
+          // 相对论多普勒集束效应 (Relativistic Doppler Beaming)
+          vec3 velDir = normalize(vec3(-p.z, 0.0, p.x));
+          float doppler = dot(velDir, -rd);
+          float beaming = pow(clamp(1.0 + 0.55 * doppler, 0.22, 2.2), 2.8);
+
+          // 经典《星际穿越》卡冈图雅黑体辐射色谱
+          float temp = clamp((r - rIn) / (rOut - rIn), 0.0, 1.0);
+          vec3 coreWhite = vec3(1.0, 0.98, 0.92);
+          vec3 midAmber  = vec3(1.0, 0.58, 0.14);
+          vec3 outerRed  = vec3(0.52, 0.06, 0.01);
+          vec3 blueTint  = vec3(0.75, 0.92, 1.0);
+
+          vec3 col = mix(coreWhite, midAmber, pow(temp, 0.42));
+          col = mix(col, outerRed, pow(temp, 1.35));
+          // 朝向观察者一侧产生高能蓝移提亮
+          if (doppler > 0.0) {
+            col = mix(col, blueTint, pow(doppler, 1.8) * 0.32);
+          }
+
+          // 彩蛋：Time Dilation Overdrive (高能天体物理光谱切换：等离子青蓝 + 极光紫)
+          vec3 odCore = vec3(0.95, 1.0, 1.0);
+          vec3 odMid  = vec3(0.12, 0.82, 1.0);
+          vec3 odOut  = vec3(0.38, 0.10, 0.85);
+          vec3 colOverdrive = mix(odCore, odMid, pow(temp, 0.45));
+          colOverdrive = mix(colOverdrive, odOut, pow(temp, 1.3));
+
+          col = mix(col, colOverdrive, uOverdrive);
+
+          float intensity = radialProfile * (0.25 + 1.35 * fluidDensity) * beaming * (1.5 / (pow(temp, 0.8) + 0.35));
+          return vec4(col * intensity, clamp(radialProfile * fluidDensity * 1.2, 0.0, 1.0));
+        }
+
+        void main() {
+          vec2 uv = (gl_FragCoord.xy - 0.5 * uResolution.xy) / min(uResolution.x, uResolution.y);
+
+          // 构造摄像机正交基与滚转角 (Dutch Roll)
+          vec3 forward = normalize(uCamTarget - uCamPos);
+          vec3 worldUp = vec3(sin(uCamRoll), cos(uCamRoll), 0.0);
+          vec3 right = normalize(cross(forward, worldUp));
+          vec3 up = cross(right, forward);
+
+          vec3 ro = uCamPos;
+          vec3 rd = normalize(uv.x * right + uv.y * up + 1.35 * forward);
+
+          // 史瓦西引力场光线步进 (Continuous Geodesic Raymarching)
+          vec3 pos = ro;
+          vec3 accumColor = vec3(0.0);
+          float trans = 1.0;
+          float minR = 1000.0;
+          bool swallowed = false;
+
+          float rs = 1.0; // 事件视界半径
+
+          for (int i = 0; i < 96; i++) {
+            float r = length(pos);
+            minR = min(minR, r);
+
+            if (r < rs) {
+              swallowed = true;
+              break;
+            }
+            if (r > 22.0) break;
+
+            // 自适应步长：靠近黑洞或靠近吸积盘赤道面 (y=0) 时加密步长，确保丝滑无噪点
+            float stepSize = max(0.035, min(r * 0.07, abs(pos.y) * 0.45 + 0.04));
+
+            // 广义相对论光线弯曲加速度 (与 1/r^3 成正比的光子球偏折)
+            float bendForce = (1.65 + uOverdrive * 0.25) / (r * r * r + 0.02);
+            rd = normalize(rd - pos * bendForce * stepSize);
+
+            vec3 nextPos = pos + rd * stepSize;
+
+            // 检测光线是否穿过赤道吸积盘平面 (y = 0) —— 这自然产生了前景盘与引力透镜折回的上下主光环！
+            if (pos.y * nextPos.y <= 0.0) {
+              float tCross = abs(pos.y) / (abs(pos.y - nextPos.y) + 1e-5);
+              vec3 hitPos = mix(pos, nextPos, tCross);
+              float hitR = length(hitPos.xz);
+              vec4 diskSample = sampleAccretionDisk(hitPos, rd, hitR);
+              accumColor += diskSample.rgb * trans;
+              trans *= (1.0 - diskSample.a * 0.45);
+            }
+
+            // 连续体积辉光雾 (Volumetric Accretion Corona)：让吸积盘具备温润的流体厚度感
+            float diskDist = abs(pos.y);
+            if (diskDist < 0.55 && r > 1.55 && r < 8.5) {
+              float vWeight = exp(-diskDist * 8.5) * smoothstep(8.5, 2.0, r) * smoothstep(1.55, 1.9, r);
+              vec3 coronaCol = mix(vec3(1.0, 0.48, 0.12), vec3(0.2, 0.85, 1.0), uOverdrive);
+              accumColor += coronaCol * vWeight * stepSize * 0.42 * trans;
+            }
+
+            pos = nextPos;
+          }
+
+          // 光子球极亮细环 (Photon Sphere Ring at r ≈ 1.5 Rs)
+          float photonRing = exp(-pow((minR - 1.48) * 14.0, 2.0)) * 1.35;
+          if (!swallowed) {
+            photonRing += exp(-pow((minR - 1.52) * 5.0, 2.0)) * 0.35;
+          }
+          vec3 ringColor = mix(vec3(1.0, 0.82, 0.55), vec3(0.75, 0.96, 1.0), uOverdrive);
+          accumColor += ringColor * photonRing * trans;
+
+          // ACES 电影级色调映射 (Tone Mapping)，保证高光过曝处柔美不刺眼
+          accumColor *= uDimmer;
+          accumColor = (accumColor * (2.51 * accumColor + 0.03)) / (accumColor * (2.43 * accumColor + 0.59) + 0.14);
+          accumColor = pow(clamp(accumColor, 0.0, 1.0), vec3(0.92));
+
+          gl_FragColor = vec4(accumColor, 1.0);
         }
       `,
-      blending: THREE.AdditiveBlending,
       depthWrite: false,
-      transparent: true
+      depthTest: false
     });
 
-    const system = new THREE.Points(geometry, material);
-    universeGroup.add(system);
+    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+    scene.add(quad);
 
-    // SSD 盘发射率分布: ε(r) ∝ r^-3 * (1 - sqrt(isco/r))
-    const getEmissivity = (r, iscoVal) => {
-      if (r < iscoVal) return 0;
-      const term = 1.0 - Math.sqrt(iscoVal / r);
-      const intensity = 450.0 * (1.0 + state.mass * 0.4);
-      return term * Math.pow(iscoVal / r, 3.0) * intensity;
-    };
-
-    // --- 交互与传感器监听 ---
-    // 1. 鼠标流体视差运镜
+    // 鼠标视差与滚动监听
     const onMouseMove = (e) => {
-      state.mouse.targetX = (e.clientX / window.innerWidth - 0.5) * 2.0;
-      state.mouse.targetY = (e.clientY / window.innerHeight - 0.5) * 2.0;
+      state.mouse.tx = (e.clientX / window.innerWidth - 0.5) * 2.0;
+      state.mouse.ty = (e.clientY / window.innerHeight - 0.5) * 2.0;
     };
     window.addEventListener('mousemove', onMouseMove, { passive: true });
 
-    // 2. 滚动驱动的电影运镜 (Scroll-Driven Camera Rig)
     const onScroll = () => {
-      const maxScroll = Math.max(window.innerHeight * 0.85, 1);
+      const maxScroll = Math.max(window.innerHeight * 0.9, 1);
       state.targetScroll = Math.min(window.scrollY / maxScroll, 1.5);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
 
-    // 3. 陀螺仪监听
-    const onDeviceOrientation = (e) => {
-      if (!e.beta && !e.gamma) return;
-      const x = Math.max(-30, Math.min(30, e.beta || 0));
-      const y = Math.max(-30, Math.min(30, e.gamma || 0));
-      state.gyro.x = x * 0.015;
-      state.gyro.y = y * 0.015;
+    // 新彩蛋：Time Dilation Overdrive (切换相对论蓝移超频模式，无误触、随时可逆)
+    const handlePulse = () => {
+      state.overdriveActive = !state.overdriveActive;
+      window.dispatchEvent(new CustomEvent("overdrive-state", { detail: state.overdriveActive }));
     };
-    window.addEventListener('deviceorientation', onDeviceOrientation);
+    window.addEventListener('singularity-pulse', handlePulse);
 
-    // 4. 彩蛋：Singularity Pulse / Breach 爆发逻辑
-    let breachTimeout = null;
-    const triggerBreach = () => {
-      state.isExploding = true;
-      state.lensingTarget = 0.15; // 爆发时引力透镜短暂失效坍缩
-      if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
-      if (breachTimeout) clearTimeout(breachTimeout);
-      breachTimeout = setTimeout(() => {
-        state.isExploding = false;
-        state.lensingTarget = 1.0;
-      }, 1600);
-    };
-    window.addEventListener('singularity-pulse', triggerBreach);
-
-    // 5. 长按背景蓄力触发 Breach 彩蛋 (保留自你的 blackhole.html)
-    let chargeInterval = null;
-    const startCharge = (e) => {
-      if (!interactive || e.target.closest('a, button')) return;
-      state.isCharging = true;
-      state.chargeLevel = 0;
-      if (chargeContainerRef.current) chargeContainerRef.current.style.opacity = '1';
-      if (chargeInterval) clearInterval(chargeInterval);
-      chargeInterval = setInterval(() => {
-        if (!state.isCharging) return;
-        state.chargeLevel += 0.03;
-        if (chargeBarRef.current) {
-          chargeBarRef.current.style.width = `${Math.min(100, state.chargeLevel * 100)}%`;
-        }
-        if (state.chargeLevel >= 1.0) {
-          clearInterval(chargeInterval);
-          if (chargeContainerRef.current) chargeContainerRef.current.style.opacity = '0';
-          window.dispatchEvent(new CustomEvent("singularity-pulse"));
-        }
-      }, 25);
-    };
-
-    const stopCharge = () => {
-      state.isCharging = false;
-      if (chargeInterval) clearInterval(chargeInterval);
-      if (chargeContainerRef.current) chargeContainerRef.current.style.opacity = '0';
-      if (chargeBarRef.current) chargeBarRef.current.style.width = '0%';
-    };
-
-    if (interactive) {
-      window.addEventListener('mousedown', startCharge);
-      window.addEventListener('mouseup', stopCharge);
-      window.addEventListener('touchstart', startCharge, { passive: true });
-      window.addEventListener('touchend', stopCharge);
-    }
-
-    // 6. 窗口大小自适应
-    let baseDist = getResponsiveDistance();
     const onWindowResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-      baseDist = getResponsiveDistance();
+      uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
     };
     window.addEventListener('resize', onWindowResize);
 
-    // --- 动画主循环 ---
     const clock = new THREE.Clock();
     let frameId;
     let isDisposed = false;
-    let introProgress = 0.0; // 入场运镜推进因子
-
-    const baseCol = CONFIG.colAccretion;
-    const greyCol = new THREE.Color(0x778899);
-    const tempCol = new THREE.Color();
 
     const animate = () => {
       if (isDisposed) return;
       frameId = requestAnimationFrame(animate);
       const delta = Math.min(clock.getDelta(), 0.05);
+      state.time += delta;
 
-      // A. 电影级复合运镜 (入场缓动 + 滚动轨道拉升 + 鼠标阻尼视差)
-      introProgress += (1.0 - introProgress) * 0.025;
-      state.scrollProgress += (state.targetScroll - state.scrollProgress) * 0.06;
-      state.mouse.x += (state.mouse.targetX - state.mouse.x) * 0.04;
-      state.mouse.y += (state.mouse.targetY - state.mouse.y) * 0.04;
+      // 1. 电影级开场运镜 (Cinematic Intro Sweep: 0 -> 1 耗时约 3.2 秒)
+      if (state.intro < 1.0) {
+        state.intro = Math.min(1.0, state.intro + delta * 0.34);
+      }
+      // 五次平滑缓动曲线 (Quintic Ease-Out)
+      const easeIntro = 1.0 - Math.pow(1.0 - state.intro, 4.0);
 
-      const s = state.scrollProgress;
-      // 刚进入页面时从极低角度(8)缓动升至标准卡冈图雅视角(24)，向下滚动看Logs时拉高到俯瞰视角(85)
-      const camY = THREE.MathUtils.lerp(8, 24, introProgress) + s * 62 - state.mouse.y * 14;
-      // 距离随滚动略微拉远，展现吸积盘全貌
-      const camZ = THREE.MathUtils.lerp(baseDist * 1.25, baseDist, introProgress) + s * 55;
-      const camX = state.mouse.x * 22 + Math.sin(s * Math.PI * 0.5) * 18;
+      state.scroll += (state.targetScroll - state.scroll) * 0.06;
+      state.mouse.x += (state.mouse.tx - state.mouse.x) * 0.045;
+      state.mouse.y += (state.mouse.ty - state.mouse.y) * 0.045;
 
-      camera.position.set(camX, camY, camZ);
-      // 往下滚动时，视线焦点略微下移，让黑洞优雅地托起上方的文章列表
-      camera.lookAt(0, -s * 12, 0);
+      // 彩蛋平滑插值
+      const targetOd = state.overdriveActive ? 1.0 : 0.0;
+      state.overdrive += (targetOd - state.overdrive) * 0.05;
 
-      // 赋予黑洞宇宙极具高级感的电影级倾斜角 (Cinematic Dutch Angle)，随滚动与鼠标微微摆动
-      const targetRoll = -0.16 + s * 0.22 + state.mouse.x * 0.05 + state.gyro.y;
-      const targetPitch = state.gyro.x + state.mouse.y * 0.04;
-      universeGroup.rotation.z += (targetRoll - universeGroup.rotation.z) * 0.08;
-      universeGroup.rotation.x += (targetPitch - universeGroup.rotation.x) * 0.08;
+      const aspect = window.innerWidth / window.innerHeight;
+      const mobileDistBoost = aspect < 0.8 ? 3.5 : 0.0;
 
-      // B. Breach 爆发状态机
-      if (state.isExploding) {
-        state.explosionFactor += (1.0 - state.explosionFactor) * 0.08;
+      if (mode === "home") {
+        const s = state.scroll;
+        // 开场时从极近掠射角 (x: -4.8, y: 0.18, z: 6.2) 旋转拉升至标准卡冈图雅远景 (0, 1.15, 11.2)
+        const baseX = THREE.MathUtils.lerp(-4.8, 0.0, easeIntro);
+        const baseY = THREE.MathUtils.lerp(0.18, 1.15, easeIntro);
+        const baseZ = THREE.MathUtils.lerp(6.2, 11.2 + mobileDistBoost, easeIntro);
+
+        // 结合向下滚动的俯仰拉升与鼠标微视差
+        const camX = baseX + state.mouse.x * 1.1 + Math.sin(s * 1.5) * 1.4;
+        const camY = baseY + s * 3.2 - state.mouse.y * 0.65;
+        const camZ = baseZ + s * 2.8;
+
+        uniforms.uCamPos.value.set(camX, camY, camZ);
+        uniforms.uCamTarget.value.set(0.0, -s * 0.65, 0.0);
+        uniforms.uCamRoll.value = THREE.MathUtils.lerp(-0.48, -0.16, easeIntro) + s * 0.18 + state.mouse.x * 0.04;
+      } else if (mode === "archive") {
+        // 在 /logs 目录页：把黑洞优雅地构图在右上角远景，形成深空天体观测站背景，绝不显脏
+        uniforms.uCamPos.value.set(-2.6 + state.mouse.x * 0.6, 2.2 - state.mouse.y * 0.4, 13.5 + mobileDistBoost);
+        uniforms.uCamTarget.value.set(-1.2, -0.35, 0.0);
+        uniforms.uCamRoll.value = -0.22 + state.mouse.x * 0.03;
       } else {
-        state.explosionFactor += (0.0 - state.explosionFactor) * 0.08;
+        // 文章阅读页底层微光
+        uniforms.uCamPos.value.set(state.mouse.x * 0.5, 1.8, 14.0 + mobileDistBoost);
+        uniforms.uCamTarget.value.set(0.0, 0.0, 0.0);
+        uniforms.uCamRoll.value = -0.15;
       }
 
-      state.lensingCurrent += (state.lensingTarget - state.lensingCurrent) * 0.08;
-      material.uniforms.lensingStrength.value = state.lensingCurrent;
-      material.uniforms.massScale.value = state.mass;
-      blackHole.scale.setScalar(currentRs / 1.05);
-
-      // C. 30万粒子相对论物理积分
-      const pos = geometry.attributes.position.array;
-      const alph = geometry.attributes.alpha.array;
-      const cols = geometry.attributes.customColor.array;
-      const G_const = 500.0 * state.mass;
-
-      tempCol.copy(baseCol).lerp(greyCol, state.explosionFactor);
-      const rCol = tempCol.r, gCol = tempCol.g, bCol = tempCol.b;
-
-      const visualBoost = 3.5;
-      const effectiveTime = delta * state.simSpeed * visualBoost;
-
-      for (let i = 0; i < uData.count; i++) {
-        const i3 = i * 3;
-        let r = uData.radii[i];
-        let phase = uData.phases[i];
-
-        const isConsumed = r < currentRs * 1.0001;
-        const isEscaped = r > 2200.0 && !state.isExploding;
-
-        if (isConsumed || isEscaped) {
-          const randomRatio = Math.sqrt(Math.random());
-          r = currentRs + (spawnRadius + spawnZone - currentRs) * randomRatio;
-          phase = Math.random() * Math.PI * 2;
-          uData.yOffsets[i] = (Math.random() - 0.5) * (r * 0.04);
-          alph[i] = 0.0;
-        }
-
-        // 史瓦西时间膨胀因子
-        const dilation = (r > currentRs) ? Math.sqrt(1.0 - (currentRs / r)) : 0.0;
-
-        if (state.isExploding) {
-          // 视界突破：无视时间膨胀向外爆发
-          const noise = Math.sin(i * 0.5 + clock.elapsedTime);
-          r += (110.0 + noise * 55.0) * state.explosionFactor * delta;
-        } else {
-          // 开普勒角速度 + ISCO 内侧自由落体骤降 (Plunge)
-          const vOrbital = Math.sqrt(G_const / r) * 1.2;
-          phase += vOrbital * Math.max(dilation, 0.15) * CONFIG.baseSpeed * uData.speeds[i] * effectiveTime * 0.2;
-          const vr = (r > isco) 
-            ? -5.0 * (state.mass / Math.sqrt(r)) 
-            : -Math.sqrt(2.0 * G_const * (1.0 / r - 1.0 / isco)) - 150.0;
-          r += vr * (dilation * dilation) * effectiveTime * uData.infallMod[i];
-        }
-
-        cols[i3] = rCol;
-        cols[i3 + 1] = gCol;
-        cols[i3 + 2] = bCol;
-
-        // 亮度计算：Shakura-Sunyaev 辐射强度 + 能量堆积
-        const emiss = getEmissivity(r, isco);
-        const energyStack = 1.0 / (dilation + 0.1);
-        const brightnessComp = 280.0 * (1.0 + Math.pow(state.mass, 0.75));
-        const finalTarget = Math.min(emiss * energyStack * brightnessComp, 1.0);
-        const horizonFade = THREE.MathUtils.smoothstep(r, currentRs * 1.0, currentRs * 1.02);
-
-        alph[i] = THREE.MathUtils.lerp(alph[i], finalTarget * horizonFade, 0.04);
-
-        pos[i3] = Math.cos(phase) * r;
-        pos[i3 + 1] = uData.yOffsets[i];
-        pos[i3 + 2] = Math.sin(phase) * r;
-
-        uData.radii[i] = r;
-        uData.phases[i] = phase;
-      }
-
-      geometry.attributes.position.needsUpdate = true;
-      geometry.attributes.alpha.needsUpdate = true;
-      geometry.attributes.customColor.needsUpdate = true;
+      uniforms.uTime.value = state.time;
+      uniforms.uOverdrive.value = state.overdrive;
 
       renderer.render(scene, camera);
     };
@@ -464,59 +349,33 @@ export const BlackHoleBackground = ({ interactive = false }) => {
     return () => {
       isDisposed = true;
       cancelAnimationFrame(frameId);
-      if (breachTimeout) clearTimeout(breachTimeout);
-      if (chargeInterval) clearInterval(chargeInterval);
       window.removeEventListener('resize', onWindowResize);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('deviceorientation', onDeviceOrientation);
-      window.removeEventListener('singularity-pulse', triggerBreach);
-      if (interactive) {
-        window.removeEventListener('mousedown', startCharge);
-        window.removeEventListener('mouseup', stopCharge);
-        window.removeEventListener('touchstart', startCharge);
-        window.removeEventListener('touchend', stopCharge);
-      }
-      geometry.dispose();
+      window.removeEventListener('singularity-pulse', handlePulse);
+      quad.geometry.dispose();
       material.dispose();
-      blackHole.geometry.dispose();
-      blackHole.material.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [interactive]);
+  }, [mode]);
 
-  return (
-    <div ref={containerRef} className="absolute inset-0 bg-black z-0 touch-none pointer-events-none">
-      {/* 长按蓄力进度条 (暗藏彩蛋反馈) */}
-      <div 
-        ref={chargeContainerRef}
-        className="fixed bottom-12 left-1/2 -translate-x-1/2 w-48 h-[1px] bg-white/10 overflow-hidden opacity-0 transition-opacity duration-300 pointer-events-none z-50"
-      >
-        <div ref={chargeBarRef} className="w-0 h-full bg-cyan-400 shadow-[0_0_15px_#22d3ee]" />
-      </div>
-    </div>
-  );
+  return <div ref={containerRef} className="absolute inset-0 bg-black z-0 pointer-events-none" />;
 };
 
 /**
  * =================================================================
- * 2. 页面组件：Home 首页 (保留全部经典元素 + 滚动电影运镜展开)
+ * 2. 页面组件：Home 首页 (开场电影运镜 + 吸积盘流体融合卡片 + 蓝移超频彩蛋)
  * =================================================================
  */
 const Home = () => {
-  const [glitchState, setGlitchState] = useState('stable');
+  const [overdrive, setOverdrive] = useState(false);
   const [scrollRatio, setScrollRatio] = useState(0);
   const logsSectionRef = useRef(null);
 
   useEffect(() => {
-    const timers = [];
-    const onPulse = () => {
-      setGlitchState('shaking');
-      timers.push(window.setTimeout(() => setGlitchState('abnormal'), 450));
-      timers.push(window.setTimeout(() => setGlitchState('stable'), 1600));
-    };
-    window.addEventListener('singularity-pulse', onPulse);
+    const onOverdrive = (e) => setOverdrive(Boolean(e.detail));
+    window.addEventListener('overdrive-state', onOverdrive);
     
     const handleScroll = () => {
       const ratio = Math.min(window.scrollY / (window.innerHeight * 0.65), 1);
@@ -525,9 +384,8 @@ const Home = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
-      window.removeEventListener('singularity-pulse', onPulse);
+      window.removeEventListener('overdrive-state', onOverdrive);
       window.removeEventListener('scroll', handleScroll);
-      timers.forEach(window.clearTimeout);
     };
   }, []);
 
@@ -535,22 +393,72 @@ const Home = () => {
     logsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // 内部 ArticleCard 组件：保持你的原版结构，升级高级毛玻璃光感
-  const ArticleCard = ({ title, category, date }) => (
-    <div className="group relative bg-[#05080f]/60 border border-white/10 p-8 hover:border-cyan-400/50 hover:bg-white/[0.07] transition-all duration-500 cursor-pointer overflow-hidden backdrop-blur-xl pointer-events-auto shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
-      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 text-cyan-400"><Zap size={18} /></div>
-      <div className="text-cyan-400/80 text-[10px] font-mono tracking-[0.25em] mb-3 uppercase">{category}</div>
-      <h3 className="text-xl md:text-2xl font-bold text-white mb-4 leading-snug group-hover:text-cyan-100 transition-colors uppercase">{title}</h3>
-      <div className="text-white/40 text-xs font-mono flex items-center gap-3">
-        <span>{date}</span>
-        <span className="w-6 h-[1px] bg-white/20 group-hover:w-10 group-hover:bg-cyan-400/60 transition-all duration-300" />
-        <span className="group-hover:text-white/80 transition-colors">READ_LOG</span>
-      </div>
-    </div>
-  );
+  // 深度融合黑洞吸积盘流体元素的 ArticleCard 小方块
+  const ArticleCard = ({ title, category, date, index }) => {
+    const cardRef = useRef(null);
 
-  // 首屏文字随向下滚动平滑淡出并微缩，把视觉中心完全交给运镜中的卡冈图雅黑洞
+    const handleCardMouseMove = (e) => {
+      if (!cardRef.current) return;
+      const rect = cardRef.current.getBoundingClientRect();
+      cardRef.current.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+      cardRef.current.style.setProperty('--my', `${e.clientY - rect.top}px`);
+    };
+
+    return (
+      <div
+        ref={cardRef}
+        onMouseMove={handleCardMouseMove}
+        style={{ '--mx': '50%', '--my': '50%' }}
+        className="accretion-card group relative bg-[#04070e]/75 border border-white/10 p-8 transition-all duration-500 cursor-pointer overflow-hidden backdrop-blur-xl pointer-events-auto shadow-[0_20px_50px_rgba(0,0,0,0.75)] hover:-translate-y-1.5 hover:border-amber-400/50"
+      >
+        {/* 1. 鼠标跟随的吸积盘多普勒热流光晕 (Accretion Thermal Spotlight) */}
+        <div
+          className="pointer-events-none absolute -inset-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+          style={{
+            background: overdrive
+              ? 'radial-gradient(380px circle at var(--mx) var(--my), rgba(34,211,238,0.16), rgba(124,58,237,0.06) 45%, transparent 75%)'
+              : 'radial-gradient(380px circle at var(--mx) var(--my), rgba(245,158,11,0.18), rgba(56,189,248,0.08) 45%, transparent 75%)'
+          }}
+        />
+
+        {/* 2. 顶部流线型吸积盘多普勒光谱细线 (左端高能蓝移 -> 右端琥珀红移) */}
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyan-300 via-amber-400 to-red-700 opacity-30 group-hover:opacity-100 transition-opacity duration-500" />
+
+        {/* 3. 右上角微型引力透镜光环微缩景观 (Mini Gravitational Lensing Halo) */}
+        <div className="absolute -right-6 -top-6 w-24 h-24 pointer-events-none opacity-20 group-hover:opacity-75 transition-all duration-700 group-hover:scale-110 flex items-center justify-center">
+          <div className="w-14 h-14 rounded-full border border-amber-400/50 group-hover:border-cyan-300/70 shadow-[0_0_20px_rgba(245,158,11,0.4)] animate-spin-slow" />
+          <div className="absolute w-16 h-4 rounded-full border-t border-b border-amber-300/70 -rotate-12" />
+          <div className="absolute w-6 h-6 rounded-full bg-black shadow-[0_0_12px_#f59e0b]" />
+        </div>
+
+        {/* 4. 卡片正文内容 */}
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-amber-400/90 group-hover:text-cyan-300 transition-colors text-[10px] font-mono tracking-[0.25em] uppercase">
+              {category}
+            </span>
+            <span className="text-[9px] font-mono text-white/20 group-hover:text-amber-300/60 transition-colors">
+              ORBIT_0{index + 1}
+            </span>
+          </div>
+
+          <h3 className="text-xl md:text-2xl font-bold text-white mb-6 leading-snug group-hover:text-amber-50 transition-colors uppercase line-clamp-2 min-h-[3.5rem]">
+            {title}
+          </h3>
+
+          <div className="text-white/40 text-xs font-mono flex items-center justify-between pt-4 border-t border-white/5">
+            <span>{date}</span>
+            <div className="flex items-center gap-2 text-amber-400/70 group-hover:text-cyan-300 transition-colors">
+              <span className="text-[10px] tracking-[0.2em]">ENTER_HORIZON</span>
+              <ArrowRight size={13} className="transform group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // 首屏文字随向下滚动平滑淡出并微缩
   const heroOpacity = Math.max(0, 1 - scrollRatio * 1.35);
   const heroTranslateY = scrollRatio * -60;
   const heroScale = 1 - scrollRatio * 0.06;
@@ -558,75 +466,72 @@ const Home = () => {
   return (
     <div className="relative w-full min-h-screen bg-black overflow-x-hidden text-white select-none">
       <style>{`
-        @keyframes fragment-shake {
-          0% { transform: translate(0); clip-path: inset(0 0 0 0); }
-          15% { transform: translate(-25px, 3px); clip-path: inset(12% 0 75% 0); filter: hue-rotate(90deg); }
-          30% { transform: translate(20px, -3px); clip-path: inset(65% 0 8% 0); }
-          45% { transform: translate(-8px, 4px); clip-path: inset(38% 0 42% 0); }
-          60% { transform: translate(0); clip-path: inset(0 0 0 0); filter: none; }
-          100% { transform: translate(0); }
+        @keyframes cinematic-reveal {
+          0% { opacity: 0; transform: translateY(28px); filter: blur(10px); }
+          100% { opacity: 1; transform: translateY(0); filter: blur(0); }
         }
-        .shaking-active { animation: fragment-shake 0.38s cubic-bezier(.25,.46,.45,.94) infinite; }
+        .intro-fade-1 { animation: cinematic-reveal 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.4s backwards; }
+        .intro-fade-2 { animation: cinematic-reveal 1.6s cubic-bezier(0.16, 1, 0.3, 1) 0.75s backwards; }
+        .intro-fade-3 { animation: cinematic-reveal 1.6s cubic-bezier(0.16, 1, 0.3, 1) 1.1s backwards; }
+        .intro-fade-4 { animation: cinematic-reveal 1.6s cubic-bezier(0.16, 1, 0.3, 1) 1.4s backwards; }
       `}</style>
 
-      {/* 1. 全局固定 WebGL 视界引擎层 */}
-      <div className={`fixed inset-0 z-0 ${glitchState === 'shaking' ? 'shaking-active' : ''}`}>
-        <BlackHoleBackground interactive={true} />
-        {/* 电影暗角，确保四周文字在任何分辨率下都清晰可读 */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_35%,rgba(0,0,0,0.85)_100%)] pointer-events-none" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04] mix-blend-overlay pointer-events-none" />
+      {/* 1. 全局固定连续流体黑洞层 */}
+      <div className="fixed inset-0 z-0">
+        <BlackHoleBackground mode="home" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.82)_100%)] pointer-events-none" />
       </div>
 
-      {/* 2. 首屏核心寄语区 (随滚动运镜优雅退场) */}
+      {/* 2. 首屏核心寄语区 (配合开场运镜分步浮现) */}
       <main 
         style={{ 
           opacity: heroOpacity, 
           transform: `translate3d(0, ${heroTranslateY}px, 0) scale(${heroScale})` 
         }}
-        className={`relative z-10 flex flex-col justify-center min-h-screen px-6 md:px-20 max-w-7xl mx-auto pt-20 pointer-events-none will-change-transform ${glitchState !== 'stable' ? 'opacity-80' : ''}`}
+        className="relative z-10 flex flex-col justify-center min-h-screen px-6 md:px-20 max-w-7xl mx-auto pt-20 pointer-events-none will-change-transform"
       >
-        <div className={`flex flex-col items-start pointer-events-auto ${glitchState === 'shaking' ? 'shaking-active' : ''}`}>
+        <div className="flex flex-col items-start pointer-events-auto">
           
-          {/* 状态指示器 (点击或长按屏幕也可触发 Breach 彩蛋) */}
+          {/* 状态指示器：点击可丝滑切换「相对论蓝移超频模式」彩蛋，无震动崩溃，随时可逆 */}
           <div 
             onClick={() => window.dispatchEvent(new CustomEvent("singularity-pulse"))}
-            title="Click or Hold Screen to Breach Event Horizon"
-            className={`mb-8 flex items-center gap-3 font-mono text-[10px] tracking-[0.3em] border-l-2 pl-4 py-1.5 pr-4 rounded-r uppercase transition-all duration-500 cursor-pointer
-              ${glitchState !== 'stable' 
-                ? 'text-red-400 border-red-500 bg-red-500/15 shadow-[0_0_25px_rgba(239,68,68,0.3)]' 
-                : 'text-cyan-400 border-cyan-500 bg-black/40 backdrop-blur-md hover:bg-white/10'}
+            title="Click to toggle Relativistic Blueshift Overdrive"
+            className={`intro-fade-1 mb-8 flex items-center gap-3 font-mono text-[10px] tracking-[0.3em] border-l-2 pl-4 py-1.5 pr-4 rounded-r uppercase transition-all duration-500 cursor-pointer
+              ${overdrive 
+                ? 'text-cyan-300 border-cyan-400 bg-cyan-500/15 shadow-[0_0_25px_rgba(34,211,238,0.25)]' 
+                : 'text-amber-300/90 border-amber-500 bg-black/45 backdrop-blur-md hover:bg-white/10'}
             `}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${glitchState !== 'stable' ? 'bg-red-500 animate-ping' : 'bg-cyan-400 animate-pulse'}`} />
-            {glitchState !== 'stable' ? 'Alert: Critical_Horizon_Breach' : 'Status: Singularity_Stable'}
+            <span className={`w-1.5 h-1.5 rounded-full ${overdrive ? 'bg-cyan-300 animate-ping' : 'bg-amber-400 animate-pulse'}`} />
+            {overdrive ? 'Mode: Relativistic_Blueshift_Overdrive' : 'Status: Singularity_Stable'}
           </div>
           
           {/* 主标题 */}
-          <h1 className="text-5xl sm:text-7xl md:text-9xl font-black mb-8 leading-[0.88] tracking-tighter mix-blend-exclusion opacity-95 uppercase">
+          <h1 className="intro-fade-2 text-5xl sm:text-7xl md:text-9xl font-black mb-8 leading-[0.88] tracking-tighter mix-blend-exclusion opacity-95 uppercase">
             Explore<br />The <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-cyan-300 to-purple-400">Unseen</span>
           </h1>
           
-          {/* 你的原版寄语 —— 原封不动保留 */}
-          <div className="max-w-full text-white/90 text-xs sm:text-sm md:text-base leading-relaxed mb-12 font-mono border-l border-white/25 pl-5 md:pl-6 backdrop-blur-md bg-black/35 p-4 md:p-5 rounded-r-lg shadow-2xl">
+          {/* 原版牛顿寄语 */}
+          <div className="intro-fade-3 max-w-full text-white/90 text-xs sm:text-sm md:text-base leading-relaxed mb-12 font-mono border-l border-amber-400/40 pl-5 md:pl-6 backdrop-blur-md bg-black/40 p-4 md:p-5 rounded-r-lg shadow-2xl">
             <p className="mb-2">This is <strong>XiaoBai SAMA</strong>.</p>
-            <p className=" lg:whitespace-nowrap tracking-tight opacity-85">
+            <p className="lg:whitespace-nowrap tracking-tight opacity-85">
               It remains that, from the same principles, I now demonstrate the frame of the System of the World. —— Issac Newton
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-6">
+          <div className="intro-fade-4 flex flex-wrap items-center gap-6">
             <Link 
               to="/logs" 
-              className="px-10 py-4 border border-white/80 bg-black/20 backdrop-blur-sm text-white tracking-[0.4em] uppercase hover:bg-white hover:text-black transition-all duration-500 font-black text-xs md:text-sm"
+              className="px-10 py-4 border border-white/80 bg-black/25 backdrop-blur-sm text-white tracking-[0.4em] uppercase hover:bg-white hover:text-black transition-all duration-500 font-black text-xs md:text-sm"
             >
               Start Reading	
             </Link>
             
             <button 
               onClick={scrollToLogs}
-              className="text-[10px] font-mono tracking-[0.3em] uppercase text-white/50 hover:text-white transition-colors flex items-center gap-2 py-4 px-2"
+              className="text-[10px] font-mono tracking-[0.3em] uppercase text-white/50 hover:text-amber-300 transition-colors flex items-center gap-2 py-4 px-2"
             >
-              <span>Scroll_To_Orbit</span>
+              <span>Scroll_To_Accretion_Disk</span>
               <ChevronDown size={14} className="animate-bounce" />
             </button>
           </div>
@@ -636,24 +541,30 @@ const Home = () => {
       {/* 3. 运镜展开后的 Logs 矩阵区域 */}
       <section 
         ref={logsSectionRef}
-        className="relative z-10 bg-gradient-to-b from-transparent via-black/65 to-black/90 backdrop-blur-md py-32 px-6 border-t border-white/10"
+        className="relative z-10 bg-gradient-to-b from-transparent via-black/70 to-black/95 backdrop-blur-md py-32 px-6 border-t border-amber-500/15"
       >
         <div className="max-w-7xl mx-auto">
           <div className="flex items-end justify-between mb-16 border-b border-white/10 pb-6">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tighter uppercase opacity-80">Logs</h2>
+            <div>
+              <div className="text-[10px] font-mono tracking-[0.35em] text-amber-400/80 uppercase mb-2">
+                // EVENT_HORIZON_TELEMETRY
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tighter uppercase opacity-90">Logs</h2>
+            </div>
             <span className="text-[10px] font-mono tracking-[0.3em] text-white/40 uppercase">
               Total_Records: {POSTS.length}
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {POSTS.map((post) => (
+            {POSTS.map((post, idx) => (
               <Link 
                 key={post.id} 
                 to={`/logs/${post.id}`} 
                 className="pointer-events-auto block"
               >
                 <ArticleCard 
+                  index={idx}
                   title={post.title} 
                   category={post.category} 
                   date={post.date} 

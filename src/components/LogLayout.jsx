@@ -15,9 +15,9 @@ const LogLayout = ({ title, category, date, children }) => {
   return (
     <div className="relative w-full min-h-screen bg-black text-[#c9d1d9] font-mono selection:bg-cyan-500/30 overflow-x-hidden">
       
-      {/* 1. 底层 WebGL 黑洞背景 (降低不透明度至 20%，既保留深空动态感，又绝不干扰公式阅读) */}
-      <div className="fixed inset-0 z-0 pointer-events-none opacity-20">
-        <BlackHoleBackground interactive={false} />
+      {/* 1. 底层 WebGL 连续流体黑洞背景 (阅读模式微光) */}
+      <div className="fixed inset-0 z-0 pointer-events-none opacity-45">
+        <BlackHoleBackground mode="article" />
       </div>
 
       {/* 2. 环境层 (环境纹理与聚焦渐变) */}
