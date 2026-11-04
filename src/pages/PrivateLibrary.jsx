@@ -11,9 +11,12 @@ import {
   ArrowLeft,
   Download,
   Eye,
+  EyeOff,
   Sparkles,
   ChevronRight,
   RefreshCw,
+  Zap,
+  Radio,
   X
 } from 'lucide-react';
 import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
@@ -145,170 +148,127 @@ const PdfCoverPreview = ({ item }) => {
 };
 
 /**
- * 生成《星际穿越》剧照同款的「五维条纹时间拉伸光板纹理」(Striated Time-Extrusion Texture)
- * 还原参考图中由无数书页与书缝拉长形成的木纹状金黄/香槟白/胡桃木/暗红细密条纹
+ * 纹理 A：复古皮革烫金书脊纹理
  */
-function createStriatedTimeTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 1024;
-  canvas.height = 512;
-  const ctx = canvas.getContext('2d');
+function createBookSpineCanvas() {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 512;
+  const ctx = c.getContext('2d');
 
-  ctx.fillStyle = '#18130b';
-  ctx.fillRect(0, 0, 1024, 512);
-
-  // 绘制数百条平行的高精度五维时间细丝 (沿 U 方向无限延伸的条纹)
-  let y = 0;
-  let seed = 17;
-  const rand = () => {
-    seed = (seed * 16807) % 2147483647;
-    return (seed - 1) / 2147483646;
-  };
-
-  while (y < 512) {
-    const h = 1 + Math.floor(rand() * 5);
-    const r = rand();
-    if (r > 0.91) {
-      // 炽白/香槟金高光书缝光束
-      ctx.fillStyle = `rgba(255, 250, 224, ${0.65 + rand() * 0.35})`;
-    } else if (r > 0.72) {
-      // 橄榄金/暖黄铜条纹
-      ctx.fillStyle = `rgba(198, 168, 104, ${0.45 + rand() * 0.35})`;
-    } else if (r > 0.45) {
-      // 琥珀棕木质拉丝
-      ctx.fillStyle = `rgba(112, 84, 44, ${0.5 + rand() * 0.3})`;
-    } else if (r > 0.41) {
-      // 偶发的暗红/铁锈色时间引力弦 (参考图右侧细节)
-      ctx.fillStyle = 'rgba(165, 48, 30, 0.65)';
-    } else {
-      // 深胡桃木暗部阴影条
-      ctx.fillStyle = `rgba(24, 18, 11, ${0.75 + rand() * 0.25})`;
-    }
-    ctx.fillRect(0, y, 1024, h);
-    y += h;
-  }
-
-  // 叠加垂直方向的超立方体刻度横节与明暗光晕渐变
-  const grad = ctx.createLinearGradient(0, 0, 1024, 0);
-  grad.addColorStop(0, 'rgba(255, 248, 220, 0.38)');
-  grad.addColorStop(0.18, 'rgba(210, 175, 110, 0.08)');
-  grad.addColorStop(0.5, 'rgba(10, 8, 5, 0.35)');
-  grad.addColorStop(0.82, 'rgba(210, 175, 110, 0.08)');
-  grad.addColorStop(1, 'rgba(255, 248, 220, 0.38)');
+  const grad = ctx.createLinearGradient(0, 0, 128, 0);
+  grad.addColorStop(0, '#140b06');
+  grad.addColorStop(0.3, '#321b0f');
+  grad.addColorStop(0.7, '#27140b');
+  grad.addColorStop(1, '#0d0704');
   ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 1024, 512);
+  ctx.fillRect(0, 0, 128, 512);
 
-  for (let x = 0; x < 1024; x += 64) {
-    ctx.fillStyle = x % 256 === 0 ? 'rgba(255, 245, 210, 0.28)' : 'rgba(0, 0, 0, 0.32)';
-    ctx.fillRect(x, 0, 2, 512);
+  ctx.fillStyle = 'rgba(218, 168, 70, 0.78)';
+  ctx.fillRect(14, 38, 100, 4);
+  ctx.fillRect(14, 48, 100, 2);
+  ctx.fillRect(14, 460, 100, 2);
+  ctx.fillRect(14, 470, 100, 4);
+
+  for (let y = 140; y < 320; y += 24) {
+    ctx.fillStyle = 'rgba(218, 168, 70, 0.38)';
+    ctx.fillRect(30, y, 68, 3);
   }
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.anisotropy = 4;
-  return texture;
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = THREE.ClampToEdgeWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  return tex;
 }
 
 /**
- * 生成《星际穿越》「书架背面透光书缝纹理」(Backlit Bookshelf Bay Texture)
- * 还原参考图中每个书架格子里深色的成排书本剪影，以及从书缝间射出的强烈白金光芒
+ * 纹理 B：柔和圆形径向辉光微粒纹理（中心高光向外平滑衰减至完全透明）
  */
-function createBacklitShelfTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 512;
-  const ctx = canvas.getContext('2d');
+function createFineDustGlowTexture() {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, 128, 128);
 
-  // 背景为强烈的暖白/香槟金背光光源
-  const bg = ctx.createLinearGradient(0, 0, 0, 512);
-  bg.addColorStop(0, '#fff7dc');
-  bg.addColorStop(0.5, '#e8c882');
-  bg.addColorStop(1, '#fff5d0');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, 512, 512);
+  const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 60);
+  grad.addColorStop(0, 'rgba(255, 248, 220, 1.0)');
+  grad.addColorStop(0.18, 'rgba(255, 200, 95, 0.82)');
+  grad.addColorStop(0.48, 'rgba(220, 135, 38, 0.22)');
+  grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(64, 64, 60, 0, Math.PI * 2);
+  ctx.fill();
 
-  let seed = 42;
-  const rand = () => {
-    seed = (seed * 16807) % 2147483647;
-    return (seed - 1) / 2147483646;
-  };
-
-  const tiers = 3;
-  const tierH = 512 / tiers;
-
-  for (let t = 0; t < tiers; t++) {
-    const baseY = (t + 1) * tierH;
-
-    // 每一层书架顶部的暗部遮光檐
-    ctx.fillStyle = '#1a130b';
-    ctx.fillRect(0, t * tierH, 512, 14);
-
-    // 成排的深色书本剪影，留出狭窄但极其明亮的透光书缝
-    let x = 12;
-    while (x < 496) {
-      const bookW = 14 + Math.floor(rand() * 28);
-      const bookH = tierH * (0.62 + rand() * 0.24);
-      const gap = rand() > 0.72 ? 5 + Math.floor(rand() * 8) : 1 + Math.floor(rand() * 2);
-
-      // 书本本体剪影 (深胡桃色/炭黑色，带微弱侧面反光)
-      ctx.fillStyle = rand() > 0.5 ? '#16110b' : '#211910';
-      ctx.fillRect(x, baseY - 12 - bookH, bookW, bookH);
-
-      // 书本顶部微弱受光边
-      ctx.fillStyle = 'rgba(235, 205, 145, 0.35)';
-      ctx.fillRect(x, baseY - 12 - bookH, bookW, 2);
-
-      x += bookW + gap;
-    }
-
-    // 厚实的书架横隔板 + 亮金前缘反光条
-    ctx.fillStyle = '#120d07';
-    ctx.fillRect(0, baseY - 12, 512, 12);
-    ctx.fillStyle = '#f5deb3';
-    ctx.fillRect(0, baseY - 12, 512, 2);
-  }
-
-  // 左右书架立柱边框
-  ctx.fillStyle = '#161009';
-  ctx.fillRect(0, 0, 14, 512);
-  ctx.fillRect(498, 0, 14, 512);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.anisotropy = 4;
-  return texture;
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
 }
 
 /**
- * 2. 《星际穿越》五维超立方体 3D 建筑矩阵引擎 (还原 image_5ca167.png 剧照结构)
+ * 2. 《星际穿越》五维时空书架 3D 引擎（全居中防跑偏 + 鼠标扫掠拨弦 + 精细微尘）
  */
-const TesseractScene3D = ({ stage, onDiveComplete }) => {
+const TesseractScene3D = ({
+  stage,
+  cameraMode,
+  dustBinaryMode,
+  pluckSignal,
+  morseSignal,
+  onDiveComplete
+}) => {
   const mountRef = useRef(null);
   const stageRef = useRef(stage);
+  const cameraModeRef = useRef(cameraMode);
+  const dustBinaryRef = useRef(dustBinaryMode);
   const diveCallbackRef = useRef(onDiveComplete);
+  const sceneTriggerRef = useRef({ pluck: null, morse: null });
 
   useEffect(() => {
     stageRef.current = stage;
   }, [stage]);
 
   useEffect(() => {
+    cameraModeRef.current = cameraMode;
+  }, [cameraMode]);
+
+  useEffect(() => {
+    dustBinaryRef.current = dustBinaryMode;
+  }, [dustBinaryMode]);
+
+  useEffect(() => {
     diveCallbackRef.current = onDiveComplete;
   }, [onDiveComplete]);
+
+  useEffect(() => {
+    if (pluckSignal > 0 && sceneTriggerRef.current.pluck) {
+      sceneTriggerRef.current.pluck();
+    }
+  }, [pluckSignal]);
+
+  useEffect(() => {
+    if (morseSignal > 0 && sceneTriggerRef.current.morse) {
+      sceneTriggerRef.current.morse();
+    }
+  }, [morseSignal]);
 
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x120e09);
-    scene.fog = new THREE.FogExp2(0x120e09, 0.0062);
+    scene.background = new THREE.Color(0x040609);
+    scene.fog = new THREE.FogExp2(0x040609, 0.012);
 
     const camera = new THREE.PerspectiveCamera(
       52,
       window.innerWidth / window.innerHeight,
-      0.5,
-      420
+      0.1,
+      160
     );
+    // 初始机位严格居中于五维书架走廊中央，绝不偏斜出界
+    camera.position.set(0, 0.6, 16.5);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -317,203 +277,497 @@ const TesseractScene3D = ({ stage, onDiveComplete }) => {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.25;
+    renderer.toneMappingExposure = 1.35;
     container.appendChild(renderer.domElement);
 
-    // 生成程序化五维条纹纹理与背光书架纹理
-    const striatedTex = createStriatedTimeTexture();
-    const shelfBayTex = createBacklitShelfTexture();
-
-    // 材质 1：五维条纹时间拉伸板材质（自带自发光纹理，无需担心变黑）
-    const timeSlabMat = new THREE.MeshBasicMaterial({
-      map: striatedTex,
-      transparent: true,
-      opacity: 0.92,
-      side: THREE.DoubleSide
-    });
-
-    // 材质 2：书架背面透光书缝材质
-    const shelfBayMat = new THREE.MeshBasicMaterial({
-      map: shelfBayTex,
-      side: THREE.DoubleSide
-    });
-
-    // 材质 3：书架前方的立体深色书群块材质（产生真实的近景书本遮挡视差）
-    const bookBlockMat = new THREE.MeshStandardMaterial({
-      color: 0x241b11,
-      roughness: 0.45,
-      metalness: 0.3
-    });
-
-    // 材质 4：交界处的炽白/香槟金高光灯带材质（还原参考图中刺眼夺目的白色光缝）
-    const lightBarMat = new THREE.MeshBasicMaterial({
-      color: 0xfffaed
-    });
-
-    // 环境光与跟随摄像机的暖金点光源（照亮近景立体书块与横梁）
-    const ambientLight = new THREE.AmbientLight(0xf5e1b5, 1.4);
+    // --- 灯光系统 ---
+    const ambientLight = new THREE.AmbientLight(0x1e2638, 0.9);
     scene.add(ambientLight);
 
-    const camLight = new THREE.PointLight(0xfff0c2, 3.5, 140, 1.2);
-    scene.add(camLight);
+    const murphCoreLight = new THREE.PointLight(0xff9d36, 4.5, 58, 1.1);
+    murphCoreLight.position.set(0, 0, 3);
+    scene.add(murphCoreLight);
 
-    // 构建无限四维正交书架井道矩阵
-    const tesseractWorld = new THREE.Group();
-    scene.add(tesseractWorld);
+    const backLight = new THREE.DirectionalLight(0xffaa44, 1.4);
+    backLight.position.set(0, 5, -24);
+    scene.add(backLight);
 
-    const CELL = 26;
-    const GRID_X = 5; // -2..2
-    const GRID_Y = 5; // -2..2
-    const GRID_Z = 6; // -3..2
-    const maxCells = GRID_X * GRID_Y * GRID_Z;
+    const rimLight = new THREE.DirectionalLight(0x4488bb, 0.65);
+    rimLight.position.set(-10, -5, 10);
+    scene.add(rimLight);
 
-    // 1. 书架舱背板 InstancedMesh
-    const bayGeo = new THREE.BoxGeometry(16, 16, 0.8);
-    const bayInst = new THREE.InstancedMesh(bayGeo, shelfBayMat, maxCells * 2);
+    const bookSpineTexture = createBookSpineCanvas();
+    const glowSpriteTexture = createFineDustGlowTexture();
 
-    // 2. 沿 X / Y / Z 三个正交方向无限延伸的「条纹时间拉伸长板」InstancedMesh
-    const slabGeo = new THREE.BoxGeometry(16, 0.35, 24);
-    const slabInst = new THREE.InstancedMesh(slabGeo, timeSlabMat, maxCells * 6);
+    // --- 材质定义 ---
+    const woodMetalMaterial = new THREE.MeshStandardMaterial({
+      color: 0x1c120c,
+      roughness: 0.55,
+      metalness: 0.35
+    });
 
-    // 3. 书架内部的 3D 凸出书本群块 InstancedMesh
-    const bookClusterGeo = new THREE.BoxGeometry(2.2, 3.8, 3.2);
-    const bookClusterInst = new THREE.InstancedMesh(
-      bookClusterGeo,
-      bookBlockMat,
-      maxCells * 8
-    );
+    const bookBaseMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      map: bookSpineTexture,
+      roughness: 0.55,
+      metalness: 0.2
+    });
 
-    // 4. 书架边缘的高亮香槟白光缝条 InstancedMesh
-    const lightBarGeo = new THREE.BoxGeometry(15.6, 0.22, 0.45);
-    const lightBarInst = new THREE.InstancedMesh(
-      lightBarGeo,
-      lightBarMat,
-      maxCells * 4
-    );
+    const slatLightMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffb85c,
+      transparent: true,
+      opacity: 0.88,
+      blending: THREE.AdditiveBlending
+    });
 
-    const dummy = new THREE.Object3D();
-    const tint = new THREE.Color();
-    let bayCount = 0;
-    let slabCount = 0;
-    let bookCount = 0;
-    let barCount = 0;
+    const junctionRimMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffe49e,
+      transparent: true,
+      opacity: 0.72,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
 
-    for (let ix = -2; ix <= 2; ix++) {
-      for (let iy = -2; iy <= 2; iy++) {
-        for (let iz = -3; iz <= 2; iz++) {
-          // 留出摄像机所在的中心观测井道
-          if (ix === 0 && iy === 0 && Math.abs(iz) <= 1) continue;
+    const bookColors = [
+      new THREE.Color(0x5a1820),
+      new THREE.Color(0x182436),
+      new THREE.Color(0x1a2e20),
+      new THREE.Color(0x6b4724),
+      new THREE.Color(0x8a6232),
+      new THREE.Color(0xa67c38),
+      new THREE.Color(0x2d1810)
+    ];
 
-          const cx = ix * CELL;
-          const cy = iy * CELL;
-          const cz = iz * CELL;
+    const bookMaterials = bookColors.map((col) => {
+      const m = bookBaseMaterial.clone();
+      m.color = col;
+      return m;
+    });
 
-          // A. 放置正交方向的背光书架舱 (正面与侧面交错，构成四维立方体迷宫)
-          dummy.position.set(cx, cy, cz - 8);
-          dummy.rotation.set(0, 0, 0);
-          dummy.scale.set(1, 1, 1);
-          dummy.updateMatrix();
-          bayInst.setMatrixAt(bayCount++, dummy.matrix);
+    // --- 构建全包围对称五维书架阵列 (x: -2..2, y: -2..2, z: -3..1) ---
+    const tesseractGroup = new THREE.Group();
+    scene.add(tesseractGroup);
 
-          if ((ix + iy + iz) % 2 === 0) {
-            dummy.position.set(cx - 8, cy, cz);
-            dummy.rotation.set(0, Math.PI * 0.5, 0);
-            dummy.updateMatrix();
-            bayInst.setMatrixAt(bayCount++, dummy.matrix);
-          }
+    const interactiveBooks = [];
 
-          // B. 从书架每一层向外垂直延伸的「条纹时间拉伸光板」(复刻参考图最核心的条纹长廊结构)
-          for (let tier = -1; tier <= 1; tier++) {
-            const ty = cy + tier * 5.2;
+    const UNIT_W = 8.8;
+    const UNIT_H = 6.8;
+    const UNIT_D = 8.5;
 
-            // 水平方向延伸的条纹时间板
-            dummy.position.set(cx, ty, cz);
-            dummy.rotation.set(0, 0, 0);
-            dummy.scale.set(1, 1, 1);
-            dummy.updateMatrix();
-            tint.setHSL(0.1 + ((ix + tier) % 3) * 0.012, 0.35, 0.72 + (tier + 1) * 0.08);
-            slabInst.setMatrixAt(slabCount, dummy.matrix);
-            slabInst.setColorAt(slabCount, tint);
-            slabCount++;
+    const frameThick = 0.22;
+    const shelfDepth = 1.65;
+    const shelfWidth = 7.4;
+    const shelfHeight = 5.4;
 
-            // 垂直方向正交延伸的条纹时间墙
-            dummy.position.set(cx + tier * 5.2, cy, cz);
-            dummy.rotation.set(0, 0, Math.PI * 0.5);
-            dummy.updateMatrix();
-            slabInst.setMatrixAt(slabCount, dummy.matrix);
-            slabInst.setColorAt(slabCount, tint);
-            slabCount++;
+    const topGeom = new THREE.BoxGeometry(shelfWidth, frameThick, shelfDepth);
+    const sideGeom = new THREE.BoxGeometry(frameThick, shelfHeight, shelfDepth);
+    const slatGeom = new THREE.PlaneGeometry(shelfWidth * 0.98, 0.08);
+    const edgeRimGeom = new THREE.BoxGeometry(shelfWidth * 0.99, 0.025, 0.03);
 
-            // 书架隔板前缘的高亮香槟白光条
-            dummy.position.set(cx, ty + 0.25, cz - 7.4);
-            dummy.rotation.set(0, 0, 0);
-            dummy.updateMatrix();
-            lightBarInst.setMatrixAt(barCount++, dummy.matrix);
-          }
+    const louverCount = 12;
+    const louverH = shelfHeight / louverCount;
+    const louverGeom = new THREE.BoxGeometry(shelfWidth * 0.96, louverH * 0.52, 0.04);
 
-          // C. 在书架格子里排布凸出的 3D 深色书块（形成前景深色书脊、后景明亮光缝的强烈对比）
-          for (let b = 0; b < 6; b++) {
-            const tier = (b % 3) - 1;
-            const bx = cx - 5.8 + ((b * 3.1 + Math.abs(iz) * 1.7) % 11.6);
-            const by = cy + tier * 5.2 + 2.1;
-            const bz = cz - 6.6;
+    let randSeed = 1337;
+    const nextRand = () => {
+      randSeed = (randSeed * 16807) % 2147483647;
+      return (randSeed - 1) / 2147483646;
+    };
 
-            dummy.position.set(bx, by, bz);
-            dummy.rotation.set(0, 0, 0);
-            dummy.scale.set(
-              0.7 + ((b + ix) % 3) * 0.35,
-              0.85 + ((b + iy) % 2) * 0.2,
-              1 + (b % 2) * 0.4
+    function createBookshelfUnit(xOffset, yOffset, zOffset, isHero = false, detailedBooks = true) {
+      const unit = new THREE.Group();
+      unit.position.set(xOffset, yOffset, zOffset);
+
+      // 1. 书柜外框与中央立柱（移除了之前产生小方块的 cornerNodeGeom）
+      const topMesh = new THREE.Mesh(topGeom, woodMetalMaterial);
+      topMesh.position.set(0, shelfHeight / 2, 0);
+      unit.add(topMesh);
+
+      const bottomMesh = new THREE.Mesh(topGeom, woodMetalMaterial);
+      bottomMesh.position.set(0, -shelfHeight / 2, 0);
+      unit.add(bottomMesh);
+
+      const leftMesh = new THREE.Mesh(sideGeom, woodMetalMaterial);
+      leftMesh.position.set(-shelfWidth / 2, 0, 0);
+      unit.add(leftMesh);
+
+      const rightMesh = new THREE.Mesh(sideGeom, woodMetalMaterial);
+      rightMesh.position.set(shelfWidth / 2, 0, 0);
+      unit.add(rightMesh);
+
+      const midMesh = new THREE.Mesh(sideGeom, woodMetalMaterial);
+      midMesh.position.set(0, 0, 0);
+      unit.add(midMesh);
+
+      // 2. 三层水平书架隔板、透光狭缝与立体书本
+      const numTiers = 3;
+      const tierHeight = shelfHeight / (numTiers + 1);
+
+      for (let t = 1; t <= numTiers; t++) {
+        const yPos = -shelfHeight / 2 + t * tierHeight;
+        const shelfMesh = new THREE.Mesh(topGeom, woodMetalMaterial);
+        shelfMesh.position.set(0, yPos, 0);
+        unit.add(shelfMesh);
+
+        // 隔板交汇前缘的纤细金线
+        const rimMesh = new THREE.Mesh(edgeRimGeom, junctionRimMaterial);
+        rimMesh.position.set(0, yPos + frameThick * 0.5, shelfDepth * 0.49);
+        unit.add(rimMesh);
+
+        // 书架后方透射出的暖金光缝
+        const slatMesh = new THREE.Mesh(slatGeom, slatLightMaterial);
+        slatMesh.position.set(0, yPos + 0.15, -shelfDepth * 0.45);
+        unit.add(slatMesh);
+
+        // 排布实体书本
+        [-shelfWidth * 0.25, shelfWidth * 0.25].forEach((sectionX) => {
+          const sectionWidth = shelfWidth * 0.42;
+          let currentX = sectionX - sectionWidth / 2 + 0.2;
+          const maxX = sectionX + sectionWidth / 2 - 0.2;
+          const stepBoost = detailedBooks ? 1.0 : 1.8;
+
+          while (currentX < maxX) {
+            const bookW = (0.14 + nextRand() * 0.15) * stepBoost;
+            const bookH = tierHeight * (0.64 + nextRand() * 0.28);
+            const bookD = shelfDepth * (0.55 + nextRand() * 0.32);
+
+            const bGeom = new THREE.BoxGeometry(bookW, bookH, bookD);
+            const bMat = bookMaterials[Math.floor(nextRand() * bookMaterials.length)];
+            const bMesh = new THREE.Mesh(bGeom, bMat);
+
+            const defaultZ = -shelfDepth * 0.08 + (nextRand() - 0.5) * 0.14;
+            bMesh.position.set(
+              currentX + bookW / 2,
+              yPos + bookH / 2 + frameThick / 2,
+              defaultZ
             );
-            dummy.updateMatrix();
-            bookClusterInst.setMatrixAt(bookCount++, dummy.matrix);
+
+            if (nextRand() < 0.16) {
+              bMesh.rotation.z = (nextRand() - 0.5) * 0.1;
+            }
+
+            unit.add(bMesh);
+
+            if (detailedBooks && (isHero || nextRand() < 0.35)) {
+              const worldPos = new THREE.Vector3(
+                xOffset + bMesh.position.x,
+                yOffset + bMesh.position.y,
+                zOffset + defaultZ
+              );
+              interactiveBooks.push({
+                mesh: bMesh,
+                worldPos,
+                baseZ: defaultZ,
+                currentZ: defaultZ,
+                pushVelocity: 0,
+                tilt: bMesh.rotation.z
+              });
+            }
+
+            currentX += bookW + 0.025 + nextRand() * 0.03;
           }
+        });
+      }
+
+      // 3. 书架背面的百叶窗格 (Venetian Louvers)
+      for (let l = 0; l < louverCount; l++) {
+        const ly = -shelfHeight / 2 + (l + 0.5) * louverH;
+        const lMesh = new THREE.Mesh(louverGeom, woodMetalMaterial);
+        lMesh.position.set(0, ly, -shelfDepth * 0.49);
+        lMesh.rotation.x = 0.35;
+        unit.add(lMesh);
+      }
+
+      tesseractGroup.add(unit);
+    }
+
+    // 生成 5×5×5 全对称五维书架矩阵，彻底填满视野四周
+    for (let z = -3; z <= 1; z++) {
+      for (let x = -2; x <= 2; x++) {
+        for (let y = -2; y <= 2; y++) {
+          // 仅留出正中央摄像机所在的观测走廊 (x=0, y=0, z>=0)
+          if (x === 0 && y === 0 && z >= 0) continue;
+          const isNearCore = Math.abs(x) <= 1 && Math.abs(y) <= 1 && z >= -2;
+          const isHero = x === 0 && y === 0 && z === -1;
+          createBookshelfUnit(
+            x * UNIT_W,
+            y * UNIT_H,
+            z * UNIT_D,
+            isHero,
+            isNearCore
+          );
         }
       }
     }
 
-    bayInst.count = bayCount;
-    slabInst.count = slabCount;
-    bookClusterInst.count = bookCount;
-    lightBarInst.count = barCount;
+    // --- 5D 重力琴弦系统 (Gravitational Strings：居中加密，鼠标扫过实时拨动) ---
+    const stringGroup = new THREE.Group();
+    scene.add(stringGroup);
 
-    bayInst.instanceMatrix.needsUpdate = true;
-    slabInst.instanceMatrix.needsUpdate = true;
-    if (slabInst.instanceColor) slabInst.instanceColor.needsUpdate = true;
-    bookClusterInst.instanceMatrix.needsUpdate = true;
-    lightBarInst.instanceMatrix.needsUpdate = true;
+    const numStringsZ = 36;
+    const numStringsY = 28;
+    const filamentSegments = 60;
+    const stringLength = 68;
+    const stringData = [];
 
-    tesseractWorld.add(bayInst);
-    tesseractWorld.add(slabInst);
-    tesseractWorld.add(bookClusterInst);
-    tesseractWorld.add(lightBarInst);
+    for (let i = 0; i < numStringsZ; i++) {
+      const gx = (nextRand() - 0.5) * 28;
+      const gy = (nextRand() - 0.5) * 22;
 
-    // D. 贯穿五维空间的金色引力世界线细丝
-    const linePts = [];
-    const SPAN = CELL * 3;
-    for (let i = -4; i <= 4; i++) {
-      for (let j = -4; j <= 4; j++) {
-        const u = i * (CELL * 0.33);
-        const v = j * (CELL * 0.33);
-        linePts.push(-SPAN, u, v, SPAN, u, v);
-        linePts.push(u, -SPAN, v, u, SPAN, v);
-        linePts.push(u, v, -SPAN, u, v, SPAN);
+      const points = [];
+      for (let s = 0; s <= filamentSegments; s++) {
+        const z = -stringLength / 2 + (s / filamentSegments) * stringLength;
+        points.push(new THREE.Vector3(gx, gy, z));
       }
-    }
-    const lineGeo = new THREE.BufferGeometry();
-    lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePts, 3));
-    const lineMat = new THREE.LineBasicMaterial({
-      color: 0xe6cf9c,
-      transparent: true,
-      opacity: 0.28
-    });
-    tesseractWorld.add(new THREE.LineSegments(lineGeo, lineMat));
 
-    const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
-    const onMouseMove = (e) => {
-      mouse.tx = (e.clientX / window.innerWidth - 0.5) * 2;
-      mouse.ty = (e.clientY / window.innerHeight - 0.5) * 2;
+      const geom = new THREE.BufferGeometry().setFromPoints(points);
+      const mat = new THREE.LineBasicMaterial({
+        color: 0xffaa44,
+        transparent: true,
+        opacity: 0.42,
+        blending: THREE.AdditiveBlending
+      });
+      const line = new THREE.Line(geom, mat);
+      stringGroup.add(line);
+
+      stringData.push({
+        axis: 'z',
+        fixedX: gx,
+        fixedY: gy,
+        line,
+        mat,
+        basePoints: points.map((p) => p.clone()),
+        vibration: 0,
+        pluckCenterIdx: 30,
+        vibeSpeed: 10 + nextRand() * 8,
+        phase: nextRand() * Math.PI * 2
+      });
+    }
+
+    for (let i = 0; i < numStringsY; i++) {
+      const gx = (nextRand() - 0.5) * 26;
+      const gz = -18 + nextRand() * 32;
+
+      const points = [];
+      for (let s = 0; s <= filamentSegments; s++) {
+        const y = -stringLength / 2 + (s / filamentSegments) * stringLength;
+        points.push(new THREE.Vector3(gx, y, gz));
+      }
+
+      const geom = new THREE.BufferGeometry().setFromPoints(points);
+      const mat = new THREE.LineBasicMaterial({
+        color: 0xffb855,
+        transparent: true,
+        opacity: 0.42,
+        blending: THREE.AdditiveBlending
+      });
+      const line = new THREE.Line(geom, mat);
+      stringGroup.add(line);
+
+      stringData.push({
+        axis: 'y',
+        fixedX: gx,
+        fixedZ: gz,
+        line,
+        mat,
+        basePoints: points.map((p) => p.clone()),
+        vibration: 0,
+        pluckCenterIdx: 30,
+        vibeSpeed: 10 + nextRand() * 8,
+        phase: nextRand() * Math.PI * 2
+      });
+    }
+
+    // --- 精细化零重力漂浮微尘 (圆形径向发光纹理，绝无大方块) ---
+    const dustCount = 1400;
+    const dustGeom = new THREE.BufferGeometry();
+    const dustPositions = new Float32Array(dustCount * 3);
+    const dustOriginalPos = new Float32Array(dustCount * 3);
+    const dustVelocities = new Float32Array(dustCount * 3);
+
+    for (let i = 0; i < dustCount; i++) {
+      const idx = i * 3;
+      const x = (nextRand() - 0.5) * 32;
+      const y = (nextRand() - 0.5) * 24;
+      const z = -24 + nextRand() * 40;
+
+      dustPositions[idx] = x;
+      dustPositions[idx + 1] = y;
+      dustPositions[idx + 2] = z;
+
+      dustOriginalPos[idx] = x;
+      dustOriginalPos[idx + 1] = y;
+      dustOriginalPos[idx + 2] = z;
+
+      dustVelocities[idx] = (nextRand() - 0.5) * 0.012;
+      dustVelocities[idx + 1] = (nextRand() - 0.5) * 0.012;
+      dustVelocities[idx + 2] = (nextRand() - 0.5) * 0.012;
+    }
+
+    dustGeom.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+
+    const dustMaterial = new THREE.PointsMaterial({
+      color: 0xffd285,
+      size: 0.16,
+      map: glowSpriteTexture,
+      transparent: true,
+      opacity: 0.78,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    const dustSystem = new THREE.Points(dustGeom, dustMaterial);
+    scene.add(dustSystem);
+
+    // --- 穿透百叶窗的柔和丁达尔体积光柱 ---
+    const beamGroup = new THREE.Group();
+    scene.add(beamGroup);
+
+    const beamGeom = new THREE.CylinderGeometry(0.08, 2.3, 22, 16, 1, true);
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: 0xffa038,
+      transparent: true,
+      opacity: 0.09,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+
+    [
+      { pos: [-4, 2, -5], rot: [0.6, 0.4, 0.8] },
+      { pos: [3, -1, 0], rot: [0.4, -0.3, 0.6] },
+      { pos: [0, 4, -12], rot: [0.9, 0.2, 0.4] },
+      { pos: [-5, -3, 6], rot: [0.5, 0.6, -0.7] }
+    ].forEach((cfg) => {
+      const beam = new THREE.Mesh(beamGeom, beamMat);
+      beam.position.set(...cfg.pos);
+      beam.rotation.set(...cfg.rot);
+      beamGroup.add(beam);
+    });
+
+    // --- 交互逻辑 1：全量拨弦与 STAY 摩斯电码 ---
+    const triggerGlobalPluck = () => {
+      stringData.forEach((s) => {
+        s.vibration = 1.1;
+        s.pluckCenterIdx = Math.floor(filamentSegments * 0.5);
+      });
+      interactiveBooks.forEach((b) => {
+        if (Math.random() < 0.45) {
+          b.pushVelocity = 0.55 + Math.random() * 0.65;
+        }
+      });
+      murphCoreLight.intensity = 6.2;
     };
+
+    const triggerMorseSequence = () => {
+      const steps = [180, 180, 180, 420, 180, 420, 420, 180, 420, 420];
+      steps.forEach((dur, idx) => {
+        setTimeout(() => {
+          const targetBook =
+            interactiveBooks[Math.floor(Math.random() * interactiveBooks.length)];
+          if (targetBook) {
+            targetBook.pushVelocity = dur > 300 ? 1.25 : 0.65;
+          }
+          const targetStr =
+            stringData[Math.floor(Math.random() * stringData.length)];
+          if (targetStr) {
+            targetStr.vibration = 1.2;
+          }
+          murphCoreLight.intensity = dur > 300 ? 5.8 : 4.6;
+        }, idx * 280);
+      });
+    };
+
+    sceneTriggerRef.current = {
+      pluck: triggerGlobalPluck,
+      morse: triggerMorseSequence
+    };
+
+    // --- 交互逻辑 2：鼠标扫过时实时拨动重力琴弦 + 软限幅防跑偏视差 ---
+    const raycaster = new THREE.Raycaster();
+    const mouseNDC = new THREE.Vector2();
+    const prevMouseNDC = new THREE.Vector2();
+    const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+    const rayPoint = new THREE.Vector3();
+
+    const onMouseMove = (e) => {
+      const rawX = (e.clientX / window.innerWidth) * 2 - 1;
+      const rawY = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      const moveSpeed = Math.hypot(rawX - prevMouseNDC.x, rawY - prevMouseNDC.y);
+      prevMouseNDC.set(rawX, rawY);
+      mouseNDC.set(rawX, rawY);
+
+      // 使用 Math.tanh 软限幅，防止鼠标移到屏幕边缘时相机飞出书架走廊
+      mouse.tx = Math.tanh(rawX * 1.1);
+      mouse.ty = Math.tanh(rawY * 1.1);
+
+      if (moveSpeed < 0.002) return;
+
+      raycaster.setFromCamera(mouseNDC, camera);
+      const rayOrigin = raycaster.ray.origin;
+      const rayDir = raycaster.ray.direction;
+
+      const sweepBoost = Math.min(1.25, 0.38 + moveSpeed * 14.0);
+
+      for (let i = 0; i < stringData.length; i++) {
+        const s = stringData[i];
+        if (s.axis === 'z') {
+          const t = THREE.MathUtils.clamp((0 - rayOrigin.z) / (rayDir.z || -0.001), 2, 32);
+          rayPoint.copy(rayOrigin).addScaledVector(rayDir, t);
+          const dist = Math.hypot(rayPoint.x - s.fixedX, rayPoint.y - s.fixedY);
+          if (dist < 1.45) {
+            const strength = (1 - dist / 1.45) * sweepBoost;
+            if (strength > s.vibration) {
+              s.vibration = strength;
+              const zRatio = (rayPoint.z + stringLength / 2) / stringLength;
+              s.pluckCenterIdx = THREE.MathUtils.clamp(
+                Math.floor(zRatio * filamentSegments),
+                4,
+                filamentSegments - 4
+              );
+            }
+          }
+        } else {
+          const t = THREE.MathUtils.clamp(
+            (s.fixedZ - rayOrigin.z) / (rayDir.z || -0.001),
+            2,
+            35
+          );
+          rayPoint.copy(rayOrigin).addScaledVector(rayDir, t);
+          const dist = Math.abs(rayPoint.x - s.fixedX);
+          if (dist < 1.25 && Math.abs(rayPoint.y) < stringLength * 0.45) {
+            const strength = (1 - dist / 1.25) * sweepBoost;
+            if (strength > s.vibration) {
+              s.vibration = strength;
+              const yRatio = (rayPoint.y + stringLength / 2) / stringLength;
+              s.pluckCenterIdx = THREE.MathUtils.clamp(
+                Math.floor(yRatio * filamentSegments),
+                4,
+                filamentSegments - 4
+              );
+            }
+          }
+        }
+      }
+
+      // 鼠标扫过时轻推中心书架上的 3D 书本
+      const bookCheckT = THREE.MathUtils.clamp(-rayOrigin.z / (rayDir.z || -0.001), 2, 26);
+      rayPoint.copy(rayOrigin).addScaledVector(rayDir, bookCheckT);
+      for (let i = 0; i < interactiveBooks.length; i++) {
+        const b = interactiveBooks[i];
+        const d = b.worldPos.distanceTo(rayPoint);
+        if (d < 1.6 && moveSpeed > 0.015) {
+          b.pushVelocity = Math.max(b.pushVelocity, (1 - d / 1.6) * 0.45);
+        }
+      }
+    };
+
+    const onPointerDown = (e) => {
+      if (e.target.closest('button, a, input, aside, .tesseract-bookcase-frame')) return;
+      triggerGlobalPluck();
+    };
+
     const onResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
@@ -521,82 +775,185 @@ const TesseractScene3D = ({ stage, onDiveComplete }) => {
     };
 
     window.addEventListener('mousemove', onMouseMove, { passive: true });
+    window.addEventListener('pointerdown', onPointerDown, { passive: true });
     window.addEventListener('resize', onResize);
 
+    // --- 动画主循环 ---
     let animId;
     let diveProgress = 0;
     let diveCompleted = false;
     const clock = new THREE.Clock();
+    const targetCamPos = new THREE.Vector3(0, 0.6, 16.5);
+    const targetLookAt = new THREE.Vector3(0, 0, -9);
+    const currentLookAt = new THREE.Vector3(0, 0, -9);
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.05);
-      const elapsed = clock.getElapsedTime();
+      const elapsedTime = clock.getElapsedTime();
 
-      mouse.x += (mouse.tx - mouse.x) * 0.04;
-      mouse.y += (mouse.ty - mouse.y) * 0.04;
-
-      // 让条纹时间纹理缓慢流动，产生时间维度的光影呼吸感
-      striatedTex.offset.x = elapsed * 0.03;
+      mouse.x += (mouse.tx - mouse.x) * 0.045;
+      mouse.y += (mouse.ty - mouse.y) * 0.045;
 
       const currentStage = stageRef.current;
+      const mode = cameraModeRef.current;
 
+      // 1. 运镜与视点控制（全程居中约束，绝不移出书架阵列边界）
       if (currentStage === 'locked') {
         diveProgress = 0;
         diveCompleted = false;
+        const t = elapsedTime * 0.15;
+        // 围绕中心轴 (0, 0.5, 16.5) 做小幅呼吸漫游，四面八方始终被书架包裹
+        const camX = Math.sin(t * 0.7) * 1.35 + mouse.x * 1.45;
+        const camY = 0.5 + Math.cos(t * 0.5) * 0.95 + mouse.y * 1.1;
+        const camZ = 16.5 + Math.sin(t * 0.35) * 1.6;
 
-        // 阶段一：复刻《星际穿越》剧照 (image_5ca167.png) 的对角俯仰透视与多维轨道漂移运镜
-        const camX = 11 + Math.sin(elapsed * 0.24) * 8 + mouse.x * 7;
-        const camY = 9 + Math.cos(elapsed * 0.19) * 6 - mouse.y * 6;
-        const camZ = 14 + Math.sin(elapsed * 0.15) * 9;
+        targetCamPos.set(camX, camY, camZ);
+        camera.position.lerp(targetCamPos, 0.05);
 
-        camera.position.set(camX, camY, camZ);
-        camLight.position.set(camX, camY, camZ + 4);
+        // 微妙的五维空间呼吸倾角，不破坏居中感
+        const roll = Math.sin(t * 0.4) * 0.08 - mouse.x * 0.04;
+        camera.up.set(Math.sin(roll), Math.cos(roll), 0).normalize();
 
-        // 视线斜向穿过层层叠叠的书架井道与条纹时间板
-        const lookX = -8 + Math.cos(elapsed * 0.16) * 6 - mouse.x * 4;
-        const lookY = -6 + Math.sin(elapsed * 0.14) * 5 + mouse.y * 4;
-        const lookZ = -28 + Math.cos(elapsed * 0.12) * 8;
-
-        // 35° 斜角倾侧 (完美对齐参考图中的对角线超立方体构图)
-        const roll = -0.56 + Math.sin(elapsed * 0.18) * 0.08;
-        camera.up.set(Math.sin(roll), Math.cos(roll), 0.12).normalize();
-        camera.lookAt(lookX, lookY, lookZ);
+        targetLookAt.set(mouse.x * 0.9, mouse.y * 0.7, -9);
+        currentLookAt.lerp(targetLookAt, 0.06);
+        camera.lookAt(currentLookAt);
       } else if (currentStage === 'diving') {
-        // 阶段二：输入密码解锁瞬间 —— 摄像机从五维对角倾侧平滑回正，并推入正前方的书架舱室
-        diveProgress = Math.min(1, diveProgress + dt * 0.55);
+        // 解锁瞬间：沿着中央时间走廊平稳向前推进至书架内部
+        diveProgress = Math.min(1, diveProgress + dt * 0.58);
         const ease =
           diveProgress < 0.5
             ? 4 * diveProgress * diveProgress * diveProgress
             : 1 - Math.pow(-2 * diveProgress + 2, 3) / 2;
 
-        striatedTex.offset.x += dt * 0.8 * Math.sin(diveProgress * Math.PI);
-
-        const camX = THREE.MathUtils.lerp(11, 0, ease);
-        const camY = THREE.MathUtils.lerp(9, 0, ease);
-        const camZ = THREE.MathUtils.lerp(14, 6, ease);
-        camera.position.set(camX, camY, camZ);
-        camLight.position.set(camX, camY, camZ + 4);
-
-        const roll = THREE.MathUtils.lerp(-0.56, 0, ease);
-        camera.up.set(Math.sin(roll), Math.cos(roll), 0).normalize();
-        camera.lookAt(
-          THREE.MathUtils.lerp(-8, 0, ease),
-          THREE.MathUtils.lerp(-6, 0, ease),
-          -32
+        camera.position.set(
+          THREE.MathUtils.lerp(camera.position.x, 0, ease),
+          THREE.MathUtils.lerp(camera.position.y, 0.6, ease),
+          THREE.MathUtils.lerp(16.5, 11.5, ease)
         );
+        camera.up.set(0, 1, 0);
+        camera.lookAt(0, 0, -9);
 
         if (diveProgress >= 0.98 && !diveCompleted) {
           diveCompleted = true;
           if (diveCallbackRef.current) diveCallbackRef.current();
         }
       } else {
-        // 阶段三：进入书架内部，五维环境保持柔和视差响应
-        camera.position.set(mouse.x * 3.5, -mouse.y * 2.5, 6);
-        camLight.position.set(mouse.x * 3.5, -mouse.y * 2.5, 10);
+        // 进入书房内部后：4 种视点均做了边界约束，不会移出书架
         camera.up.set(0, 1, 0);
-        camera.lookAt(mouse.x * 1.5, -mouse.y * 1.2, -32);
+        if (mode === 'cooper') {
+          targetCamPos.set(1.2 + mouse.x * 0.7, 0.2 + mouse.y * 0.5, 4.8);
+          targetLookAt.set(mouse.x * 0.5, mouse.y * 0.4, -3);
+        } else if (mode === 'lattice') {
+          targetCamPos.set(6.5 + mouse.x * 1.4, 4.5 + mouse.y * 1.1, 16.5);
+          targetLookAt.set(mouse.x * 0.8, mouse.y * 0.6, -9);
+        } else if (mode === 'murph') {
+          targetCamPos.set(-0.2 + mouse.x * 0.45, -0.4 + mouse.y * 0.35, 2.6);
+          targetLookAt.set(mouse.x * 0.25, -0.4 + mouse.y * 0.25, -2);
+        } else {
+          // 默认 'cinematic' 居中零重力漂浮视点
+          const t = elapsedTime * 0.14;
+          targetCamPos.set(
+            Math.sin(t * 0.7) * 1.4 + mouse.x * 1.35,
+            0.5 + Math.cos(t * 0.5) * 0.9 + mouse.y * 1.0,
+            13.5 + Math.sin(t * 0.3) * 1.5
+          );
+          targetLookAt.set(mouse.x * 0.85, mouse.y * 0.65, -8);
+        }
+
+        camera.position.lerp(targetCamPos, 0.05);
+        currentLookAt.lerp(targetLookAt, 0.06);
+        camera.lookAt(currentLookAt);
       }
+
+      // 2. 更新重力琴弦的驻波与行波振动
+      for (let sIdx = 0; sIdx < stringData.length; sIdx++) {
+        const s = stringData[sIdx];
+        if (s.vibration > 0.001) {
+          s.vibration *= 0.955;
+          s.mat.opacity = Math.min(0.95, 0.42 + s.vibration * 0.55);
+          s.mat.color.setRGB(
+            1.0,
+            Math.min(1.0, 0.67 + s.vibration * 0.33),
+            Math.min(1.0, 0.27 + s.vibration * 0.65)
+          );
+
+          const positions = s.line.geometry.attributes.position.array;
+          const len = s.basePoints.length;
+
+          for (let i = 0; i < len; i++) {
+            const base = s.basePoints[i];
+            const endPin = Math.sin((i / (len - 1)) * Math.PI);
+            const distFromPluck = Math.abs(i - s.pluckCenterIdx) / filamentSegments;
+            const envelope = Math.exp(-distFromPluck * 2.8) * endPin;
+            const wave =
+              Math.sin(i * 0.45 - elapsedTime * s.vibeSpeed + s.phase) *
+              s.vibration *
+              0.42 *
+              envelope;
+
+            if (s.axis === 'z') {
+              positions[i * 3] = base.x + wave;
+              positions[i * 3 + 1] = base.y + wave * 0.65;
+              positions[i * 3 + 2] = base.z;
+            } else {
+              positions[i * 3] = base.x + wave;
+              positions[i * 3 + 1] = base.y;
+              positions[i * 3 + 2] = base.z + wave * 0.65;
+            }
+          }
+          s.line.geometry.attributes.position.needsUpdate = true;
+        } else if (s.mat.opacity > 0.43) {
+          s.mat.opacity = 0.42;
+          s.mat.color.setHex(0xffaa44);
+        }
+      }
+
+      // 3. 更新 3D 书架上被重力波或摩斯电码推开的实体书本
+      for (let i = 0; i < interactiveBooks.length; i++) {
+        const b = interactiveBooks[i];
+        if (b.pushVelocity > 0.004) {
+          b.currentZ += b.pushVelocity * dt * 4.2;
+          b.pushVelocity *= 0.91;
+          b.mesh.rotation.z = b.tilt + b.pushVelocity * 0.18;
+        } else if (b.currentZ > b.baseZ) {
+          b.currentZ += (b.baseZ - b.currentZ) * 0.04;
+          b.mesh.rotation.z += (b.tilt - b.mesh.rotation.z) * 0.06;
+        }
+        b.mesh.position.z = b.currentZ;
+      }
+
+      // 4. 更新精细化圆形引力微粒
+      const posArray = dustGeom.attributes.position.array;
+      const isBinary = dustBinaryRef.current;
+      for (let i = 0; i < dustCount; i++) {
+        const idx = i * 3;
+        if (isBinary) {
+          const stripeSpacing = 2.2;
+          const targetX = Math.round(dustOriginalPos[idx] / stripeSpacing) * stripeSpacing;
+          posArray[idx] += (targetX - posArray[idx]) * 0.06;
+          posArray[idx + 1] -= 0.022;
+          if (posArray[idx + 1] < -13) posArray[idx + 1] = 13;
+        } else {
+          posArray[idx] += dustVelocities[idx];
+          posArray[idx + 1] +=
+            dustVelocities[idx + 1] + Math.sin(elapsedTime * 0.5 + i) * 0.0025;
+          posArray[idx + 2] += dustVelocities[idx + 2];
+
+          if (posArray[idx] > 16) posArray[idx] = -16;
+          if (posArray[idx] < -16) posArray[idx] = 16;
+          if (posArray[idx + 1] > 12) posArray[idx + 1] = -12;
+          if (posArray[idx + 1] < -12) posArray[idx + 1] = 12;
+          if (posArray[idx + 2] > 16) posArray[idx + 2] = -24;
+          if (posArray[idx + 2] < -24) posArray[idx + 2] = 16;
+        }
+      }
+      dustGeom.attributes.position.needsUpdate = true;
+
+      // 5. 核心光源与体积光束微动
+      murphCoreLight.intensity +=
+        (4.0 + Math.sin(elapsedTime * 1.5) * 0.4 - murphCoreLight.intensity) * 0.05;
+      beamGroup.rotation.y = Math.sin(elapsedTime * 0.08) * 0.12;
 
       renderer.render(scene, camera);
     };
@@ -606,9 +963,17 @@ const TesseractScene3D = ({ stage, onDiveComplete }) => {
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('resize', onResize);
-      striatedTex.dispose();
-      shelfBayTex.dispose();
+      bookSpineTexture.dispose();
+      glowSpriteTexture.dispose();
+      topGeom.dispose();
+      sideGeom.dispose();
+      slatGeom.dispose();
+      edgeRimGeom.dispose();
+      louverGeom.dispose();
+      dustGeom.dispose();
+      beamGeom.dispose();
       renderer.dispose();
       if (renderer.domElement && renderer.domElement.parentNode) {
         renderer.domElement.parentNode.removeChild(renderer.domElement);
@@ -844,13 +1209,19 @@ export default function PrivateLibrary() {
   const [readingBook, setReadingBook] = useState(null);
   const [booksPerShelf, setBooksPerShelf] = useState(10);
 
+  const [cameraMode, setCameraMode] = useState('cinematic'); // 'cinematic' | 'cooper' | 'lattice' | 'murph'
+  const [dustBinaryMode, setDustBinaryMode] = useState(false);
+  const [pureSpaceView, setPureSpaceView] = useState(false);
+  const [pluckSignal, setPluckSignal] = useState(0);
+  const [morseSignal, setMorseSignal] = useState(0);
+
   useEffect(() => {
     const updateShelfCapacity = () => {
       const w = window.innerWidth;
       if (w < 640) setBooksPerShelf(5);
       else if (w < 960) setBooksPerShelf(7);
       else if (w < 1280) setBooksPerShelf(9);
-      else setBooksPerShelf(11);
+      else setBooksPerShelf(10);
     };
     updateShelfCapacity();
     window.addEventListener('resize', updateShelfCapacity);
@@ -937,6 +1308,7 @@ export default function PrivateLibrary() {
       }
 
       setPassword('');
+      setPluckSignal((n) => n + 1);
       await fetchRealCatalog(false);
       setStage('diving');
     } catch (err) {
@@ -952,7 +1324,9 @@ export default function PrivateLibrary() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'lock' })
+        body: JSON.stringify({
+          action: 'lock'
+        })
       });
     } catch {
       // ignore
@@ -991,10 +1365,20 @@ export default function PrivateLibrary() {
     return bays;
   }, [filteredBooks, booksPerShelf]);
 
+  const switchViewpoint = (mode) => {
+    setCameraMode(mode);
+  };
+
   if (readingBook) {
     return (
       <div className="tesseract-root">
-        <TesseractScene3D stage="inside" />
+        <TesseractScene3D
+          stage="inside"
+          cameraMode={cameraMode}
+          dustBinaryMode={dustBinaryMode}
+          pluckSignal={pluckSignal}
+          morseSignal={morseSignal}
+        />
         <LibraryPdfReader item={readingBook} onClose={() => setReadingBook(null)} />
       </div>
     );
@@ -1002,13 +1386,21 @@ export default function PrivateLibrary() {
 
   return (
     <div className="tesseract-root">
-      {/* 底层：Three.js《星际穿越》五维超立方体条纹时间拉伸长廊与透光书架矩阵 */}
+      {/* 底层：Three.js 全包围居中五维书架 + 鼠标扫过实时拨动重力弦 + 精细圆形引力微尘 */}
       <TesseractScene3D
         stage={stage}
+        cameraMode={cameraMode}
+        dustBinaryMode={dustBinaryMode}
+        pluckSignal={pluckSignal}
+        morseSignal={morseSignal}
         onDiveComplete={() => setStage('inside')}
       />
 
-      {/* 阶段一：五维超立方体对角巡航 + 中央悬浮密钥舱 */}
+      {/* 宽银幕变形镜头微光与电影暗角 */}
+      <div className="tesseract-cinematic-vignette" />
+      <div className="tesseract-anamorphic-flare" />
+
+      {/* 阶段一：五维超立方体居中巡航 + 悬浮密钥舱 */}
       {stage === 'locked' && (
         <div className="tesseract-auth-overlay">
           <form onSubmit={handleUnlock} className="tesseract-auth-box">
@@ -1017,11 +1409,11 @@ export default function PrivateLibrary() {
             <div className="tesseract-auth-corner bl" />
             <div className="tesseract-auth-corner br" />
 
-            <div className="flex items-center justify-between text-amber-300/90 text-[10px] tracking-[0.35em] uppercase mb-3">
+            <div className="flex items-center justify-between text-amber-300/90 text-[10px] tracking-[0.28em] uppercase mb-3">
               <span className="flex items-center gap-2">
-                <Lock size={13} /> 5D_TESSERACT_ARCHIVE
+                <Lock size={13} /> GARGANTUA // 5D_BOOKSHELF_TESSERACT
               </span>
-              <Link to="/" className="text-amber-200/50 hover:text-amber-200 transition-colors">
+              <Link to="/" className="text-amber-200/60 hover:text-white transition-colors">
                 [ESC]
               </Link>
             </div>
@@ -1029,8 +1421,8 @@ export default function PrivateLibrary() {
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase mb-2">
               THE TESSERACT
             </h1>
-            <p className="text-xs text-amber-100/65 font-mono leading-relaxed mb-6">
-              Every book and every gap on the shelf is stretched across time into five-dimensional light. Enter your key to enter the bookshelf.
+            <p className="text-xs text-amber-100/75 font-mono leading-relaxed mb-6">
+              Sweep across gravitational strings to resonate across time. Enter your cipher to enter Murph&apos;s bookshelf chamber.
             </p>
 
             <div className="relative mb-5">
@@ -1042,7 +1434,7 @@ export default function PrivateLibrary() {
                 autoFocus
                 className="tesseract-input"
               />
-              <Sparkles className="absolute right-4 top-1/2 -translate-y-1/2 text-amber-400/50" size={15} />
+              <Sparkles className="absolute right-4 top-1/2 -translate-y-1/2 text-amber-300/70" size={15} />
             </div>
 
             {authError && (
@@ -1058,37 +1450,58 @@ export default function PrivateLibrary() {
         </div>
       )}
 
-      {/* 阶段二：三维旋转回正与穿廊过渡 HUD */}
+      {/* 阶段二：穿廊过渡 HUD */}
       {stage === 'diving' && (
         <div className="tesseract-diving-hud">
           <div className="diving-reticle" />
-          <span>FOLDING 5D LIGHT-PLANES INTO BOOKSHELF CHAMBER...</span>
+          <span>ALIGNING WITH MURPH&apos;S ROOM TIMELINE...</span>
         </div>
       )}
 
-      {/* 阶段三：进入书架内部 —— 整齐展示全部 60 本 PDF 与右侧真实 PDF 封面 */}
+      {/* 阶段三：进入书架内部 */}
       {stage === 'inside' && (
         <div className="tesseract-inside-stage animate-tesseract-enter">
-          <div className="tesseract-inside-grid">
-            {/* 左侧主舱：可顺畅上下滚动的多层背光实木/黄铜书柜 */}
+          <div
+            className={`tesseract-inside-grid transition-opacity duration-500 ${
+              pureSpaceView ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            }`}
+          >
             <main className="tesseract-chamber">
               <div className="tesseract-bookcase-frame">
                 <div className="bookcase-cornice">
                   <div className="flex items-center gap-3">
-                    <span>MURPH_BOOKSHELF // 5D_ARCHIVE_CHAMBER</span>
+                    <span>MURPH_ROOM_TIMELINE // 5D_BOOKSHELF</span>
                     <span className="text-amber-400/60">|</span>
                     <span className="text-amber-200">
-                      SHOWING {filteredBooks.length} / {catalog.items.length} VOLUMES
+                      {filteredBooks.length} / {catalog.items.length} VOLUMES
                     </span>
                   </div>
-                  <button
-                    onClick={() => fetchRealCatalog(false)}
-                    className="inline-flex items-center gap-1.5 text-amber-300 hover:text-white transition-colors"
-                    title="Reload Library Index"
-                  >
-                    <RefreshCw size={12} className={loadingCatalog ? 'animate-spin' : ''} />
-                    <span>SYNC_INDEX</span>
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setPluckSignal((n) => n + 1)}
+                      className="inline-flex items-center gap-1 text-amber-300 hover:text-white transition-colors"
+                      title="拨动重力琴弦"
+                    >
+                      <Zap size={12} />
+                      <span>PLUCK</span>
+                    </button>
+                    <button
+                      onClick={() => setMorseSignal((n) => n + 1)}
+                      className="inline-flex items-center gap-1 text-amber-300 hover:text-white transition-colors"
+                      title="发送 STAY 摩斯码"
+                    >
+                      <Radio size={12} />
+                      <span>STAY</span>
+                    </button>
+                    <button
+                      onClick={() => fetchRealCatalog(false)}
+                      className="inline-flex items-center gap-1.5 text-amber-300 hover:text-white transition-colors"
+                      title="Reload Library Index"
+                    >
+                      <RefreshCw size={12} className={loadingCatalog ? 'animate-spin' : ''} />
+                      <span>SYNC</span>
+                    </button>
+                  </div>
                 </div>
 
                 {loadingCatalog && catalog.items.length === 0 ? (
@@ -1122,7 +1535,9 @@ export default function PrivateLibrary() {
                 ) : (
                   shelfBays.map((bay) => (
                     <div key={bay.tierNumber} className="tesseract-shelf-bay">
+                      <div className="shelf-back-louvers" />
                       <div className="shelf-back-slits" />
+                      <div className="shelf-center-pillar" />
                       <div className="shelf-top-downlight" />
 
                       <div className="shelf-books-row">
@@ -1258,12 +1673,47 @@ export default function PrivateLibrary() {
             )}
           </div>
 
-          {/* 底部悬浮分类与检索舱 */}
+          {/* 底部悬浮综合控制台 */}
           <footer className="tesseract-floating-dock">
             <Link to="/" className="dock-btn" title="Return Home">
               <ArrowLeft size={14} />
               <span>HOME</span>
             </Link>
+
+            <div className="dock-divider" />
+
+            <div className="flex items-center gap-1">
+              {[
+                { id: 'cinematic', label: '漫游' },
+                { id: 'cooper', label: '库珀视点' },
+                { id: 'lattice', label: '时空阵列' },
+                { id: 'murph', label: '书架窗格' }
+              ].map((vp) => (
+                <button
+                  key={vp.id}
+                  onClick={() => switchViewpoint(vp.id)}
+                  className={`dock-pill ${cameraMode === vp.id ? 'active' : ''}`}
+                  title="切换五维背景书架视点"
+                >
+                  <span>{vp.label}</span>
+                </button>
+              ))}
+              <button
+                onClick={() => setDustBinaryMode((v) => !v)}
+                className={`dock-pill ${dustBinaryMode ? 'active' : ''}`}
+                title="切换重力尘埃二进制坐标条纹"
+              >
+                <span>尘埃条纹</span>
+              </button>
+              <button
+                onClick={() => setPureSpaceView((v) => !v)}
+                className={`dock-pill ${pureSpaceView ? 'active' : ''}`}
+                title="隐藏前景书柜，纯享 3D 拨弦与五维书架视角"
+              >
+                {pureSpaceView ? <Eye size={12} /> : <EyeOff size={12} />}
+                <span>{pureSpaceView ? '显示藏书' : '纯净五维'}</span>
+              </button>
+            </div>
 
             <div className="dock-divider" />
 
@@ -1302,7 +1752,7 @@ export default function PrivateLibrary() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="SEARCH_60_VOLS..."
+                placeholder="SEARCH..."
               />
               {searchQuery && (
                 <button
@@ -1314,9 +1764,9 @@ export default function PrivateLibrary() {
               )}
             </div>
 
-            <button onClick={handleLock} className="dock-btn" title="Return to 5D Tesseract">
+            <button onClick={handleLock} className="dock-btn" title="Return to Lock Screen">
               <Unlock size={13} />
-              <span>TESSERACT</span>
+              <span>LOCK</span>
             </button>
           </footer>
         </div>
