@@ -1,12 +1,12 @@
 /* ==========================================================================
-   INTERSTELLAR 5D TESSERACT BOOKSHELF THEME
+   INTERSTELLAR 5D BOOKSHELF & ARCHITECTURAL STUDY
    ========================================================================== */
 
 .tesseract-root {
   position: relative;
   width: 100vw;
   min-height: 100vh;
-  background-color: #030201;
+  background-color: #070503;
   color: #fef3c7;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   overflow-x: hidden;
@@ -26,13 +26,13 @@
 /* --- 顶部导航栏 --- */
 .tesseract-header {
   position: relative;
-  z-index: 30;
+  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.75rem;
-  background: linear-gradient(to bottom, rgba(5, 3, 1, 0.92), rgba(5, 3, 1, 0.4));
-  border-bottom: 1px solid rgba(245, 158, 11, 0.22);
+  padding: 0.9rem 1.75rem;
+  background: linear-gradient(to bottom, rgba(10, 7, 4, 0.94), rgba(10, 7, 4, 0.65));
+  border-bottom: 1px solid rgba(245, 158, 11, 0.25);
   backdrop-filter: blur(12px);
 }
 
@@ -46,7 +46,7 @@
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: #fde68a;
-  background: rgba(245, 158, 11, 0.08);
+  background: rgba(245, 158, 11, 0.1);
   border: 1px solid rgba(245, 158, 11, 0.35);
   transition: all 0.25s ease;
 }
@@ -55,121 +55,58 @@
 .tesseract-lock-btn:hover {
   background: rgba(245, 158, 11, 0.25);
   border-color: #fbbf24;
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.3);
   color: #fff;
 }
 
-/* --- 登录解锁舱 --- */
-.tesseract-auth-stage {
-  position: relative;
-  z-index: 20;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-}
-
-.tesseract-auth-box {
-  position: relative;
-  width: 100%;
-  max-width: 440px;
-  padding: 2.75rem 2.25rem;
-  background: rgba(8, 5, 2, 0.82);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  box-shadow:
-    0 0 60px rgba(217, 119, 6, 0.18),
-    inset 0 0 30px rgba(245, 158, 11, 0.06);
-  backdrop-filter: blur(16px);
-}
-
-.tesseract-auth-corner {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-color: #fbbf24;
-}
-.tesseract-auth-corner.tl { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }
-.tesseract-auth-corner.tr { top: -1px; right: -1px; border-top: 2px solid; border-right: 2px solid; }
-.tesseract-auth-corner.bl { bottom: -1px; left: -1px; border-bottom: 2px solid; border-left: 2px solid; }
-.tesseract-auth-corner.br { bottom: -1px; right: -1px; border-bottom: 2px solid; border-right: 2px solid; }
-
-.tesseract-input {
-  width: 100%;
-  padding: 0.85rem 2.5rem 0.85rem 1rem;
-  background: rgba(0, 0, 0, 0.65);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  color: #fef3c7;
-  font-size: 13px;
-  letter-spacing: 0.2em;
-  transition: all 0.25s;
-}
-
-.tesseract-input:focus {
-  border-color: #fbbf24;
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.25);
-}
-
-.tesseract-submit-btn {
-  width: 100%;
-  padding: 0.9rem;
-  background: linear-gradient(90deg, rgba(217, 119, 6, 0.3), rgba(245, 158, 11, 0.5), rgba(217, 119, 6, 0.3));
-  border: 1px solid #fbbf24;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.tesseract-submit-btn:hover:not(:disabled) {
-  background: #f59e0b;
-  color: #000;
-  box-shadow: 0 0 30px rgba(245, 158, 11, 0.6);
-}
-
-/* --- 主工作区三栏布局 --- */
+/* --- 主体工作区布局 --- */
 .tesseract-workspace {
   position: relative;
   z-index: 20;
   flex: 1;
   display: grid;
-  grid-template-columns: 250px 1fr 310px;
-  min-height: calc(100vh - 61px);
+  grid-template-columns: 240px 1fr 300px;
+  min-height: calc(100vh - 58px);
+  transition: filter 0.5s ease, opacity 0.5s ease;
 }
 
-@media (max-width: 1100px) {
+/* 未解锁时，底层 3D 书架依然清晰可见，仅微调对比度以衬托前景解锁窗 */
+.tesseract-workspace.is-locked-preview {
+  grid-template-columns: 240px 1fr;
+  filter: brightness(0.78) contrast(1.05);
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (max-width: 1150px) {
   .tesseract-workspace {
     grid-template-columns: 210px 1fr;
   }
   .tesseract-inspector {
     position: fixed;
     right: 0;
-    top: 61px;
+    top: 58px;
     bottom: 0;
     width: 300px;
-    z-index: 40;
+    z-index: 45;
   }
 }
 
 @media (max-width: 768px) {
-  .tesseract-workspace {
+  .tesseract-workspace,
+  .tesseract-workspace.is-locked-preview {
     grid-template-columns: 1fr;
   }
   .tesseract-sidebar {
-    border-right: none;
-    border-bottom: 1px solid rgba(245, 158, 11, 0.2);
-    max-height: 210px;
+    display: none;
   }
 }
 
-/* --- 左侧时空扇区栏 --- */
+/* --- 左侧分类目录栏 --- */
 .tesseract-sidebar {
-  background: rgba(6, 4, 2, 0.76);
-  border-right: 1px solid rgba(245, 158, 11, 0.2);
-  backdrop-filter: blur(12px);
+  background: rgba(11, 8, 5, 0.82);
+  border-right: 1px solid rgba(217, 119, 6, 0.22);
+  backdrop-filter: blur(14px);
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
@@ -181,7 +118,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.55rem 0.75rem;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.55);
   border: 1px solid rgba(245, 158, 11, 0.3);
   margin-bottom: 1.25rem;
 }
@@ -199,11 +136,11 @@
   display: flex;
   justify-content: space-between;
   font-size: 9px;
-  letter-spacing: 0.25em;
-  color: rgba(251, 191, 36, 0.55);
+  letter-spacing: 0.22em;
+  color: rgba(251, 191, 36, 0.6);
   margin-bottom: 0.65rem;
   padding-bottom: 0.4rem;
-  border-bottom: 1px solid rgba(245, 158, 11, 0.15);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.16);
 }
 
 .tesseract-folder-list {
@@ -218,19 +155,19 @@
   gap: 0.6rem;
   padding: 0.55rem 0.65rem;
   font-size: 11px;
-  color: rgba(254, 243, 199, 0.68);
+  color: rgba(254, 243, 199, 0.7);
   border: 1px solid transparent;
   transition: all 0.2s;
   cursor: pointer;
 }
 
 .tesseract-folder-item:hover {
-  background: rgba(245, 158, 11, 0.08);
+  background: rgba(245, 158, 11, 0.1);
   color: #fff;
 }
 
 .tesseract-folder-item.active {
-  background: rgba(245, 158, 11, 0.16);
+  background: rgba(245, 158, 11, 0.18);
   border-color: rgba(245, 158, 11, 0.45);
   color: #fbbf24;
   box-shadow: inset 3px 0 0 #fbbf24;
@@ -241,141 +178,268 @@
   opacity: 0.6;
 }
 
-/* --- 中央五维书架走廊 --- */
+/* ==========================================================================
+   中央核心：3D 五维书房与实体书柜 (3D TESSERACT BOOKCASE)
+   ========================================================================== */
 .tesseract-chamber {
-  padding: 2.5rem 2rem 4rem;
+  position: relative;
+  padding: 2rem 1.5rem 4rem;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.tesseract-shelves-viewport {
+.tesseract-3d-room {
+  position: relative;
   width: 100%;
-  max-width: 980px;
-  display: flex;
-  flex-direction: column;
-  gap: 3.75rem;
+  max-width: 960px;
   transform-style: preserve-3d;
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.22s ease-out;
 }
 
+/* 左右两侧向深处延伸的五维镜像书墙 */
+.tesseract-wing-wall {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 180px;
+  pointer-events: none;
+  opacity: 0.42;
+}
+
+.tesseract-wing-wall.left-wing {
+  left: -150px;
+  transform-origin: right center;
+  transform: rotateY(68deg);
+}
+
+.tesseract-wing-wall.right-wing {
+  right: -150px;
+  transform-origin: left center;
+  transform: rotateY(-68deg);
+}
+
+.wing-shelf-grid {
+  width: 100%;
+  height: 100%;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(120, 53, 15, 0.55) 0px,
+      rgba(120, 53, 15, 0.55) 10px,
+      rgba(15, 10, 5, 0.85) 10px,
+      rgba(15, 10, 5, 0.85) 140px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(251, 191, 36, 0.25) 0px,
+      rgba(251, 191, 36, 0.25) 2px,
+      rgba(24, 15, 8, 0.9) 2px,
+      rgba(24, 15, 8, 0.9) 18px
+    );
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: inset 0 0 40px rgba(245, 158, 11, 0.2);
+}
+
+/* 主书柜外框（深胡桃木与黄铜框架） */
+.tesseract-bookcase-frame {
+  position: relative;
+  background: rgba(14, 9, 5, 0.86);
+  border-left: 10px solid #261408;
+  border-right: 10px solid #261408;
+  border-top: 2px solid rgba(245, 158, 11, 0.5);
+  border-bottom: 12px solid #1c0e05;
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.95),
+    0 0 50px rgba(217, 119, 6, 0.15),
+    inset 0 0 60px rgba(0, 0, 0, 0.85);
+  transform-style: preserve-3d;
+}
+
+.bookcase-cornice {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 1.25rem;
+  background: linear-gradient(90deg, #1b0e05, #2e1809 50%, #1b0e05);
+  border-bottom: 2px solid rgba(245, 158, 11, 0.45);
+  font-size: 9px;
+  letter-spacing: 0.28em;
+  color: #fcd34d;
+}
+
+/* 每一层书架仓 */
 .tesseract-shelf-bay {
   position: relative;
-  padding-top: 1.25rem;
+  padding-top: 2.2rem;
   transform-style: preserve-3d;
 }
 
-/* 书架背后穿透出来的五维琥珀色光弦横束 */
-.shelf-back-beam {
+/* 书架后方透射出的五维书缝背光格栅 */
+.shelf-back-slits {
   position: absolute;
-  inset: 0 -1rem 18px -1rem;
+  inset: 0 0 24px 0;
   background:
     repeating-linear-gradient(
       90deg,
-      rgba(245, 158, 11, 0.03) 0px,
-      rgba(245, 158, 11, 0.03) 1px,
-      transparent 1px,
-      transparent 28px
+      rgba(251, 191, 36, 0.14) 0px,
+      rgba(251, 191, 36, 0.14) 2px,
+      rgba(12, 8, 4, 0.92) 2px,
+      rgba(12, 8, 4, 0.92) 22px
     ),
-    radial-gradient(ellipse at center bottom, rgba(245, 158, 11, 0.22) 0%, transparent 70%);
-  border-top: 1px solid rgba(245, 158, 11, 0.15);
+    radial-gradient(ellipse at center bottom, rgba(245, 158, 11, 0.28) 0%, transparent 75%);
   pointer-events: none;
 }
 
-.shelf-spines-row {
+/* 书架层顶部的暖色洗墙灯带 */
+.shelf-top-downlight {
+  position: absolute;
+  top: 0;
+  left: 5%;
+  right: 5%;
+  height: 28px;
+  background: radial-gradient(ellipse at center top, rgba(253, 224, 71, 0.22), transparent 75%);
+  pointer-events: none;
+}
+
+/* 成排竖立的 3D 精装书籍容器 */
+.shelf-books-row {
   position: relative;
-  z-index: 2;
+  z-index: 5;
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
-  gap: 8px;
-  padding: 0 1.5rem;
-  min-height: 268px;
+  gap: 6px;
+  padding: 0 1.75rem;
+  min-height: 252px;
   flex-wrap: wrap;
+  transform-style: preserve-3d;
 }
 
-/* 3D 竖立书脊核心样式 */
-.tesseract-book-spine {
+/* ==========================================================================
+   单本 3D 精装书脊与书页细节 (3D BOOK VOLUME)
+   ========================================================================== */
+.book-3d-volume {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 4px;
   cursor: pointer;
   user-select: none;
   transform-style: preserve-3d;
   transform: translateZ(0) rotateX(0deg);
   transition:
-    transform 0.38s cubic-bezier(0.2, 0.9, 0.2, 1),
-    box-shadow 0.38s ease,
-    border-color 0.3s ease;
-  border: 1px solid rgba(251, 191, 36, 0.28);
+    transform 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.3s ease;
+}
+
+/* 精装书脊正面 */
+.book-spine-face {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 3px;
+  border-radius: 3px 3px 0 0;
+  border: 1px solid rgba(251, 191, 36, 0.32);
   border-bottom: none;
-  border-radius: 2px 2px 0 0;
+  /* 模拟真实圆背精装书的弧面高光与暗部 */
   box-shadow:
-    -6px 0 14px rgba(0, 0, 0, 0.85),
-    inset 2px 0 6px rgba(255, 255, 255, 0.12),
-    inset -3px 0 8px rgba(0, 0, 0, 0.7);
+    -5px 0 12px rgba(0, 0, 0, 0.85),
+    inset 4px 0 7px rgba(255, 255, 255, 0.16),
+    inset -5px 0 9px rgba(0, 0, 0, 0.75);
 }
 
-.tesseract-book-spine.tone-amber {
-  background: linear-gradient(180deg, #291507 0%, #170b03 55%, #0c0602 100%);
+/* 六种经典精装书皮质感配色 */
+.spine-tone-mahogany .book-spine-face {
+  background: linear-gradient(90deg, #2a0f0a 0%, #4a1c13 35%, #2d100a 80%, #180805 100%);
 }
-.tesseract-book-spine.tone-gold {
-  background: linear-gradient(180deg, #271d0a 0%, #140f05 55%, #090702 100%);
+.spine-tone-obsidian .book-spine-face {
+  background: linear-gradient(90deg, #141210 0%, #2b2622 35%, #191613 80%, #0b0908 100%);
 }
-.tesseract-book-spine.tone-cyan {
-  background: linear-gradient(180deg, #0b2228 0%, #071318 55%, #03090c 100%);
-  border-color: rgba(34, 211, 238, 0.3);
+.spine-tone-navy .book-spine-face {
+  background: linear-gradient(90deg, #0c192c 0%, #183052 35%, #0f2038 80%, #07101c 100%);
 }
-
-/* 悬停或选中时：如同被库珀从五维空间向外推开的书卷 */
-.tesseract-book-spine:hover,
-.tesseract-book-spine.is-selected {
-  transform: translateY(-18px) translateZ(34px) rotateX(4deg);
-  border-color: #fbbf24;
-  z-index: 15;
-  box-shadow:
-    0 18px 35px rgba(0, 0, 0, 0.95),
-    0 0 28px rgba(245, 158, 11, 0.55),
-    inset 0 0 15px rgba(251, 191, 36, 0.25);
+.spine-tone-emerald .book-spine-face {
+  background: linear-gradient(90deg, #0b241c 0%, #154032 35%, #0d2b22 80%, #061510 100%);
+}
+.spine-tone-ochre .book-spine-face {
+  background: linear-gradient(90deg, #332008 0%, #593910 35%, #382309 80%, #1c1104 100%);
+}
+.spine-tone-slate .book-spine-face {
+  background: linear-gradient(90deg, #1c2026 0%, #323942 35%, #1e2329 80%, #0f1215 100%);
 }
 
-/* 书脊右侧立体书页厚度墙 */
-.spine-side-wall {
+/* 顶部 3D 纸张切口（真实米白书页纹理） */
+.book-top-pages {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  right: 2px;
+  height: 14px;
+  background: repeating-linear-gradient(
+    90deg,
+    #e7dcc8 0px,
+    #e7dcc8 1px,
+    #b8a68e 1px,
+    #b8a68e 2px
+  );
+  border: 1px solid #5c4028;
+  transform-origin: top center;
+  transform: rotateX(78deg) translateY(-13px);
+}
+
+/* 右侧 3D 书页厚度侧面 */
+.book-right-pages {
   position: absolute;
   top: 2px;
   bottom: 0;
-  right: -8px;
-  width: 8px;
+  right: -10px;
+  width: 10px;
   background: repeating-linear-gradient(
     180deg,
-    #d6c7b2 0px,
-    #d6c7b2 1px,
-    #8c7a65 1px,
-    #8c7a65 2px
+    #dfd3be 0px,
+    #dfd3be 1px,
+    #9c8b75 1px,
+    #9c8b75 2px
   );
-  transform-origin: left;
-  transform: rotateY(75deg);
-  opacity: 0.75;
+  transform-origin: left center;
+  transform: rotateY(76deg);
 }
 
-.spine-band {
+/* 悬停或选中时：整本书从书架上沿 Z 轴向外抽出并亮起暖金光晕 */
+.book-3d-volume:hover,
+.book-3d-volume.is-selected {
+  transform: translateZ(38px) translateY(-12px) rotateX(6deg);
+  z-index: 25;
+}
+
+.book-3d-volume:hover .book-spine-face,
+.book-3d-volume.is-selected .book-spine-face {
+  border-color: #fbbf24;
+  box-shadow:
+    0 18px 32px rgba(0, 0, 0, 0.95),
+    0 0 24px rgba(245, 158, 11, 0.55),
+    inset 4px 0 8px rgba(254, 243, 199, 0.3);
+}
+
+/* 书脊上的烫金凸起竹节横箍 */
+.spine-gold-rib {
   width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.75), transparent);
+  height: 3px;
+  background: linear-gradient(90deg, #78350f, #fbbf24 50%, #78350f);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
-.spine-cord {
-  width: 65%;
+.spine-gold-rib.thin {
   height: 1px;
-  background: rgba(251, 191, 36, 0.3);
-  margin-top: 4px;
+  opacity: 0.7;
+  margin: 3px 0;
 }
 
-.spine-title-wrap {
+.spine-title-container {
   flex: 1;
   display: flex;
   align-items: center;
@@ -384,61 +448,155 @@
   padding: 6px 0;
 }
 
-.spine-title {
+.spine-vertical-title {
   writing-mode: vertical-rl;
   text-orientation: mixed;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   color: #fef3c7;
-  max-height: 165px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  max-height: 145px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.spine-ext {
+.spine-call-number {
   font-size: 8px;
-  letter-spacing: 0.15em;
+  color: rgba(253, 224, 71, 0.65);
+  letter-spacing: 0.08em;
+  margin-bottom: 2px;
+}
+
+.spine-format-tag {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   padding: 1px 4px;
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  color: #fcd34d;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fde68a;
   margin-bottom: 4px;
 }
 
-/* 书架横梁托板 */
-.shelf-plank {
+/* ==========================================================================
+   3D 实木与黄铜书架隔板 (3D SHELF PLANK)
+   ========================================================================== */
+.shelf-3d-plank {
   position: relative;
-  z-index: 1;
-  margin-top: -1px;
+  z-index: 4;
 }
 
-.shelf-plank-top {
-  height: 12px;
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.32), rgba(120, 53, 15, 0.65));
-  border-top: 1px solid rgba(253, 224, 71, 0.65);
-  transform: perspective(400px) rotateX(35deg);
-  transform-origin: bottom;
+.plank-top-surface {
+  height: 16px;
+  background: linear-gradient(180deg, #2b1608 0%, #47240e 100%);
+  border-top: 1px solid rgba(251, 191, 36, 0.5);
+  transform: perspective(500px) rotateX(40deg);
+  transform-origin: bottom center;
+  box-shadow: inset 0 4px 12px rgba(245, 158, 11, 0.25);
 }
 
-.shelf-plank-front {
-  height: 22px;
-  background: linear-gradient(90deg, #090502, #1c0f05 50%, #090502);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.9), 0 0 25px rgba(245, 158, 11, 0.2);
+.plank-front-edge {
+  height: 26px;
+  background: linear-gradient(180deg, #241206 0%, #120903 100%);
+  border-top: 2px solid #b45309;
+  border-bottom: 2px solid #451a03;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.95);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1rem;
+  padding: 0 1.25rem;
   font-size: 9px;
-  letter-spacing: 0.3em;
-  color: rgba(253, 224, 71, 0.6);
+  letter-spacing: 0.25em;
+  color: rgba(253, 224, 71, 0.7);
 }
 
-/* --- 右侧详情检视面板 --- */
+.plank-brass-strip {
+  flex: 1;
+  height: 1px;
+  margin: 0 1.5rem;
+  background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.55), transparent);
+}
+
+/* ==========================================================================
+   前景悬浮解锁舱 (LOCKED OVERLAY MODAL)
+   ========================================================================== */
+.tesseract-auth-overlay {
+  position: fixed;
+  inset: 58px 0 0 0;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: radial-gradient(circle at center, rgba(7, 5, 3, 0.35) 0%, rgba(7, 5, 3, 0.78) 100%);
+  backdrop-filter: blur(4px);
+}
+
+.tesseract-auth-box {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  padding: 2.5rem 2.2rem;
+  background: rgba(12, 8, 4, 0.9);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  box-shadow:
+    0 25px 70px rgba(0, 0, 0, 0.95),
+    0 0 40px rgba(217, 119, 6, 0.2);
+}
+
+.tesseract-auth-corner {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: #fbbf24;
+}
+.tesseract-auth-corner.tl { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }
+.tesseract-auth-corner.tr { top: -1px; right: -1px; border-top: 2px solid; border-right: 2px solid; }
+.tesseract-auth-corner.bl { bottom: -1px; left: -1px; border-bottom: 2px solid; border-left: 2px solid; }
+.tesseract-auth-corner.br { bottom: -1px; right: -1px; border-bottom: 2px solid; border-right: 2px solid; }
+
+.tesseract-input {
+  width: 100%;
+  padding: 0.85rem 2.5rem 0.85rem 1rem;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  color: #fef3c7;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+}
+
+.tesseract-input:focus {
+  border-color: #fbbf24;
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.3);
+}
+
+.tesseract-submit-btn {
+  width: 100%;
+  padding: 0.9rem;
+  background: linear-gradient(90deg, #92400e, #d97706 50%, #92400e);
+  border: 1px solid #fbbf24;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.tesseract-submit-btn:hover:not(:disabled) {
+  background: #f59e0b;
+  color: #000;
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
+}
+
+/* ==========================================================================
+   右侧 3D 精装书检视面板 (VOLUME INSPECTOR)
+   ========================================================================== */
 .tesseract-inspector {
-  background: rgba(8, 5, 2, 0.84);
+  background: rgba(11, 8, 5, 0.88);
   border-left: 1px solid rgba(245, 158, 11, 0.25);
   backdrop-filter: blur(16px);
   padding: 1.5rem;
@@ -446,31 +604,41 @@
   flex-direction: column;
 }
 
-.inspector-3d-book {
+.inspector-3d-showcase {
   display: flex;
   justify-content: center;
-  padding: 1.25rem 0 1.75rem;
+  padding: 1rem 0 1.5rem;
   perspective: 900px;
 }
 
-.inspector-book-cover {
-  width: 148px;
-  height: 205px;
-  padding: 1rem;
-  background: linear-gradient(135deg, #271406 0%, #0d0702 100%);
+.showcase-hardcover {
+  position: relative;
+  width: 146px;
+  height: 202px;
+  padding: 1rem 1rem 1rem 1.35rem;
+  background: linear-gradient(135deg, #3b170c 0%, #1a0a05 100%);
   border: 1px solid #fbbf24;
   box-shadow:
-    -12px 12px 28px rgba(0, 0, 0, 0.9),
-    0 0 25px rgba(245, 158, 11, 0.25),
-    inset 4px 0 10px rgba(251, 191, 36, 0.2);
+    -10px 14px 28px rgba(0, 0, 0, 0.9),
+    4px -2px 0 #dfd3be,
+    5px -3px 0 #9c8b75;
   display: flex;
   flex-direction: column;
-  transform: rotateY(-18deg) rotateX(6deg);
-  transition: transform 0.4s ease;
+  transform: rotateY(-16deg) rotateX(5deg);
+  transition: transform 0.35s ease;
 }
 
-.inspector-book-cover:hover {
+.showcase-hardcover:hover {
   transform: rotateY(-6deg) rotateX(2deg) scale(1.03);
+}
+
+.hardcover-spine-hinge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 8px;
+  width: 2px;
+  background: rgba(251, 191, 36, 0.35);
 }
 
 .inspector-meta-row {
@@ -478,11 +646,11 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.45rem 0;
-  border-bottom: 1px solid rgba(245, 158, 11, 0.12);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.14);
 }
 
 .inspector-meta-row .label {
-  color: rgba(251, 191, 36, 0.5);
+  color: rgba(251, 191, 36, 0.55);
 }
 
 .inspector-meta-row .value {
@@ -492,9 +660,9 @@
 
 .inspector-note-box {
   padding: 0.85rem;
-  background: rgba(245, 158, 11, 0.06);
+  background: rgba(245, 158, 11, 0.07);
   border-left: 2px solid #fbbf24;
-  max-height: 180px;
+  max-height: 170px;
   overflow-y: auto;
 }
 
@@ -518,12 +686,11 @@
   background: #f59e0b;
   color: #000;
   border: 1px solid #fde68a;
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
 }
 
 .tesseract-primary-btn:hover {
   background: #fbbf24;
-  box-shadow: 0 0 30px rgba(251, 191, 36, 0.65);
+  box-shadow: 0 0 24px rgba(251, 191, 36, 0.55);
 }
 
 .tesseract-secondary-btn,
@@ -548,12 +715,12 @@
   padding: 3rem;
   font-size: 12px;
   letter-spacing: 0.25em;
-  color: rgba(253, 224, 71, 0.65);
+  color: rgba(253, 224, 71, 0.7);
 }
 
 .tesseract-spinner {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border: 2px solid rgba(245, 158, 11, 0.2);
   border-top-color: #fbbf24;
   border-radius: 50%;
