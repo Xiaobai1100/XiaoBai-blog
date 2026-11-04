@@ -1,69 +1,28 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowLeft,
-  BookOpen,
-  Compass,
-  Download,
-  ExternalLink,
-  FileSpreadsheet,
-  FileText,
-  Folder,
-  Layers,
-  LockKeyhole,
-  LogOut,
-  Presentation,
-  RefreshCw,
-  Search,
-  Sparkles,
+  Lock,
   Unlock,
+  Folder,
+  BookOpen,
+  FileText,
+  Search,
+  ArrowLeft,
+  Download,
+  Eye,
+  Compass,
+  Layers,
+  Sparkles,
+  ChevronRight,
   X
 } from 'lucide-react';
 import LibraryPdfReader from '../components/LibraryPdfReader';
 import './PrivateLibrary.css';
 
-const TYPE_META = {
-  pdf: { label: 'PDF', icon: BookOpen, tone: 'amber' },
-  epub: { label: 'EPUB', icon: BookOpen, tone: 'cyan' },
-  word: { label: 'WORD', icon: FileText, tone: 'blue' },
-  ppt: { label: 'SLIDES', icon: Presentation, tone: 'orange' },
-  excel: { label: 'SHEET', icon: FileSpreadsheet, tone: 'emerald' },
-  note: { label: 'NOTE', icon: FileText, tone: 'violet' },
-  document: { label: 'FILE', icon: FileText, tone: 'slate' }
-};
-
-function formatBytes(bytes = 0) {
-  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB'];
-  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  const value = bytes / (1024 ** index);
-  return `${value >= 10 || index === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[index]}`;
-}
-
-function formatDate(value) {
-  if (!value) return 'TIMELESS';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'TIMELESS';
-  return date.toISOString().slice(0, 10);
-}
-
-function parentFolder(path = '') {
-  const parts = path.split('/').filter(Boolean);
-  parts.pop();
-  return parts.join('/');
-}
-
-function spineThickness(bytes = 0) {
-  if (!bytes) return 54;
-  const mb = bytes / (1024 * 1024);
-  return Math.max(48, Math.min(92, Math.round(48 + Math.log1p(mb) * 12)));
-}
-
 /**
- * 🌌 五维超立方体背景引擎 (5D Tesseract Gravitational Strings Canvas)
- * 模拟《星际穿越》中库珀在书架后方看到的无限延伸金色光束与重力尘埃
+ * 1. 五维超立方体 (Tesseract) 正交光弦与引力波引擎
  */
-const TesseractCanvas = ({ mousePos }) => {
+const TesseractCanvas = ({ activeIndex }) => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -71,698 +30,724 @@ const TesseractCanvas = ({ mousePos }) => {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     let animId;
-    let w = (canvas.width = window.innerWidth);
-    let h = (canvas.height = window.innerHeight);
 
-    const handleResize = () => {
-      w = canvas.width = window.innerWidth;
-      h = canvas.height = window.innerHeight;
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
+
+    const mouse = { x: width / 2, y: height / 2, tx: width / 2, ty: height / 2 };
+
+    const onResize = () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
     };
-    window.addEventListener('resize', handleResize);
+    const onMouseMove = (e) => {
+      mouse.tx = e.clientX;
+      mouse.ty = e.clientY;
+    };
 
-    // 生成漂浮的五维时空重力光尘
-    const dust = Array.from({ length: 75 }, () => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
+    window.addEventListener('resize', onResize);
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+
+    // 引力尘埃粒子
+    const dust = Array.from({ length: 90 }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
       z: Math.random() * 2 + 0.5,
+      size: Math.random() * 1.8 + 0.4,
       vy: -(Math.random() * 0.35 + 0.1),
-      size: Math.random() * 1.8 + 0.5,
-      alpha: Math.random() * 0.55 + 0.15
+      alpha: Math.random() * 0.65 + 0.15
     }));
 
     let time = 0;
+
     const render = () => {
       time += 0.012;
-      ctx.clearRect(0, 0, w, h);
+      mouse.x += (mouse.tx - mouse.x) * 0.06;
+      mouse.y += (mouse.ty - mouse.y) * 0.06;
 
-      const mx = (mousePos.current?.x ?? 0.5) * w;
-      const my = (mousePos.current?.y ?? 0.5) * h;
+      ctx.fillStyle = '#030201';
+      ctx.fillRect(0, 0, width, height);
 
-      // 1. 绘制纵横交错的五维超立方体金色时间弦 (Tesseract Time-Strings)
-      const vLines = 22;
+      // 计算五维透视灭点 (随鼠标轻微偏移)
+      const vx = width * 0.5 + (mouse.x - width * 0.5) * 0.18;
+      const vy = height * 0.48 + (mouse.y - height * 0.5) * 0.18;
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+
+      // A. 绘制正交径向深空走廊 (Tesseract Time Corridors)
+      const ringCount = 8;
+      for (let i = 1; i <= ringCount; i++) {
+        const depth = ((i / ringCount + (time * 0.08) % (1 / ringCount)));
+        const scale = Math.pow(depth, 2.1);
+        const rw = width * 1.35 * scale;
+        const rh = height * 1.35 * scale;
+        const rx = vx - rw / 2;
+        const ry = vy - rh / 2;
+
+        const alpha = Math.sin(depth * Math.PI) * 0.16;
+        ctx.strokeStyle = `rgba(245, 158, 11, ${alpha})`;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(rx, ry, rw, rh);
+      }
+
+      // B. 绘制贯穿五维空间的垂直引力光弦 (Vertical Worldlines)
+      const vLines = 28;
       for (let i = 0; i <= vLines; i++) {
-        const baseX = (i / vLines) * w;
-        const distToMouse = Math.abs(baseX - mx);
-        // 鼠标靠近时产生引力拨动弯曲效果
-        const pull = Math.max(0, 1 - distToMouse / 260);
-        const offsetX = Math.sin(time * 2 + i) * 4 + (baseX > mx ? 1 : -1) * pull * 18;
+        const baseX = (width / vLines) * i;
+        const distFromMouse = Math.abs(mouse.x - baseX);
+        // 鼠标靠近时产生类似库珀拨动光弦的引力波弯曲
+        const wave =
+          distFromMouse < 160
+            ? Math.sin(time * 8 + i) * ((160 - distFromMouse) / 160) * 18
+            : 0;
 
-        const grad = ctx.createLinearGradient(0, 0, 0, h);
-        const alpha = 0.04 + pull * 0.16;
-        grad.addColorStop(0, 'transparent');
-        grad.addColorStop(0.25, `rgba(245, 158, 11, ${alpha})`);
-        grad.addColorStop(0.5, `rgba(56, 189, 248, ${alpha * 0.8})`);
-        grad.addColorStop(0.75, `rgba(245, 158, 11, ${alpha})`);
-        grad.addColorStop(1, 'transparent');
+        const grad = ctx.createLinearGradient(baseX, 0, baseX, height);
+        const highlight = distFromMouse < 120 ? 0.32 : 0.08;
+        grad.addColorStop(0, 'rgba(245, 158, 11, 0)');
+        grad.addColorStop(0.25, `rgba(251, 191, 36, ${highlight * 0.6})`);
+        grad.addColorStop(0.5, `rgba(254, 243, 199, ${highlight})`);
+        grad.addColorStop(0.75, `rgba(217, 119, 6, ${highlight * 0.6})`);
+        grad.addColorStop(1, 'rgba(245, 158, 11, 0)');
 
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = pull > 0.3 ? 1.5 : 0.8;
         ctx.beginPath();
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = distFromMouse < 90 ? 1.6 : 0.7;
         ctx.moveTo(baseX, 0);
-        ctx.quadraticCurveTo(baseX + offsetX, my, baseX, h);
+        ctx.quadraticCurveTo(baseX + wave, mouse.y, baseX, height);
         ctx.stroke();
       }
 
-      // 2. 绘制横向空间切片网格线
+      // C. 绘制水平书架层叠光束 (Horizontal Shelf Beams)
       const hLines = 12;
       for (let j = 1; j < hLines; j++) {
-        const baseY = (j / hLines) * h;
-        const distY = Math.abs(baseY - my);
-        const pullY = Math.max(0, 1 - distY / 220);
-        ctx.strokeStyle = `rgba(251, 191, 36, ${0.025 + pullY * 0.08})`;
-        ctx.lineWidth = 0.7;
+        const y = (height / hLines) * j;
+        const distY = Math.abs(mouse.y - y);
+        const alpha = distY < 100 ? 0.18 : 0.04;
+        ctx.strokeStyle = `rgba(217, 119, 6, ${alpha})`;
+        ctx.lineWidth = 0.8;
         ctx.beginPath();
-        ctx.moveTo(0, baseY);
-        ctx.lineTo(w, baseY);
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
         ctx.stroke();
       }
 
-      // 3. 绘制重力波光尘 (Morse Code Dust)
+      // D. 渲染从灭点发散的对角四维轴线
+      const corners = [
+        [0, 0],
+        [width, 0],
+        [width, height],
+        [0, height],
+        [width * 0.25, 0],
+        [width * 0.75, 0],
+        [width * 0.25, height],
+        [width * 0.75, height]
+      ];
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.11)';
+      ctx.lineWidth = 0.9;
+      corners.forEach(([cx, cy]) => {
+        ctx.beginPath();
+        ctx.moveTo(vx, vy);
+        ctx.lineTo(cx, cy);
+        ctx.stroke();
+      });
+
+      // E. 漂浮的金色引力尘埃
       dust.forEach((p) => {
         p.y += p.vy * p.z;
-        if (p.y < -10) {
-          p.y = h + 10;
-          p.x = Math.random() * w;
+        if (p.y < 0) {
+          p.y = height;
+          p.x = Math.random() * width;
         }
-        const dx = p.x - mx;
-        const dy = p.y - my;
-        const d = Math.sqrt(dx * dx + dy * dy);
-        const glow = d < 180 ? (1 - d / 180) * 0.5 : 0;
-
-        ctx.fillStyle = `rgba(253, 224, 71, ${Math.min(1, p.alpha + glow)})`;
+        ctx.fillStyle = `rgba(253, 224, 71, ${p.alpha})`;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * p.z, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
       });
 
+      ctx.restore();
       animId = requestAnimationFrame(render);
     };
 
     render();
     return () => {
       cancelAnimationFrame(animId);
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('mousemove', onMouseMove);
     };
-  }, [mousePos]);
+  }, [activeIndex]);
 
   return <canvas ref={canvasRef} className="tesseract-canvas" />;
 };
 
-export default function PrivateLibrary() {
-  const [authState, setAuthState] = useState('checking');
-  const [password, setPassword] = useState('');
-  const [authError, setAuthError] = useState('');
-  const [catalog, setCatalog] = useState({ items: [], folders: [], stats: null, generatedAt: null });
-  const [loadingCatalog, setLoadingCatalog] = useState(false);
-  const [catalogError, setCatalogError] = useState('');
-  const [activeFolder, setActiveFolder] = useState('');
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [readingItem, setReadingItem] = useState(null);
-  const [noteState, setNoteState] = useState({ status: 'idle', content: '' });
+/**
+ * 2. 万能数据归一化解析器：兼容后端返回的任何目录结构
+ */
+function normalizeLibraryData(payload) {
+  if (!payload) return { items: [], folders: [], notes: [] };
 
-  // 5D 视角倾斜度控制 (允许轻微改变超立方体透视感，同时保证文字绝对清晰)
-  const [dimensionTilt, setDimensionTilt] = useState(true);
-  const mousePos = useRef({ x: 0.5, y: 0.5 });
+  // 自动寻找可能存放书籍列表的数组字段
+  const rawList =
+    (Array.isArray(payload) && payload) ||
+    payload.items ||
+    payload.books ||
+    payload.files ||
+    payload.entries ||
+    payload.catalog?.items ||
+    payload.catalog?.books ||
+    payload.catalog?.files ||
+    (Array.isArray(payload.catalog) && payload.catalog) ||
+    (Array.isArray(payload.data) && payload.data) ||
+    [];
 
-  const handleMouseMove = (e) => {
-    mousePos.current = {
-      x: e.clientX / window.innerWidth,
-      y: e.clientY / window.innerHeight
-    };
+  const items = [];
+  const folderSet = new Set();
+
+  // 如果存在递归树结构，也一并展平提取
+  const walkTree = (nodes, parentFolder = '') => {
+    if (!Array.isArray(nodes)) return;
+    nodes.forEach((node) => {
+      if (!node) return;
+      if (node.type === 'directory' || node.type === 'folder' || Array.isArray(node.children)) {
+        const nextFolder = node.path || node.name || parentFolder;
+        if (nextFolder) folderSet.add(nextFolder);
+        walkTree(node.children || node.items, nextFolder);
+      } else {
+        rawList.push({ ...node, folder: node.folder || parentFolder });
+      }
+    });
   };
 
-  async function loadCatalog() {
+  if (Array.isArray(payload.tree)) walkTree(payload.tree);
+
+  rawList.forEach((raw, idx) => {
+    if (!raw || typeof raw !== 'object') return;
+    const rawPath = raw.path || raw.relativePath || raw.filePath || raw.key || raw.name || '';
+    const parts = String(rawPath).split('/').filter(Boolean);
+    const fileName = parts[parts.length - 1] || raw.title || `Volume_${idx + 1}`;
+    const inferredFolder =
+      raw.folder ||
+      raw.category ||
+      raw.collection ||
+      (parts.length > 1 ? parts.slice(0, -1).join(' / ') : 'GENERAL_ARCHIVE');
+
+    folderSet.add(inferredFolder);
+
+    const ext = (raw.extension || raw.format || fileName.split('.').pop() || 'pdf')
+      .replace(/^\./, '')
+      .toUpperCase();
+
+    // 自动构建文件流与下载 URL
+    const encodedPath = encodeURIComponent(rawPath || raw.id || fileName);
+    const fileUrl =
+      raw.fileUrl ||
+      raw.streamUrl ||
+      raw.url ||
+      `/api/library-file?path=${encodedPath}`;
+    const downloadUrl =
+      raw.downloadUrl ||
+      `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}download=1`;
+
+    items.push({
+      id: raw.id || rawPath || `item-${idx}`,
+      title: (raw.title || fileName.replace(/\.[^/.]+$/, '')).replace(/_/g, ' '),
+      rawName: fileName,
+      path: rawPath,
+      folder: inferredFolder,
+      ext,
+      size: raw.size || raw.sizeBytes || raw.fileSize || 0,
+      updatedAt: raw.updatedAt || raw.mtime || raw.date || '',
+      note: raw.note || raw.description || raw.summary || '',
+      fileUrl,
+      downloadUrl,
+      isPdf: ext === 'PDF'
+    });
+  });
+
+  // 合并后端显式返回的 folders
+  if (Array.isArray(payload.folders)) {
+    payload.folders.forEach((f) => {
+      const name = typeof f === 'string' ? f : f?.path || f?.name;
+      if (name) folderSet.add(name);
+    });
+  }
+
+  return {
+    items,
+    folders: Array.from(folderSet),
+    notes: Array.isArray(payload.notes) ? payload.notes : []
+  };
+}
+
+function formatBytes(bytes) {
+  if (!bytes || Number.isNaN(Number(bytes))) return 'LFS_STREAM';
+  const n = Number(bytes);
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export default function PrivateLibrary() {
+  const [authenticated, setAuthenticated] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+
+  const [catalog, setCatalog] = useState({ items: [], folders: [], notes: [] });
+  const [loadingCatalog, setLoadingCatalog] = useState(false);
+  const [catalogError, setCatalogError] = useState('');
+
+  const [selectedFolder, setSelectedFolder] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBook, setSelectedBook] = useState(null);
+  const [readingBook, setReadingBook] = useState(null);
+  const [tiltAngle, setTiltAngle] = useState(0);
+
+  // 1. 初始化检查会话状态并拉取书库目录
+  const fetchLibraryCatalog = async () => {
     setLoadingCatalog(true);
     setCatalogError('');
     try {
-      const response = await fetch('/api/library-index', { credentials: 'include' });
-      if (response.status === 401) {
-        setAuthState('locked');
+      const res = await fetch('/api/library-index', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { Accept: 'application/json' }
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        setAuthenticated(false);
+        setCheckingAuth(false);
+        setLoadingCatalog(false);
         return;
       }
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Could not load catalog');
-      setCatalog(data);
-      setAuthState('unlocked');
-    } catch (error) {
-      setCatalogError(error.message || 'Could not load catalog');
-      setAuthState('unlocked');
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const normalized = normalizeLibraryData(data);
+      setCatalog(normalized);
+      setAuthenticated(true);
+      if (normalized.items.length > 0 && !selectedBook) {
+        setSelectedBook(normalized.items[0]);
+      }
+    } catch (err) {
+      console.error('Library index fetch error:', err);
+      setCatalogError('无法连接至五维书库索引接口 (/api/library-index)，请确认本地已使用 vercel dev 启动或云端环境变量已配置。');
     } finally {
+      setCheckingAuth(false);
       setLoadingCatalog(false);
     }
-  }
+  };
 
   useEffect(() => {
-    let cancelled = false;
-    fetch('/api/library-auth', { credentials: 'include' })
-      .then((res) => res.json())
-      .then((data) => {
-        if (cancelled) return;
-        if (data.authenticated) loadCatalog();
-        else setAuthState('locked');
-      })
-      .catch(() => {
-        if (!cancelled) setAuthState('locked');
-      });
-    return () => {
-      cancelled = true;
-    };
+    fetchLibraryCatalog();
   }, []);
 
-  useEffect(() => {
-    if (!selectedItem || !selectedItem.isTextNote) {
-      setNoteState({ status: 'idle', content: '' });
-      return undefined;
-    }
-    let cancelled = false;
-    setNoteState({ status: 'loading', content: '' });
-    fetch(selectedItem.fileUrl, { credentials: 'include' })
-      .then(async (response) => {
-        if (!response.ok) throw new Error('Note content is not uploaded yet.');
-        return response.text();
-      })
-      .then((content) => {
-        if (!cancelled) setNoteState({ status: 'ready', content });
-      })
-      .catch((error) => {
-        if (!cancelled) setNoteState({ status: 'error', content: error.message });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedItem]);
-
-  async function handleUnlock(event) {
-    event.preventDefault();
+  // 2. 解锁认证逻辑 (兼容 action: 'unlock' 与常规密码提交)
+  const handleUnlock = async (e) => {
+    e.preventDefault();
     setAuthError('');
+    setCheckingAuth(true);
     try {
-      const response = await fetch('/api/library-auth', {
+      const res = await fetch('/api/library-auth', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'unlock', password })
       });
-      const data = await response.json();
-      if (!response.ok) {
-        setAuthError(data.error || 'Gravitational Resonance Mismatch // Invalid Key');
-        return;
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || errData.message || 'ACCESS_DENIED: 密钥引力频段不匹配');
       }
+
       setPassword('');
-      await loadCatalog();
-    } catch {
-      setAuthError('Could not reach the 5D authentication bulkhead.');
+      await fetchLibraryCatalog();
+    } catch (err) {
+      setAuthError(err.message);
+      setCheckingAuth(false);
     }
-  }
+  };
 
-  async function handleLock() {
-    await fetch('/api/library-auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ action: 'lock' })
-    }).catch(() => {});
-    setCatalog({ items: [], folders: [], stats: null, generatedAt: null });
-    setSelectedItem(null);
-    setReadingItem(null);
-    setAuthState('locked');
-  }
+  const handleLock = async () => {
+    try {
+      await fetch('/api/library-auth', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'lock' })
+      });
+    } catch (e) {
+      console.error(e);
+    }
+    setAuthenticated(false);
+    setSelectedBook(null);
+    setReadingBook(null);
+  };
 
-  const normalizedQuery = search.trim().toLowerCase();
-
-  const topCategories = useMemo(
-    () => (catalog.folders || []).filter((folder) => folder.depth === 1),
-    [catalog.folders]
-  );
-
-  const childFolders = useMemo(() => {
-    if (normalizedQuery) return [];
-    const parentDepth = activeFolder ? activeFolder.split('/').length : 0;
-    return (catalog.folders || []).filter((folder) => {
-      if (folder.depth !== parentDepth + 1) return false;
-      return activeFolder ? folder.path.startsWith(`${activeFolder}/`) : true;
+  // 3. 过滤当前分区的书籍，并按五维书架层数分组
+  const filteredBooks = useMemo(() => {
+    return catalog.items.filter((item) => {
+      const matchFolder =
+        selectedFolder === 'ALL' ||
+        item.folder === selectedFolder ||
+        item.folder.startsWith(selectedFolder);
+      const q = searchQuery.trim().toLowerCase();
+      const matchQuery =
+        !q ||
+        item.title.toLowerCase().includes(q) ||
+        item.folder.toLowerCase().includes(q) ||
+        item.ext.toLowerCase().includes(q);
+      return matchFolder && matchQuery;
     });
-  }, [activeFolder, catalog.folders, normalizedQuery]);
+  }, [catalog.items, selectedFolder, searchQuery]);
 
-  const visibleItems = useMemo(() => {
-    const items = catalog.items || [];
-    return items.filter((item) => {
-      if (typeFilter !== 'all' && item.type !== typeFilter) return false;
-      if (normalizedQuery) {
-        const haystack = `${item.title} ${item.relativePath} ${item.ext}`.toLowerCase();
-        return haystack.includes(normalizedQuery);
-      }
-      return item.folder === activeFolder;
-    });
-  }, [activeFolder, catalog.items, normalizedQuery, typeFilter]);
+  // 将书籍分配到多层立体五维书架上 (每层最多 14 本竖立书脊)
+  const shelfRows = useMemo(() => {
+    const perRow = 14;
+    const rows = [];
+    for (let i = 0; i < filteredBooks.length; i += perRow) {
+      rows.push(filteredBooks.slice(i, i + perRow));
+    }
+    return rows;
+  }, [filteredBooks]);
 
-  const breadcrumbs = useMemo(() => {
-    if (!activeFolder) return [];
-    const parts = activeFolder.split('/').filter(Boolean);
-    return parts.map((name, index) => ({
-      name,
-      path: parts.slice(0, index + 1).join('/')
-    }));
-  }, [activeFolder]);
+  // 如果正在在线阅读 PDF，直接全屏挂载阅读器
+  if (readingBook) {
+    return (
+      <div className="tesseract-root">
+        <TesseractCanvas activeIndex="{0}"/>
+        <LibraryPdfReader item="{readingBook}" onClose="{()"> setReadingBook(null)} />
+      </div>
+    );
+  }
 
   return (
-    <div className="tesseract-library" onMouseMove={handleMouseMove}>
-      {/* 1. 星际穿越五维超立方体背景引擎 */}
-      <TesseractCanvas mousePos={mousePos} />
-      <div className="tesseract-vignette" />
+    <div className="tesseract-root">
+      {/* 五维超立方体背景引擎 */}
+      <TesseractCanvas activeIndex="{filteredBooks.length}"/>
 
-      {/* 2. 顶部深空终端状态栏 */}
-      <header className="tesseract-topbar">
-        <Link to="/" className="tesseract-nav-btn">
-          <ArrowLeft size={15} />
-          <span>EXIT_TESSERACT</span>
-        </Link>
-
-        <div className="tesseract-brand">
-          <Compass size={15} className="text-amber-400 animate-spin-slow" />
-          <span>COOPER_STATION // 5D_ARCHIVE_BULKHEAD</span>
-        </div>
-
-        <div className="tesseract-actions">
-          {authState === 'unlocked' && (
-            <>
-              <button
-                type="button"
-                className={`tesseract-icon-btn ${dimensionTilt ? 'is-active' : ''}`}
-                onClick={() => setDimensionTilt(!dimensionTilt)}
-                title="Toggle 5D Perspective Depth"
-              >
-                <Layers size={15} />
-                <span className="hidden md:inline">5D_DEPTH</span>
-              </button>
-              <button
-                type="button"
-                className="tesseract-icon-btn"
-                onClick={loadCatalog}
-                title="Resynchronize Timeline"
-              >
-                <RefreshCw size={15} className={loadingCatalog ? 'spin' : ''} />
-              </button>
-              <button
-                type="button"
-                className="tesseract-icon-btn danger"
-                onClick={handleLock}
-                title="Collapse Bulkhead (Lock)"
-              >
-                <LogOut size={15} />
-                <span className="hidden sm:inline">SEAL</span>
-              </button>
-            </>
-          )}
-        </div>
-      </header>
-
-      {/* 3. 验证中状态 */}
-      {authState === 'checking' && (
-        <main className="tesseract-gate">
-          <div className="tesseract-gate-panel">
-            <div className="gate-scanner" />
-            <p className="gate-kicker">CALIBRATING GRAVITATIONAL ANOMALY</p>
-            <h1>Aligning 5D Coordinates…</h1>
+      {/* 顶部五维空间导航仪 */}
+      <header className="tesseract-header">
+        <div className="flex items-center gap-4">
+          <Link className="tesseract-back-btn" to="/">
+            <ArrowLeft size="{15}"/>
+            <span>EXIT_TESSERACT</span>
+          </Link>
+          <div className="hidden sm:flex items-center gap-2 text-amber-400/80 text-xs font-mono tracking-[0.3em] uppercase">
+            <Compass '12s' animationDuration: className="animate-spin" size="{14}" style="{{" }}/>
+            <span>5D_GRAVITATIONAL_ARCHIVE // COOPER_STATION</span>
           </div>
-        </main>
-      )}
+        </div>
 
-      {/* 4. 锁屏密码验证舱 (墨菲怀表引力摩斯密码主题) */}
-      {authState === 'locked' && (
-        <main className="tesseract-gate">
-          <form className="tesseract-gate-panel" onSubmit={handleUnlock}>
-            <div className="gate-scanner" />
-            <div className="gate-badge">
-              <LockKeyhole size={20} />
-              <span>QUANTUM_ENCRYPTED_BULKHEAD</span>
+        {authenticated && (
+          <div className="flex items-center gap-4">
+            {/* 空间视角倾角调节 */}
+            <div className="hidden md:flex items-center gap-2 text-[10px] font-mono text-amber-200/60 bg-black/50 border border-amber-500/20 px-3 py-1.5">
+              <Layers className="text-amber-400" size="{12}"/>
+              <span>PARALLAX</span>
+              <input
+                type="range"
+                min="-12"
+                max="12"
+                step="1"
+                value={tiltAngle}
+                onChange={(e) => setTiltAngle(Number(e.target.value))}
+                className="w-20 accent-amber-400 cursor-pointer"
+              />
             </div>
 
-            <h1>
-              THE INFINITE <span>BOOKSHELF</span>
+            <button onClick={handleLock} className="tesseract-lock-btn" title="Lock Tesseract">
+              <Unlock size="{13}"/>
+              <span>SEAL_HORIZON</span>
+            </button>
+          </div>
+        )}
+      </header>
+
+      {/* 未解锁状态：五维引力密钥舱 */}
+      {!authenticated ? (
+        <main className="tesseract-auth-stage">
+          <form onSubmit={handleUnlock} className="tesseract-auth-box">
+            <div className="tesseract-auth-corner tl" />
+            <div className="tesseract-auth-corner tr" />
+            <div className="tesseract-auth-corner bl" />
+            <div className="tesseract-auth-corner br" />
+
+            <div className="flex items-center gap-3 text-amber-400 text-xs tracking-[0.4em] uppercase mb-3">
+              <Lock size="{15}"/>
+              <span>QUANTUM_KEY_REQUIRED</span>
+            </div>
+
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white uppercase mb-2">
+              THE TESSERACT
             </h1>
-            <p className="gate-desc">
-              Time is represented here as a physical dimension. Transmit the gravitational passphrase across the horizon to unlock your private study.
+            <p className="text-xs text-amber-100/50 font-mono leading-relaxed mb-8">
+              Time is represented here as a physical dimension. Enter the gravitational morse key to synchronize with the private bookshelf.
             </p>
 
-            <label className="gate-input-wrap">
-              <span className="gate-input-label">GRAVITATIONAL_KEY // MORSE_SEQUENCE</span>
-              <div className="gate-input-box">
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="ENTER_PASSCODE..."
-                  autoFocus
-                  autoComplete="current-password"
-                />
-                <Sparkles size={16} className="gate-sparkle" />
+            <div className="relative mb-6">
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="ENTER_GRAVITY_CIPHER..."
+                autoFocus
+                className="tesseract-input"
+              />
+              <Sparkles className="absolute right-4 top-1/2 -translate-y-1/2 text-amber-400/50" size="{15}"/>
+            </div>
+
+            {authError && (
+              <div className="mb-6 p-3 border border-red-500/40 bg-red-950/40 text-red-300 text-xs font-mono">
+                {authError}
               </div>
-            </label>
+            )}
 
-            {authError && <div className="gate-error">{authError}</div>}
-
-            <button type="submit" className="gate-submit">
-              <Unlock size={16} />
-              <span>OPEN_THE_TESSERACT</span>
+            <button
+              type="submit"
+              disabled={checkingAuth}
+              className="tesseract-submit-btn"
+            >
+              {checkingAuth ? 'SYNCHRONIZING_DIMENSION...' : 'TRANSMIT_COORDINATES'}
             </button>
           </form>
         </main>
-      )}
-
-      {/* 5. 解锁后：星际穿越五维书架主界面 */}
-      {authState === 'unlocked' && (
-        <main className="tesseract-workspace">
-          {/* 顶部维度与坐标抬头 */}
-          <section className="tesseract-hero">
-            <div className="hero-left">
-              <div className="hero-kicker">
-                <span className="pulse-dot" />
-                <span>DIMENSION_05 // GRAVITY_LINK_ESTABLISHED</span>
-              </div>
-              <h1>TESSERACT ARCHIVE</h1>
-              <p>
-                Every spine on this shelf is a world-line in your private research repository. Click a volume to inspect its timeline or stream the document directly.
-              </p>
-            </div>
-
-            <div className="hero-telemetry">
-              <div className="telemetry-box">
-                <span>VOLUMES</span>
-                <strong>{catalog.stats?.totalItems ?? catalog.items?.length ?? 0}</strong>
-              </div>
-              <div className="telemetry-box">
-                <span>SECTORS</span>
-                <strong>{catalog.stats?.totalFolders ?? catalog.folders?.length ?? 0}</strong>
-              </div>
-              <div className="telemetry-box">
-                <span>MASS</span>
-                <strong>{formatBytes(catalog.stats?.totalBytes || 0)}</strong>
-              </div>
-              <div className="telemetry-box">
-                <span>EPOCH</span>
-                <strong>{formatDate(catalog.generatedAt)}</strong>
-              </div>
-            </div>
-          </section>
-
-          {/* 搜索与多维切片过滤控制台 */}
-          <section className="tesseract-controls">
-            <label className="tesseract-search">
-              <Search size={16} />
+      ) : (
+        /* 已解锁状态：星际穿越五维立体书架 */
+        <div className="tesseract-workspace">
+          {/* 左侧：时空象限（文件夹分类）与检索 */}
+          <aside className="tesseract-sidebar">
+            <div className="tesseract-search-box">
+              <Search className="text-amber-400/60" size="{14}"/>
               <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Query world-lines by title, path, or extension..."
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="SEARCH_WORLDLINE..."
               />
-              {search && (
-                <button type="button" onClick={() => setSearch('')} aria-label="Clear search">
-                  <X size={14} />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="text-white/40 hover:text-white">
+                  <X size="{13}"/>
                 </button>
               )}
-            </label>
-
-            <div className="tesseract-filters" role="tablist">
-              {[
-                ['all', 'ALL_DIMENSIONS'],
-                ['pdf', 'PDF'],
-                ['epub', 'EPUB'],
-                ['word', 'WORD'],
-                ['ppt', 'SLIDES'],
-                ['note', 'NOTES']
-              ].map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  className={typeFilter === key ? 'is-active' : ''}
-                  onClick={() => setTypeFilter(key)}
-                >
-                  {label}
-                </button>
-              ))}
             </div>
-          </section>
 
-          {/* 顶层时空象限切换条 (Top Categories) */}
-          <nav className="tesseract-sectors" aria-label="Primary library sectors">
-            <button
-              type="button"
-              className={!activeFolder ? 'is-active' : ''}
-              onClick={() => setActiveFolder('')}
-            >
-              ORIGIN_CORE
-            </button>
-            {topCategories.map((folder) => (
+            <div className="tesseract-section-label">
+              <span>SPACETIME_SECTORS</span>
+              <span>{catalog.items.length} VOLS</span>
+            </div>
+
+            <nav className="tesseract-folder-list">
               <button
-                key={folder.path}
-                type="button"
-                className={
-                  activeFolder === folder.path || activeFolder.startsWith(`${folder.path}/`)
-                    ? 'is-active'
-                    : ''
-                }
-                onClick={() => setActiveFolder(folder.path)}
+                onClick={() => setSelectedFolder('ALL')}
+                className={`tesseract-folder-item ${selectedFolder === 'ALL' ? 'active' : ''}`}
               >
-                <span>{folder.name}</span>
-                <small>{folder.totalCount}</small>
+                <Folder size="{14}"/>
+                <span className="truncate flex-1 text-left">ALL_TIMELINES</span>
+                <span className="count">{catalog.items.length}</span>
               </button>
-            ))}
-          </nav>
 
-          {/* 路径面包屑导航 */}
-          <div className="tesseract-breadcrumbs">
-            <button type="button" onClick={() => setActiveFolder('')}>
-              TESSERACT_ROOT
-            </button>
-            {breadcrumbs.map((crumb) => (
-              <span key={crumb.path}>
-                <i>/</i>
-                <button type="button" onClick={() => setActiveFolder(crumb.path)}>
-                  {crumb.name}
+              {catalog.folders.map((folder) => {
+                const count = catalog.items.filter(
+                  (i) => i.folder === folder || i.folder.startsWith(folder)
+                ).length;
+                return (
+                  <button
+                    key={folder}
+                    onClick={() => setSelectedFolder(folder)}
+                    className={`tesseract-folder-item ${selectedFolder === folder ? 'active' : ''}`}
+                  >
+                    <Folder size="{14}"/>
+                    <span className="truncate flex-1 text-left">{folder}</span>
+                    <span className="count">{count}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
+
+          {/* 中央核心：五维超立方体立体书架走廊 */}
+          <main className="tesseract-chamber">
+            {loadingCatalog ? (
+              <div className="tesseract-empty-state">
+                <div className="tesseract-spinner" />
+                <p>CONSTRUCTING 5D BOOKSHELF MATRIX...</p>
+              </div>
+            ) : catalogError ? (
+              <div className="tesseract-empty-state">
+                <p className="text-amber-300 max-w-md text-center">{catalogError}</p>
+                <button onClick={fetchLibraryCatalog} className="tesseract-action-btn mt-4">
+                  RETRY_SYNC
                 </button>
-              </span>
-            ))}
-            {activeFolder && (
-              <button
-                type="button"
-                className="crumb-up"
-                onClick={() => setActiveFolder(parentFolder(activeFolder))}
-              >
-                ↑ ASCEND_DIMENSION
-              </button>
-            )}
-          </div>
-
-          {catalogError && <div className="tesseract-alert">{catalogError}</div>}
-
-          {/* 核心主体：五维空间书架矩阵 + 右侧虫洞检视抽屉 */}
-          <div className="tesseract-stage-grid">
-            <section className={`tesseract-alcove ${dimensionTilt ? 'has-tilt' : ''}`}>
-              {/* 顶部与底部的五维光栅装饰梁 */}
-              <div className="alcove-beam top" />
-
-              {/* 子象限文件夹舱门 (Sub-Sectors) */}
-              {childFolders.length > 0 && (
-                <div className="sector-bay">
-                  <div className="bay-header">
-                    <span>PARALLEL_TIME_CHAMBERS ({childFolders.length})</span>
-                    <div className="bay-line" />
-                  </div>
-                  <div className="sector-cards">
-                    {childFolders.map((folder) => (
-                      <button
-                        key={folder.path}
-                        type="button"
-                        className="sector-card"
-                        onClick={() => setActiveFolder(folder.path)}
-                      >
-                        <div className="sector-card-glow" />
-                        <Folder size={18} className="text-amber-400 shrink-0" />
-                        <div className="sector-card-info">
-                          <strong>{folder.name}</strong>
-                          <span>
-                            {folder.totalCount} files · {formatBytes(folder.totalBytes)}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* 📚 五维空间竖立书脊阵列 (3D Book Spines Shelf) */}
-              <div className="bookshelf-chamber">
-                <div className="bay-header">
-                  <span>
-                    {normalizedQuery
-                      ? `SEARCH_RESONANCE (${visibleItems.length})`
-                      : `PHYSICAL_SPINES_IN_SECTOR (${visibleItems.length})`}
-                  </span>
-                  <div className="bay-line" />
-                </div>
-
-                {visibleItems.length > 0 ? (
-                  <div className="tesseract-shelf-rows">
-                    {visibleItems.map((item, idx) => {
-                      const meta = TYPE_META[item.type] || TYPE_META.document;
-                      const Icon = meta.icon;
-                      const isSelected = selectedItem?.id === item.id;
-                      const widthPx = spineThickness(item.size);
-                      const maxSize = catalog.stats?.maxItemBytes || 50 * 1024 * 1024;
-                      const massRatio = Math.max(
-                        0.12,
-                        Math.min(1, Math.log1p(item.size || 1) / Math.log1p(maxSize))
-                      );
-
-                      return (
-                        <div
-                          key={item.id}
-                          role="button"
-                          tabIndex={0}
-                          style={{ '--spine-w': `${widthPx}px`, '--mass': `${Math.round(massRatio * 100)}%` }}
-                          className={`tesseract-spine tone-${meta.tone} ${isSelected ? 'is-selected' : ''}`}
-                          onClick={() => setSelectedItem(item)}
-                          onDoubleClick={() => {
-                            if (item.type === 'pdf') setReadingItem(item);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              setSelectedItem(item);
-                            }
-                          }}
-                        >
-                          {/* 书脊顶部摩斯光刻编号 */}
-                          <div className="spine-head">
-                            <span className="spine-index">#{String(idx + 1).padStart(2, '0')}</span>
-                            <Icon size={13} />
-                          </div>
-
-                          {/* 竖排书名主干 */}
-                          <div className="spine-body">
-                            <span className="spine-title">{item.title}</span>
-                          </div>
-
-                          {/* 书脊底部质量刻度与格式烙印 */}
-                          <div className="spine-foot">
-                            <div className="spine-mass-bar">
-                              <i />
-                            </div>
-                            <span className="spine-ext">{meta.label}</span>
-                            <small className="spine-size">{formatBytes(item.size)}</small>
-                          </div>
-
-                          {/* 悬浮抽出时的侧面书页光效 */}
-                          <div className="spine-pages-edge" />
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  !loadingCatalog &&
-                  childFolders.length === 0 && (
-                    <div className="tesseract-empty">
-                      <Compass size={28} className="text-amber-400/50 mb-2" />
-                      <p>// NO GRAVITATIONAL WORLD-LINES DETECTED IN THIS COORDINATE.</p>
-                    </div>
-                  )
+              </div>
+            ) : filteredBooks.length === 0 ? (
+              <div className="tesseract-empty-state">
+                <p>NO VOLUMES DETECTED IN THIS TIMELINE SECTOR.</p>
+                {selectedFolder !== 'ALL' && (
+                  <button
+                    onClick={() => setSelectedFolder('ALL')}
+                    className="tesseract-action-btn mt-4"
+                  >
+                    RESET_TO_ALL_TIMELINES
+                  </button>
                 )}
               </div>
+            ) : (
+              <div
+                className="tesseract-shelves-viewport"
+                style={{
+                  transform: `perspective(1600px) rotateY(${tiltAngle}deg)`
+                }}
+              >
+                {shelfRows.map((row, rowIndex) => (
+                  <div key={rowIndex} className="tesseract-shelf-bay">
+                    {/* 书架背后的五维水平引力光束 */}
+                    <div className="shelf-back-beam" />
 
-              <div className="alcove-beam bottom" />
-            </section>
+                    {/* 竖立的 3D 书脊阵列 */}
+                    <div className="shelf-spines-row">
+                      {row.map((book, idx) => {
+                        const isSelected = selectedBook?.id === book.id;
+                        // 根据标题长度和文件大小生成富有节奏感的真实书脊高度与厚度
+                        const hash = book.title
+                          .split('')
+                          .reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+                        const spineHeight = 225 + (hash % 42);
+                        const spineWidth = 44 + (hash % 18);
+                        const hueShift = idx % 3 === 0 ? 'amber' : idx % 3 === 1 ? 'gold' : 'cyan';
 
-            {/* 右侧：五维文献检视与量子传输面板 (Inspector Drawer) */}
-            <aside className={`tesseract-inspector ${selectedItem ? 'is-open' : ''}`}>
-              {selectedItem ? (
-                <div className="inspector-content">
-                  <div className="inspector-header">
-                    <span className="inspector-badge">
-                      {(TYPE_META[selectedItem.type] || TYPE_META.document).label} // TELEMETRY
-                    </span>
-                    <button
-                      type="button"
-                      className="inspector-close"
-                      onClick={() => setSelectedItem(null)}
-                      aria-label="Close inspector"
-                    >
-                      <X size={16} />
-                    </button>
+                        return (
+                          <div
+                            key={book.id}
+                            onClick={() => setSelectedBook(book)}
+                            onDoubleClick={() => book.isPdf && setReadingBook(book)}
+                            style={{
+                              height: `${spineHeight}px`,
+                              width: `${spineWidth}px`
+                            }}
+                            className={`tesseract-book-spine tone-${hueShift} ${
+                              isSelected ? 'is-selected' : ''
+                            }`}
+                            title={`${book.title} (Double-click to open)`}
+                          >
+                            {/* 书脊顶部与底部金属箍线 */}
+                            <div className="spine-band top" />
+                            <div className="spine-cord" />
+
+                            {/* 竖排书名 */}
+                            <div className="spine-title-wrap">
+                              <span className="spine-title">{book.title}</span>
+                            </div>
+
+                            {/* 底部格式烙印 */}
+                            <span className="spine-ext">{book.ext}</span>
+                            <div className="spine-band bottom" />
+
+                            {/* 3D 书页侧面厚度层 */}
+                            <div className="spine-side-wall" />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* 书架底部发光超立方体横梁 */}
+                    <div className="shelf-plank">
+                      <div className="shelf-plank-top" />
+                      <div className="shelf-plank-front">
+                        <span>TESSERACT_BAY // 0{rowIndex + 1}</span>
+                        <span>GRAVITY_LOCK: STABLE</span>
+                      </div>
+                    </div>
                   </div>
+                ))}
+              </div>
+            )}
+          </main>
 
-                  <h2 className="inspector-title">{selectedItem.title}</h2>
-                  <p className="inspector-path">{selectedItem.relativePath}</p>
+          {/* 右侧：五维观测台详情与阅读器入口 */}
+          {selectedBook && (
+            <aside className="tesseract-inspector">
+              <div className="flex items-center justify-between border-b border-amber-500/20 pb-3 mb-5">
+                <span className="text-[10px] font-mono tracking-[0.3em] text-amber-400 uppercase">
+                  VOLUME_TELEMETRY
+                </span>
+                <button
+                  onClick={() => setSelectedBook(null)}
+                  className="text-white/40 hover:text-white md:hidden"
+                >
+                  <X size="{15}"/>
+                </button>
+              </div>
 
-                  <dl className="inspector-metrics">
-                    <div>
-                      <dt>MASS</dt>
-                      <dd>{formatBytes(selectedItem.size)}</dd>
-                    </div>
-                    <div>
-                      <dt>TIMESTAMP</dt>
-                      <dd>{formatDate(selectedItem.mtime)}</dd>
-                    </div>
-                    <div>
-                      <dt>FORMAT</dt>
-                      <dd>{selectedItem.ext?.toUpperCase() || 'FILE'}</dd>
-                    </div>
-                  </dl>
-
-                  {selectedItem.isTextNote ? (
-                    <div className="inspector-note">
-                      {noteState.status === 'loading' && <p>Decoding Morse transmission…</p>}
-                      {noteState.status === 'error' && <p>{noteState.content}</p>}
-                      {noteState.status === 'ready' && <pre>{noteState.content}</pre>}
-                    </div>
-                  ) : (
-                    <div className="inspector-actions">
-                      {selectedItem.type === 'pdf' && (
-                        <button
-                          type="button"
-                          className="inspector-btn primary"
-                          onClick={() => setReadingItem(selectedItem)}
-                        >
-                          <BookOpen size={16} />
-                          <span>ENGAGE_READER</span>
-                        </button>
-                      )}
-                      {selectedItem.canInlinePreview && selectedItem.type !== 'pdf' && (
-                        <a
-                          className="inspector-btn primary"
-                          href={selectedItem.fileUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <ExternalLink size={16} />
-                          <span>OPEN_STREAM</span>
-                        </a>
-                      )}
-                      <a className="inspector-btn" href={selectedItem.downloadUrl}>
-                        <Download size={16} />
-                        <span>DOWNLOAD_ORIGINAL</span>
-                      </a>
-                    </div>
-                  )}
+              {/* 3D 悬浮书封预览模型 */}
+              <div className="inspector-3d-book">
+                <div className="inspector-book-cover">
+                  <div className="text-[9px] font-mono tracking-[0.25em] text-amber-300/70 uppercase">
+                    {selectedBook.folder}
+                  </div>
+                  <div className="font-bold text-sm text-white leading-snug line-clamp-4 my-auto">
+                    {selectedBook.title}
+                  </div>
+                  <div className="flex justify-between items-center text-[9px] font-mono text-amber-400/80 border-t border-amber-500/20 pt-2">
+                    <span>{selectedBook.ext}</span>
+                    <span>{formatBytes(selectedBook.size)}</span>
+                  </div>
                 </div>
-              ) : (
-                <div className="inspector-placeholder">
-                  <Layers size={28} className="text-amber-400/40" />
-                  <h3>TESSERACT_TRANSCEIVER</h3>
-                  <p>
-                    Select any physical book spine from the 5D shelf to inspect its spacetime metadata, read embedded notes, or stream the PDF across the horizon.
+              </div>
+
+              <div className="space-y-3 text-xs font-mono mb-6">
+                <div className="inspector-meta-row">
+                  <span className="label">DESIGNATION</span>
+                  <span className="value text-white">{selectedBook.rawName}</span>
+                </div>
+                <div className="inspector-meta-row">
+                  <span className="label">SECTOR</span>
+                  <span className="value text-amber-300">{selectedBook.folder}</span>
+                </div>
+                <div className="inspector-meta-row">
+                  <span className="label">MASS / SIZE</span>
+                  <span className="value">{formatBytes(selectedBook.size)}</span>
+                </div>
+              </div>
+
+              {selectedBook.note && (
+                <div className="inspector-note-box">
+                  <div className="text-[10px] text-amber-400/80 tracking-widest uppercase mb-2 flex items-center gap-1.5">
+                    <FileText size="{12}"/>
+                    <span>FIELD_NOTES</span>
+                  </div>
+                  <p className="text-xs text-white/75 leading-relaxed whitespace-pre-wrap">
+                    {selectedBook.note}
                   </p>
                 </div>
               )}
-            </aside>
-          </div>
-        </main>
-      )}
 
-      {/* 6. 内嵌全屏 PDF 阅读器模态框 */}
-      {readingItem && (
-        <LibraryPdfReader item={readingItem} onClose={() => setReadingItem(null)} />
+              <div className="mt-auto pt-6 space-y-3">
+                {selectedBook.isPdf && (
+                  <button
+                    onClick={() => setReadingBook(selectedBook)}
+                    className="tesseract-primary-btn w-full"
+                  >
+                    <Eye size="{15}"/>
+                    <span>ENGAGE_READER</span>
+                    <ChevronRight className="ml-auto" size="{14}"/>
+                  </button>
+                )}
+
+                <a
+                  href={selectedBook.downloadUrl}
+                  className="tesseract-secondary-btn w-full"
+                >
+                  <Download size="{14}"/>
+                  <span>EXTRACT_VOLUME ({selectedBook.ext})</span>
+                </a>
+              </div>
+            </aside>
+          )}
+        </div>
       )}
     </div>
   );
