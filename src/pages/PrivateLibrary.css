@@ -1,12 +1,12 @@
 /* ==========================================================================
-   INTERSTELLAR 5D TESSERACT LATTICE & BOOKSHELF CHAMBER
+   INTERSTELLAR 5D TESSERACT & REAL PDF COVER BOOKSHELF
    ========================================================================== */
 
 .tesseract-root {
   position: relative;
   width: 100vw;
   min-height: 100vh;
-  background-color: #090806;
+  background-color: #0c0a07;
   color: #fef3c7;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   overflow-x: hidden;
@@ -23,7 +23,7 @@
   pointer-events: none;
 }
 
-/* --- 阶段一：五维超立方体中央悬浮解锁舱 --- */
+/* --- 阶段一：五维超立方体中央悬浮密钥舱 --- */
 .tesseract-auth-overlay {
   position: fixed;
   inset: 0;
@@ -32,7 +32,7 @@
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  background: radial-gradient(circle at center, rgba(9, 8, 6, 0.25) 0%, rgba(9, 8, 6, 0.72) 100%);
+  background: radial-gradient(circle at center, rgba(12, 10, 7, 0.15) 0%, rgba(8, 6, 4, 0.68) 100%);
 }
 
 .tesseract-auth-box {
@@ -40,19 +40,19 @@
   width: 100%;
   max-width: 420px;
   padding: 2.4rem 2.1rem;
-  background: rgba(12, 10, 7, 0.84);
-  border: 1px solid rgba(217, 155, 78, 0.48);
-  backdrop-filter: blur(14px);
+  background: rgba(14, 11, 8, 0.86);
+  border: 1px solid rgba(226, 184, 112, 0.55);
+  backdrop-filter: blur(16px);
   box-shadow:
     0 25px 70px rgba(0, 0, 0, 0.92),
-    0 0 45px rgba(217, 155, 78, 0.18);
+    0 0 50px rgba(226, 184, 112, 0.2);
 }
 
 .tesseract-auth-corner {
   position: absolute;
   width: 10px;
   height: 10px;
-  border-color: #f3c878;
+  border-color: #f6e3ba;
 }
 .tesseract-auth-corner.tl { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; }
 .tesseract-auth-corner.tr { top: -1px; right: -1px; border-top: 2px solid; border-right: 2px solid; }
@@ -62,23 +62,32 @@
 .tesseract-input {
   width: 100%;
   padding: 0.85rem 2.5rem 0.85rem 1rem;
-  background: rgba(0, 0, 0, 0.68);
-  border: 1px solid rgba(217, 155, 78, 0.45);
-  color: #fef3c7;
+  background: rgba(10, 8, 5, 0.9) !important;
+  border: 1px solid rgba(226, 184, 112, 0.5);
+  color: #fef3c7 !important;
   font-size: 13px;
   letter-spacing: 0.18em;
 }
 
+/* 彻底杜绝浏览器自动填充把密码框变成刺眼白底 */
+.tesseract-input:-webkit-autofill,
+.tesseract-input:-webkit-autofill:hover,
+.tesseract-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #fef3c7 !important;
+  -webkit-box-shadow: 0 0 0px 1000px #0c0906 inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 .tesseract-input:focus {
-  border-color: #f3c878;
-  box-shadow: 0 0 18px rgba(217, 155, 78, 0.32);
+  border-color: #f6e3ba;
+  box-shadow: 0 0 18px rgba(226, 184, 112, 0.35);
 }
 
 .tesseract-submit-btn {
   width: 100%;
   padding: 0.9rem;
-  background: linear-gradient(90deg, #6b4c28, #b88642 50%, #6b4c28);
-  border: 1px solid #f3c878;
+  background: linear-gradient(90deg, #5e4727, #a88448 50%, #5e4727);
+  border: 1px solid #f6e3ba;
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -89,12 +98,12 @@
 }
 
 .tesseract-submit-btn:hover:not(:disabled) {
-  background: #d99b4e;
+  background: #d4b06a;
   color: #000;
-  box-shadow: 0 0 28px rgba(217, 155, 78, 0.55);
+  box-shadow: 0 0 28px rgba(246, 227, 186, 0.55);
 }
 
-/* --- 阶段二：五维空间俯冲穿梭 HUD --- */
+/* --- 阶段二：五维空间旋转对齐与穿廊过渡 HUD --- */
 .tesseract-diving-hud {
   position: fixed;
   inset: 0;
@@ -106,39 +115,40 @@
   gap: 1.25rem;
   pointer-events: none;
   font-size: 11px;
-  letter-spacing: 0.45em;
-  color: #fde68a;
-  text-shadow: 0 0 18px rgba(251, 191, 36, 0.8);
+  letter-spacing: 0.4em;
+  color: #f6e3ba;
+  text-shadow: 0 0 18px rgba(246, 227, 186, 0.85);
 }
 
 .diving-reticle {
   width: 76px;
   height: 76px;
-  border: 1px solid rgba(251, 191, 36, 0.65);
+  border: 1px solid rgba(246, 227, 186, 0.75);
   border-radius: 50%;
-  box-shadow: 0 0 35px rgba(245, 158, 11, 0.4), inset 0 0 20px rgba(245, 158, 11, 0.3);
-  animation: reticle-pulse 0.8s ease-in-out infinite alternate;
+  box-shadow: 0 0 35px rgba(212, 176, 106, 0.45), inset 0 0 20px rgba(212, 176, 106, 0.35);
+  animation: reticle-pulse 0.75s ease-in-out infinite alternate;
 }
 
 @keyframes reticle-pulse {
-  from { transform: scale(0.85); opacity: 0.6; }
-  to { transform: scale(1.25); opacity: 1; }
+  from { transform: scale(0.85) rotate(0deg); opacity: 0.65; }
+  to { transform: scale(1.22) rotate(45deg); opacity: 1; }
 }
 
-/* --- 阶段三：进入五维书架舱室内部 --- */
+/* --- 阶段三：进入五维书架内部（支持 60+ 本书顺畅滚动） --- */
 .tesseract-inside-stage {
   position: relative;
   z-index: 20;
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 @keyframes tesseract-chamber-enter {
   0% {
     opacity: 0;
-    transform: scale(0.9) translateY(24px);
+    transform: scale(0.94) translateY(18px);
   }
   100% {
     opacity: 1;
@@ -147,15 +157,15 @@
 }
 
 .animate-tesseract-enter {
-  animation: tesseract-chamber-enter 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: tesseract-chamber-enter 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .tesseract-inside-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: 1fr auto;
-  min-height: 100vh;
-  padding-bottom: 5.5rem;
+  grid-template-columns: 1fr 330px;
+  height: 100vh;
+  overflow: hidden;
 }
 
 @media (max-width: 1024px) {
@@ -171,107 +181,103 @@
   }
 }
 
-/* --- 中央 3D 实体书柜 --- */
+/* --- 左侧主舱：可纵向滚动的多层背光书柜（顶部对齐，绝不截断） --- */
 .tesseract-chamber {
   position: relative;
-  padding: 2.5rem 2rem 3rem;
+  height: 100vh;
+  padding: 2rem 2rem 6.5rem;
   overflow-y: auto;
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-}
-
-.tesseract-3d-room {
-  position: relative;
-  width: 100%;
-  max-width: 960px;
-  transform-style: preserve-3d;
-  transition: transform 0.22s ease-out;
+  justify-content: flex-start;
 }
 
 .tesseract-bookcase-frame {
   position: relative;
-  background: rgba(14, 10, 6, 0.88);
+  width: 100%;
+  max-width: 960px;
+  background: rgba(14, 11, 7, 0.9);
   border-left: 10px solid #26170a;
   border-right: 10px solid #26170a;
-  border-top: 2px solid rgba(245, 158, 11, 0.5);
+  border-top: 2px solid rgba(226, 184, 112, 0.55);
   border-bottom: 12px solid #1c1006;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
   box-shadow:
     0 30px 90px rgba(0, 0, 0, 0.95),
-    0 0 60px rgba(217, 155, 78, 0.18),
+    0 0 60px rgba(212, 176, 106, 0.16),
     inset 0 0 60px rgba(0, 0, 0, 0.85);
-  transform-style: preserve-3d;
 }
 
 .bookcase-cornice {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.65rem 1.25rem;
-  background: linear-gradient(90deg, #1b1006, #301d0b 50%, #1b1006);
-  border-bottom: 2px solid rgba(245, 158, 11, 0.45);
-  font-size: 9px;
-  letter-spacing: 0.28em;
-  color: #fcd34d;
+  padding: 0.75rem 1.35rem;
+  background: linear-gradient(90deg, #1b1107, #2f1e0d 50%, #1b1107);
+  border-bottom: 2px solid rgba(226, 184, 112, 0.45);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  color: #f6e3ba;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.75);
 }
 
 .tesseract-shelf-bay {
   position: relative;
-  padding-top: 2.2rem;
-  transform-style: preserve-3d;
+  padding-top: 2rem;
 }
 
 .shelf-back-slits {
   position: absolute;
-  inset: 0 0 24px 0;
+  inset: 0 0 26px 0;
   background:
     repeating-linear-gradient(
       90deg,
-      rgba(251, 191, 36, 0.15) 0px,
-      rgba(251, 191, 36, 0.15) 2px,
+      rgba(246, 227, 186, 0.14) 0px,
+      rgba(246, 227, 186, 0.14) 2px,
       rgba(12, 9, 5, 0.92) 2px,
       rgba(12, 9, 5, 0.92) 22px
     ),
-    radial-gradient(ellipse at center bottom, rgba(245, 158, 11, 0.28) 0%, transparent 75%);
+    radial-gradient(ellipse at center bottom, rgba(212, 176, 106, 0.26) 0%, transparent 75%);
   pointer-events: none;
 }
 
 .shelf-top-downlight {
   position: absolute;
   top: 0;
-  left: 5%;
-  right: 5%;
-  height: 28px;
-  background: radial-gradient(ellipse at center top, rgba(253, 224, 71, 0.22), transparent 75%);
+  left: 4%;
+  right: 4%;
+  height: 26px;
+  background: radial-gradient(ellipse at center top, rgba(246, 227, 186, 0.22), transparent 75%);
   pointer-events: none;
 }
 
+/* 严格单排（nowrap），每本书稳稳立在书架隔板上，绝不折行悬空 */
 .shelf-books-row {
   position: relative;
   z-index: 5;
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
-  gap: 6px;
-  padding: 0 1.75rem;
-  min-height: 252px;
-  flex-wrap: wrap;
-  transform-style: preserve-3d;
+  gap: 10px;
+  padding: 0 2rem;
+  min-height: 242px;
+  flex-wrap: nowrap;
 }
 
 /* --- 单本 3D 精装书脊与书页细节 --- */
 .book-3d-volume {
   position: relative;
+  flex-shrink: 0;
   cursor: pointer;
   user-select: none;
   transform-style: preserve-3d;
-  transform: translateZ(0) rotateX(0deg);
-  transition:
-    transform 0.36s cubic-bezier(0.22, 1, 0.36, 1),
-    filter 0.3s ease;
+  transform: translateZ(0);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .book-spine-face {
@@ -284,7 +290,7 @@
   justify-content: space-between;
   padding: 8px 3px;
   border-radius: 3px 3px 0 0;
-  border: 1px solid rgba(251, 191, 36, 0.32);
+  border: 1px solid rgba(246, 227, 186, 0.34);
   border-bottom: none;
   box-shadow:
     -5px 0 12px rgba(0, 0, 0, 0.85),
@@ -316,7 +322,7 @@
   top: 0;
   left: 2px;
   right: 2px;
-  height: 14px;
+  height: 12px;
   background: repeating-linear-gradient(
     90deg,
     #e7dcc8 0px,
@@ -326,15 +332,15 @@
   );
   border: 1px solid #5c4028;
   transform-origin: top center;
-  transform: rotateX(78deg) translateY(-13px);
+  transform: rotateX(78deg) translateY(-11px);
 }
 
 .book-right-pages {
   position: absolute;
   top: 2px;
   bottom: 0;
-  right: -10px;
-  width: 10px;
+  right: -9px;
+  width: 9px;
   background: repeating-linear-gradient(
     180deg,
     #dfd3be 0px,
@@ -348,23 +354,23 @@
 
 .book-3d-volume:hover,
 .book-3d-volume.is-selected {
-  transform: translateZ(38px) translateY(-12px) rotateX(6deg);
+  transform: translateY(-14px) scale(1.04);
   z-index: 25;
 }
 
 .book-3d-volume:hover .book-spine-face,
 .book-3d-volume.is-selected .book-spine-face {
-  border-color: #fbbf24;
+  border-color: #f6e3ba;
   box-shadow:
-    0 18px 32px rgba(0, 0, 0, 0.95),
-    0 0 24px rgba(245, 158, 11, 0.55),
+    0 16px 30px rgba(0, 0, 0, 0.95),
+    0 0 24px rgba(246, 227, 186, 0.55),
     inset 4px 0 8px rgba(254, 243, 199, 0.3);
 }
 
 .spine-gold-rib {
   width: 100%;
   height: 3px;
-  background: linear-gradient(90deg, #78350f, #fbbf24 50%, #78350f);
+  background: linear-gradient(90deg, #78350f, #f6e3ba 50%, #78350f);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
@@ -388,10 +394,10 @@
   text-orientation: mixed;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: #fef3c7;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
-  max-height: 145px;
+  max-height: 138px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -399,7 +405,7 @@
 
 .spine-call-number {
   font-size: 8px;
-  color: rgba(253, 224, 71, 0.65);
+  color: rgba(246, 227, 186, 0.68);
   letter-spacing: 0.08em;
   margin-bottom: 2px;
 }
@@ -410,7 +416,7 @@
   letter-spacing: 0.1em;
   padding: 1px 4px;
   background: rgba(0, 0, 0, 0.55);
-  border: 1px solid rgba(251, 191, 36, 0.4);
+  border: 1px solid rgba(246, 227, 186, 0.4);
   color: #fde68a;
   margin-bottom: 4px;
 }
@@ -422,43 +428,45 @@
 }
 
 .plank-top-surface {
-  height: 16px;
-  background: linear-gradient(180deg, #2b1608 0%, #47240e 100%);
-  border-top: 1px solid rgba(251, 191, 36, 0.5);
-  transform: perspective(500px) rotateX(40deg);
+  height: 15px;
+  background: linear-gradient(180deg, #2b180a 0%, #4a2810 100%);
+  border-top: 1px solid rgba(246, 227, 186, 0.5);
+  transform: perspective(500px) rotateX(38deg);
   transform-origin: bottom center;
-  box-shadow: inset 0 4px 12px rgba(245, 158, 11, 0.25);
+  box-shadow: inset 0 4px 12px rgba(212, 176, 106, 0.25);
 }
 
 .plank-front-edge {
   height: 26px;
-  background: linear-gradient(180deg, #241206 0%, #120903 100%);
-  border-top: 2px solid #b45309;
-  border-bottom: 2px solid #451a03;
+  background: linear-gradient(180deg, #241307 0%, #120903 100%);
+  border-top: 2px solid #b47832;
+  border-bottom: 2px solid #3d1d06;
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.95);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 1.25rem;
   font-size: 9px;
-  letter-spacing: 0.25em;
-  color: rgba(253, 224, 71, 0.7);
+  letter-spacing: 0.22em;
+  color: rgba(246, 227, 186, 0.75);
 }
 
 .plank-brass-strip {
   flex: 1;
   height: 1px;
-  margin: 0 1.5rem;
-  background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.55), transparent);
+  margin: 0 1.2rem;
+  background: linear-gradient(90deg, transparent, rgba(246, 227, 186, 0.55), transparent);
 }
 
-/* --- 右侧 3D 精装书检视面板 --- */
+/* --- 右侧：真实 PDF 第一页封面检视面板 --- */
 .tesseract-inspector {
-  width: 310px;
-  background: rgba(11, 8, 5, 0.9);
-  border-left: 1px solid rgba(245, 158, 11, 0.25);
-  backdrop-filter: blur(16px);
-  padding: 1.5rem;
+  width: 330px;
+  height: 100vh;
+  overflow-y: auto;
+  background: rgba(12, 9, 6, 0.92);
+  border-left: 1px solid rgba(226, 184, 112, 0.3);
+  backdrop-filter: blur(18px);
+  padding: 1.5rem 1.5rem 6rem;
   display: flex;
   flex-direction: column;
 }
@@ -466,50 +474,114 @@
 .inspector-3d-showcase {
   display: flex;
   justify-content: center;
-  padding: 1rem 0 1.5rem;
-  perspective: 900px;
+  padding: 0.75rem 0 1.35rem;
+  perspective: 1000px;
 }
 
-.showcase-hardcover {
+.showcase-book-3d {
   position: relative;
-  width: 146px;
-  height: 202px;
-  padding: 1rem 1rem 1rem 1.35rem;
-  background: linear-gradient(135deg, #3b170c 0%, #1a0a05 100%);
-  border: 1px solid #fbbf24;
+  width: 168px;
+  height: 232px;
+  background: #140d07;
+  border: 1px solid rgba(246, 227, 186, 0.65);
   box-shadow:
-    -10px 14px 28px rgba(0, 0, 0, 0.9),
-    4px -2px 0 #dfd3be,
-    5px -3px 0 #9c8b75;
-  display: flex;
-  flex-direction: column;
-  transform: rotateY(-16deg) rotateX(5deg);
-  transition: transform 0.35s ease;
+    -14px 16px 32px rgba(0, 0, 0, 0.92),
+    0 0 28px rgba(212, 176, 106, 0.22);
+  transform-style: preserve-3d;
+  transform: rotateY(-15deg) rotateX(4deg);
+  transition: transform 0.38s ease;
+  overflow: visible;
 }
 
-.showcase-hardcover:hover {
-  transform: rotateY(-6deg) rotateX(2deg) scale(1.03);
+.showcase-book-3d:hover {
+  transform: rotateY(-4deg) rotateX(1deg) scale(1.03);
 }
 
-.hardcover-spine-hinge {
+/* 立体书封左侧书脊折痕与右侧纸张切口 */
+.showcase-book-spine-side {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 8px;
-  width: 2px;
-  background: rgba(251, 191, 36, 0.35);
+  left: -10px;
+  width: 10px;
+  background: linear-gradient(90deg, #1b0f06, #3d2410);
+  border-left: 1px solid rgba(246, 227, 186, 0.4);
+  transform-origin: right center;
+  transform: rotateY(-75deg);
+}
+
+.showcase-book-pages-edge {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  right: -8px;
+  width: 8px;
+  background: repeating-linear-gradient(
+    180deg,
+    #e5d9c5 0px,
+    #e5d9c5 1px,
+    #9e8d76 1px,
+    #9e8d76 2px
+  );
+  transform-origin: left center;
+  transform: rotateY(75deg);
+}
+
+.showcase-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.showcase-fallback-cover {
+  width: 100%;
+  height: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #3b170c 0%, #160904 100%);
+  display: flex;
+  flex-direction: column;
+}
+
+.showcase-scan-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 8, 5, 0.65);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: #f6e3ba;
+  overflow: hidden;
+}
+
+.showcase-scan-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #f6e3ba;
+  box-shadow: 0 0 12px #f6e3ba;
+  animation: cover-scan 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes cover-scan {
+  from { top: 8%; }
+  to { top: 92%; }
 }
 
 .inspector-meta-row {
   display: flex;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.45rem 0;
-  border-bottom: 1px solid rgba(245, 158, 11, 0.14);
+  padding: 0.42rem 0;
+  border-bottom: 1px solid rgba(226, 184, 112, 0.15);
 }
 
 .inspector-meta-row .label {
-  color: rgba(251, 191, 36, 0.55);
+  color: rgba(246, 227, 186, 0.55);
 }
 
 .inspector-meta-row .value {
@@ -519,9 +591,9 @@
 
 .inspector-note-box {
   padding: 0.85rem;
-  background: rgba(245, 158, 11, 0.07);
-  border-left: 2px solid #fbbf24;
-  max-height: 170px;
+  background: rgba(226, 184, 112, 0.08);
+  border-left: 2px solid #f6e3ba;
+  max-height: 160px;
   overflow-y: auto;
 }
 
@@ -531,7 +603,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.6rem;
-  padding: 0.8rem 1rem;
+  padding: 0.78rem 1rem;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.22em;
@@ -541,43 +613,68 @@
 }
 
 .tesseract-primary-btn {
-  background: #f59e0b;
+  background: #d4b06a;
   color: #000;
-  border: 1px solid #fde68a;
+  border: 1px solid #f6e3ba;
 }
 
 .tesseract-primary-btn:hover {
-  background: #fbbf24;
-  box-shadow: 0 0 24px rgba(251, 191, 36, 0.55);
+  background: #f6e3ba;
+  box-shadow: 0 0 24px rgba(246, 227, 186, 0.55);
 }
 
 .tesseract-secondary-btn {
-  background: rgba(245, 158, 11, 0.1);
-  color: #fde68a;
-  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(226, 184, 112, 0.1);
+  color: #f6e3ba;
+  border: 1px solid rgba(226, 184, 112, 0.4);
 }
 
 .tesseract-secondary-btn:hover {
-  background: rgba(245, 158, 11, 0.22);
+  background: rgba(226, 184, 112, 0.22);
   color: #fff;
 }
 
-/* --- 底部悬浮极简控制舱 (Floating Bottom Dock) --- */
+.tesseract-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: rgba(246, 227, 186, 0.75);
+}
+
+.tesseract-spinner {
+  width: 34px;
+  height: 34px;
+  border: 2px solid rgba(226, 184, 112, 0.2);
+  border-top-color: #f6e3ba;
+  border-radius: 50%;
+  animation: tesseract-spin 0.9s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes tesseract-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- 底部悬浮极简分类与检索舱 --- */
 .tesseract-floating-dock {
   position: fixed;
-  bottom: 1.25rem;
+  bottom: 1rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: 40;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  max-width: 94vw;
-  padding: 0.55rem 1rem;
-  background: rgba(12, 9, 5, 0.88);
-  border: 1px solid rgba(217, 155, 78, 0.42);
+  gap: 0.7rem;
+  max-width: 95vw;
+  padding: 0.5rem 0.95rem;
+  background: rgba(12, 9, 6, 0.92);
+  border: 1px solid rgba(226, 184, 112, 0.45);
   backdrop-filter: blur(16px);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.9), 0 0 25px rgba(217, 155, 78, 0.15);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.92), 0 0 25px rgba(212, 176, 106, 0.18);
 }
 
 .dock-btn {
@@ -587,31 +684,31 @@
   padding: 0.35rem 0.7rem;
   font-size: 10px;
   letter-spacing: 0.18em;
-  color: #fde68a;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #f6e3ba;
+  background: rgba(226, 184, 112, 0.12);
+  border: 1px solid rgba(226, 184, 112, 0.35);
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s;
 }
 
 .dock-btn:hover {
-  background: rgba(245, 158, 11, 0.25);
+  background: rgba(226, 184, 112, 0.28);
   color: #fff;
 }
 
 .dock-divider {
   width: 1px;
   height: 18px;
-  background: rgba(245, 158, 11, 0.25);
+  background: rgba(226, 184, 112, 0.25);
 }
 
 .dock-folders {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
   overflow-x: auto;
-  max-width: 46vw;
+  max-width: 48vw;
   padding: 2px 0;
 }
 
@@ -621,8 +718,8 @@
   gap: 0.35rem;
   padding: 0.3rem 0.65rem;
   font-size: 10px;
-  letter-spacing: 0.12em;
-  color: rgba(254, 243, 199, 0.68);
+  letter-spacing: 0.1em;
+  color: rgba(254, 243, 199, 0.7);
   border: 1px solid transparent;
   cursor: pointer;
   white-space: nowrap;
@@ -631,13 +728,13 @@
 
 .dock-pill:hover {
   color: #fff;
-  background: rgba(245, 158, 11, 0.1);
+  background: rgba(226, 184, 112, 0.12);
 }
 
 .dock-pill.active {
-  color: #fbbf24;
-  background: rgba(245, 158, 11, 0.18);
-  border-color: rgba(245, 158, 11, 0.45);
+  color: #f6e3ba;
+  background: rgba(226, 184, 112, 0.22);
+  border-color: rgba(246, 227, 186, 0.5);
 }
 
 .dock-search {
@@ -645,8 +742,8 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.3rem 0.6rem;
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(226, 184, 112, 0.35);
 }
 
 .dock-search input {
@@ -654,8 +751,8 @@
   border: none;
   color: #fef3c7;
   font-size: 10px;
-  letter-spacing: 0.12em;
-  width: 110px;
+  letter-spacing: 0.1em;
+  width: 120px;
 }
 
 /* ==========================================================================
