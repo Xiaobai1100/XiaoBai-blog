@@ -145,8 +145,142 @@ const PdfCoverPreview = ({ item }) => {
 };
 
 /**
- * 2. 《星际穿越》五维超立方体 GLSL 光幕与正交书井引擎
- * 还原参考图中的香槟金/橄榄色条形码书缝透光、正交光束与多轴复合运镜
+ * 生成《星际穿越》剧照同款的「五维条纹时间拉伸光板纹理」(Striated Time-Extrusion Texture)
+ * 还原参考图中由无数书页与书缝拉长形成的木纹状金黄/香槟白/胡桃木/暗红细密条纹
+ */
+function createStriatedTimeTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#18130b';
+  ctx.fillRect(0, 0, 1024, 512);
+
+  // 绘制数百条平行的高精度五维时间细丝 (沿 U 方向无限延伸的条纹)
+  let y = 0;
+  let seed = 17;
+  const rand = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+
+  while (y < 512) {
+    const h = 1 + Math.floor(rand() * 5);
+    const r = rand();
+    if (r > 0.91) {
+      // 炽白/香槟金高光书缝光束
+      ctx.fillStyle = `rgba(255, 250, 224, ${0.65 + rand() * 0.35})`;
+    } else if (r > 0.72) {
+      // 橄榄金/暖黄铜条纹
+      ctx.fillStyle = `rgba(198, 168, 104, ${0.45 + rand() * 0.35})`;
+    } else if (r > 0.45) {
+      // 琥珀棕木质拉丝
+      ctx.fillStyle = `rgba(112, 84, 44, ${0.5 + rand() * 0.3})`;
+    } else if (r > 0.41) {
+      // 偶发的暗红/铁锈色时间引力弦 (参考图右侧细节)
+      ctx.fillStyle = 'rgba(165, 48, 30, 0.65)';
+    } else {
+      // 深胡桃木暗部阴影条
+      ctx.fillStyle = `rgba(24, 18, 11, ${0.75 + rand() * 0.25})`;
+    }
+    ctx.fillRect(0, y, 1024, h);
+    y += h;
+  }
+
+  // 叠加垂直方向的超立方体刻度横节与明暗光晕渐变
+  const grad = ctx.createLinearGradient(0, 0, 1024, 0);
+  grad.addColorStop(0, 'rgba(255, 248, 220, 0.38)');
+  grad.addColorStop(0.18, 'rgba(210, 175, 110, 0.08)');
+  grad.addColorStop(0.5, 'rgba(10, 8, 5, 0.35)');
+  grad.addColorStop(0.82, 'rgba(210, 175, 110, 0.08)');
+  grad.addColorStop(1, 'rgba(255, 248, 220, 0.38)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 1024, 512);
+
+  for (let x = 0; x < 1024; x += 64) {
+    ctx.fillStyle = x % 256 === 0 ? 'rgba(255, 245, 210, 0.28)' : 'rgba(0, 0, 0, 0.32)';
+    ctx.fillRect(x, 0, 2, 512);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.anisotropy = 4;
+  return texture;
+}
+
+/**
+ * 生成《星际穿越》「书架背面透光书缝纹理」(Backlit Bookshelf Bay Texture)
+ * 还原参考图中每个书架格子里深色的成排书本剪影，以及从书缝间射出的强烈白金光芒
+ */
+function createBacklitShelfTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  // 背景为强烈的暖白/香槟金背光光源
+  const bg = ctx.createLinearGradient(0, 0, 0, 512);
+  bg.addColorStop(0, '#fff7dc');
+  bg.addColorStop(0.5, '#e8c882');
+  bg.addColorStop(1, '#fff5d0');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, 512, 512);
+
+  let seed = 42;
+  const rand = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+
+  const tiers = 3;
+  const tierH = 512 / tiers;
+
+  for (let t = 0; t < tiers; t++) {
+    const baseY = (t + 1) * tierH;
+
+    // 每一层书架顶部的暗部遮光檐
+    ctx.fillStyle = '#1a130b';
+    ctx.fillRect(0, t * tierH, 512, 14);
+
+    // 成排的深色书本剪影，留出狭窄但极其明亮的透光书缝
+    let x = 12;
+    while (x < 496) {
+      const bookW = 14 + Math.floor(rand() * 28);
+      const bookH = tierH * (0.62 + rand() * 0.24);
+      const gap = rand() > 0.72 ? 5 + Math.floor(rand() * 8) : 1 + Math.floor(rand() * 2);
+
+      // 书本本体剪影 (深胡桃色/炭黑色，带微弱侧面反光)
+      ctx.fillStyle = rand() > 0.5 ? '#16110b' : '#211910';
+      ctx.fillRect(x, baseY - 12 - bookH, bookW, bookH);
+
+      // 书本顶部微弱受光边
+      ctx.fillStyle = 'rgba(235, 205, 145, 0.35)';
+      ctx.fillRect(x, baseY - 12 - bookH, bookW, 2);
+
+      x += bookW + gap;
+    }
+
+    // 厚实的书架横隔板 + 亮金前缘反光条
+    ctx.fillStyle = '#120d07';
+    ctx.fillRect(0, baseY - 12, 512, 12);
+    ctx.fillStyle = '#f5deb3';
+    ctx.fillRect(0, baseY - 12, 512, 2);
+  }
+
+  // 左右书架立柱边框
+  ctx.fillStyle = '#161009';
+  ctx.fillRect(0, 0, 14, 512);
+  ctx.fillRect(498, 0, 14, 512);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.anisotropy = 4;
+  return texture;
+}
+
+/**
+ * 2. 《星际穿越》五维超立方体 3D 建筑矩阵引擎 (还原 image_5ca167.png 剧照结构)
  */
 const TesseractScene3D = ({ stage, onDiveComplete }) => {
   const mountRef = useRef(null);
@@ -166,13 +300,14 @@ const TesseractScene3D = ({ stage, onDiveComplete }) => {
     if (!container) return;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0c0a07);
+    scene.background = new THREE.Color(0x120e09);
+    scene.fog = new THREE.FogExp2(0x120e09, 0.0062);
 
     const camera = new THREE.PerspectiveCamera(
-      58,
+      52,
       window.innerWidth / window.innerHeight,
       0.5,
-      500
+      420
     );
 
     const renderer = new THREE.WebGLRenderer({
@@ -181,158 +316,185 @@ const TesseractScene3D = ({ stage, onDiveComplete }) => {
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
     container.appendChild(renderer.domElement);
 
-    // 核心：编写《星际穿越》五维书架光栅与条形码光束着色器 (Barcode Light-Curtain Shader)
-    const curtainUniforms = {
-      uTime: { value: 0 },
-      uWarp: { value: 0 },
-      uDim: { value: 1.0 }
-    };
+    // 生成程序化五维条纹纹理与背光书架纹理
+    const striatedTex = createStriatedTimeTexture();
+    const shelfBayTex = createBacklitShelfTexture();
 
-    const curtainMaterial = new THREE.ShaderMaterial({
-      uniforms: curtainUniforms,
+    // 材质 1：五维条纹时间拉伸板材质（自带自发光纹理，无需担心变黑）
+    const timeSlabMat = new THREE.MeshBasicMaterial({
+      map: striatedTex,
       transparent: true,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-      blending: THREE.AdditiveBlending,
-      vertexShader: `
-        varying vec2 vUv;
-        varying vec3 vWorldPos;
-        varying float vDist;
-        void main() {
-          vUv = uv;
-          vec4 wp = modelMatrix * vec4(position, 1.0);
-          vWorldPos = wp.xyz;
-          vec4 mv = viewMatrix * wp;
-          vDist = -mv.z;
-          gl_Position = projectionMatrix * mv;
-        }
-      `,
-      fragmentShader: `
-        uniform float uTime;
-        uniform float uWarp;
-        uniform float uDim;
-        varying vec2 vUv;
-        varying vec3 vWorldPos;
-        varying float vDist;
-
-        float hash(float n) {
-          return fract(sin(n * 127.1) * 43758.5453123);
-        }
-
-        void main() {
-          // 1. 书架层格与成排书缝的条形码光栅 (模拟光线穿过不同厚度的书本缝隙)
-          float bookSlot = floor(vUv.x * 42.0);
-          float bookRand = hash(bookSlot + floor(vUv.y * 6.0) * 19.0);
-          float slitMask = smoothstep(0.35, 0.92, bookRand);
-
-          // 高频光学细丝 (还原参考图中密集的书背反光条纹)
-          float fineStreaks = 0.5 + 0.5 * sin(vUv.x * 260.0 + bookRand * 6.28);
-          fineStreaks = pow(fineStreaks, 2.2);
-
-          // 书架横梁暗格切分
-          float shelfTier = fract(vUv.y * 4.0);
-          float shelfBeam = smoothstep(0.0, 0.08, shelfTier) * smoothstep(1.0, 0.88, shelfTier);
-
-          // 沿四维时间轴流动的光波涟漪
-          float timeFlow = 0.75 + 0.25 * sin(vUv.y * 18.0 - uTime * (1.2 + uWarp * 6.0) + bookRand * 4.0);
-
-          // 色彩还原：参考图中的香槟暖白、橄榄金、琥珀棕与微弱红移丝线
-          vec3 colChampagne = vec3(1.0, 0.95, 0.82);
-          vec3 colOliveGold = vec3(0.68, 0.58, 0.34);
-          vec3 colDeepAmber = vec3(0.45, 0.30, 0.14);
-          vec3 colCrimsonThread = vec3(0.75, 0.22, 0.12);
-
-          vec3 baseCol = mix(colDeepAmber, colOliveGold, bookRand);
-          baseCol = mix(baseCol, colChampagne, pow(fineStreaks * slitMask, 1.6));
-
-          // 偶发的红色/金色时间引力弦
-          if (hash(bookSlot * 3.1) > 0.93) {
-            baseCol = mix(baseCol, colCrimsonThread, 0.65);
-          }
-
-          // 横梁边缘的高亮金属反光
-          floatledgeGlow = smoothstep(0.06, 0.0, abs(shelfTier - 0.08)) * 0.9;
-          baseCol += colChampagne * floatledgeGlow;
-
-          // 远近景深柔和衰减
-          float depthFade = smoothstep(260.0, 28.0, vDist) * smoothstep(2.0, 14.0, vDist);
-          float alpha = (slitMask * fineStreaks * 0.42 + floatledgeGlow * 0.35 + 0.06) * shelfBeam * timeFlow * depthFade * uDim;
-
-          gl_FragColor = vec4(baseCol * (1.0 + uWarp * 0.6), clamp(alpha, 0.0, 0.85));
-        }
-      `
+      opacity: 0.92,
+      side: THREE.DoubleSide
     });
 
-    // 深色金属/胡桃木结构框架材质（与明亮的条形码光幕形成强烈明暗对比）
-    const frameMaterial = new THREE.MeshBasicMaterial({
-      color: 0x16110b,
-      transparent: true,
-      opacity: 0.92
+    // 材质 2：书架背面透光书缝材质
+    const shelfBayMat = new THREE.MeshBasicMaterial({
+      map: shelfBayTex,
+      side: THREE.DoubleSide
     });
 
-    const edgeLineMaterial = new THREE.LineBasicMaterial({
-      color: 0xd4be8d,
-      transparent: true,
-      opacity: 0.42
+    // 材质 3：书架前方的立体深色书群块材质（产生真实的近景书本遮挡视差）
+    const bookBlockMat = new THREE.MeshStandardMaterial({
+      color: 0x241b11,
+      roughness: 0.45,
+      metalness: 0.3
     });
 
-    // 构建正交四维交叉的书架井道矩阵 (Tesseract Orthogonal Matrix)
-    const tesseractGroup = new THREE.Group();
-    scene.add(tesseractGroup);
+    // 材质 4：交界处的炽白/香槟金高光灯带材质（还原参考图中刺眼夺目的白色光缝）
+    const lightBarMat = new THREE.MeshBasicMaterial({
+      color: 0xfffaed
+    });
 
-    const planeGeo = new THREE.PlaneGeometry(26, 26);
-    const beamGeo = new THREE.BoxGeometry(26.5, 0.55, 1.4);
+    // 环境光与跟随摄像机的暖金点光源（照亮近景立体书块与横梁）
+    const ambientLight = new THREE.AmbientLight(0xf5e1b5, 1.4);
+    scene.add(ambientLight);
 
-    const CELL = 28;
-    // 在三维网格中布置互相垂直交错的 X-Y、Z-Y、X-Z 书架光幕面与实木横梁
+    const camLight = new THREE.PointLight(0xfff0c2, 3.5, 140, 1.2);
+    scene.add(camLight);
+
+    // 构建无限四维正交书架井道矩阵
+    const tesseractWorld = new THREE.Group();
+    scene.add(tesseractWorld);
+
+    const CELL = 26;
+    const GRID_X = 5; // -2..2
+    const GRID_Y = 5; // -2..2
+    const GRID_Z = 6; // -3..2
+    const maxCells = GRID_X * GRID_Y * GRID_Z;
+
+    // 1. 书架舱背板 InstancedMesh
+    const bayGeo = new THREE.BoxGeometry(16, 16, 0.8);
+    const bayInst = new THREE.InstancedMesh(bayGeo, shelfBayMat, maxCells * 2);
+
+    // 2. 沿 X / Y / Z 三个正交方向无限延伸的「条纹时间拉伸长板」InstancedMesh
+    const slabGeo = new THREE.BoxGeometry(16, 0.35, 24);
+    const slabInst = new THREE.InstancedMesh(slabGeo, timeSlabMat, maxCells * 6);
+
+    // 3. 书架内部的 3D 凸出书本群块 InstancedMesh
+    const bookClusterGeo = new THREE.BoxGeometry(2.2, 3.8, 3.2);
+    const bookClusterInst = new THREE.InstancedMesh(
+      bookClusterGeo,
+      bookBlockMat,
+      maxCells * 8
+    );
+
+    // 4. 书架边缘的高亮香槟白光缝条 InstancedMesh
+    const lightBarGeo = new THREE.BoxGeometry(15.6, 0.22, 0.45);
+    const lightBarInst = new THREE.InstancedMesh(
+      lightBarGeo,
+      lightBarMat,
+      maxCells * 4
+    );
+
+    const dummy = new THREE.Object3D();
+    const tint = new THREE.Color();
+    let bayCount = 0;
+    let slabCount = 0;
+    let bookCount = 0;
+    let barCount = 0;
+
     for (let ix = -2; ix <= 2; ix++) {
       for (let iy = -2; iy <= 2; iy++) {
         for (let iz = -3; iz <= 2; iz++) {
-          // 留出中心观测核心走廊
-          if (Math.abs(ix) === 0 && Math.abs(iy) === 0 && Math.abs(iz) <= 1) continue;
+          // 留出摄像机所在的中心观测井道
+          if (ix === 0 && iy === 0 && Math.abs(iz) <= 1) continue;
 
           const cx = ix * CELL;
           const cy = iy * CELL;
           const cz = iz * CELL;
 
-          // 1. 正面书架光幕
-          const pFront = new THREE.Mesh(planeGeo, curtainMaterial);
-          pFront.position.set(cx, cy, cz);
-          tesseractGroup.add(pFront);
+          // A. 放置正交方向的背光书架舱 (正面与侧面交错，构成四维立方体迷宫)
+          dummy.position.set(cx, cy, cz - 8);
+          dummy.rotation.set(0, 0, 0);
+          dummy.scale.set(1, 1, 1);
+          dummy.updateMatrix();
+          bayInst.setMatrixAt(bayCount++, dummy.matrix);
 
-          // 2. 正交侧面书架光幕（形成五维空间縱横交错的光线重影）
-          const pSide = new THREE.Mesh(planeGeo, curtainMaterial);
-          pSide.position.set(cx + CELL * 0.5, cy, cz + CELL * 0.5);
-          pSide.rotation.y = Math.PI * 0.5;
-          tesseractGroup.add(pSide);
-
-          // 3. 水平透光光束面（模拟从书缝向空间射出的长条形光毯）
           if ((ix + iy + iz) % 2 === 0) {
-            const pRay = new THREE.Mesh(planeGeo, curtainMaterial);
-            pRay.position.set(cx, cy - CELL * 0.5, cz);
-            pRay.rotation.x = Math.PI * 0.5;
-            tesseractGroup.add(pRay);
+            dummy.position.set(cx - 8, cy, cz);
+            dummy.rotation.set(0, Math.PI * 0.5, 0);
+            dummy.updateMatrix();
+            bayInst.setMatrixAt(bayCount++, dummy.matrix);
           }
 
-          // 4. 高对比度深色书架剪影横梁（强化前实后虚的光影层次）
-          if (Math.abs(ix) <= 1 && Math.abs(iy) <= 1) {
-            const beam = new THREE.Mesh(beamGeo, frameMaterial);
-            beam.position.set(cx, cy - 6.5, cz + 0.8);
-            tesseractGroup.add(beam);
+          // B. 从书架每一层向外垂直延伸的「条纹时间拉伸光板」(复刻参考图最核心的条纹长廊结构)
+          for (let tier = -1; tier <= 1; tier++) {
+            const ty = cy + tier * 5.2;
+
+            // 水平方向延伸的条纹时间板
+            dummy.position.set(cx, ty, cz);
+            dummy.rotation.set(0, 0, 0);
+            dummy.scale.set(1, 1, 1);
+            dummy.updateMatrix();
+            tint.setHSL(0.1 + ((ix + tier) % 3) * 0.012, 0.35, 0.72 + (tier + 1) * 0.08);
+            slabInst.setMatrixAt(slabCount, dummy.matrix);
+            slabInst.setColorAt(slabCount, tint);
+            slabCount++;
+
+            // 垂直方向正交延伸的条纹时间墙
+            dummy.position.set(cx + tier * 5.2, cy, cz);
+            dummy.rotation.set(0, 0, Math.PI * 0.5);
+            dummy.updateMatrix();
+            slabInst.setMatrixAt(slabCount, dummy.matrix);
+            slabInst.setColorAt(slabCount, tint);
+            slabCount++;
+
+            // 书架隔板前缘的高亮香槟白光条
+            dummy.position.set(cx, ty + 0.25, cz - 7.4);
+            dummy.rotation.set(0, 0, 0);
+            dummy.updateMatrix();
+            lightBarInst.setMatrixAt(barCount++, dummy.matrix);
+          }
+
+          // C. 在书架格子里排布凸出的 3D 深色书块（形成前景深色书脊、后景明亮光缝的强烈对比）
+          for (let b = 0; b < 6; b++) {
+            const tier = (b % 3) - 1;
+            const bx = cx - 5.8 + ((b * 3.1 + Math.abs(iz) * 1.7) % 11.6);
+            const by = cy + tier * 5.2 + 2.1;
+            const bz = cz - 6.6;
+
+            dummy.position.set(bx, by, bz);
+            dummy.rotation.set(0, 0, 0);
+            dummy.scale.set(
+              0.7 + ((b + ix) % 3) * 0.35,
+              0.85 + ((b + iy) % 2) * 0.2,
+              1 + (b % 2) * 0.4
+            );
+            dummy.updateMatrix();
+            bookClusterInst.setMatrixAt(bookCount++, dummy.matrix);
           }
         }
       }
     }
 
-    // 贯穿整个超立方体的长程金色世界线光弦
+    bayInst.count = bayCount;
+    slabInst.count = slabCount;
+    bookClusterInst.count = bookCount;
+    lightBarInst.count = barCount;
+
+    bayInst.instanceMatrix.needsUpdate = true;
+    slabInst.instanceMatrix.needsUpdate = true;
+    if (slabInst.instanceColor) slabInst.instanceColor.needsUpdate = true;
+    bookClusterInst.instanceMatrix.needsUpdate = true;
+    lightBarInst.instanceMatrix.needsUpdate = true;
+
+    tesseractWorld.add(bayInst);
+    tesseractWorld.add(slabInst);
+    tesseractWorld.add(bookClusterInst);
+    tesseractWorld.add(lightBarInst);
+
+    // D. 贯穿五维空间的金色引力世界线细丝
     const linePts = [];
     const SPAN = CELL * 3;
-    for (let i = -3; i <= 3; i++) {
-      for (let j = -3; j <= 3; j++) {
-        const u = i * (CELL * 0.5);
-        const v = j * (CELL * 0.5);
+    for (let i = -4; i <= 4; i++) {
+      for (let j = -4; j <= 4; j++) {
+        const u = i * (CELL * 0.33);
+        const v = j * (CELL * 0.33);
         linePts.push(-SPAN, u, v, SPAN, u, v);
         linePts.push(u, -SPAN, v, u, SPAN, v);
         linePts.push(u, v, -SPAN, u, v, SPAN);
@@ -340,10 +502,13 @@ const TesseractScene3D = ({ stage, onDiveComplete }) => {
     }
     const lineGeo = new THREE.BufferGeometry();
     lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePts, 3));
-    const worldLines = new THREE.LineSegments(lineGeo, edgeLineMaterial);
-    tesseractGroup.add(worldLines);
+    const lineMat = new THREE.LineBasicMaterial({
+      color: 0xe6cf9c,
+      transparent: true,
+      opacity: 0.28
+    });
+    tesseractWorld.add(new THREE.LineSegments(lineGeo, lineMat));
 
-    // 鼠标视差与窗口尺寸监听
     const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
     const onMouseMove = (e) => {
       mouse.tx = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -371,69 +536,66 @@ const TesseractScene3D = ({ stage, onDiveComplete }) => {
       mouse.x += (mouse.tx - mouse.x) * 0.04;
       mouse.y += (mouse.ty - mouse.y) * 0.04;
 
-      curtainUniforms.uTime.value = elapsed;
+      // 让条纹时间纹理缓慢流动，产生时间维度的光影呼吸感
+      striatedTex.offset.x = elapsed * 0.03;
+
       const currentStage = stageRef.current;
 
       if (currentStage === 'locked') {
         diveProgress = 0;
         diveCompleted = false;
-        curtainUniforms.uWarp.value = 0.0;
-        curtainUniforms.uDim.value = 1.05;
 
-        // 电影级多轴复合运镜（告别呆板的直线往前冲）：
-        // 摄像机沿三维李萨如轨迹在正交书架井道间优雅横移、俯仰并带有《星际穿越》标志性的斜角旋转
-        const orbitX = Math.sin(elapsed * 0.22) * 18 + Math.cos(elapsed * 0.11) * 8 + mouse.x * 10;
-        const orbitY = Math.cos(elapsed * 0.18) * 14 + Math.sin(elapsed * 0.09) * 6 - mouse.y * 8;
-        const orbitZ = Math.sin(elapsed * 0.15) * 22 + 18;
+        // 阶段一：复刻《星际穿越》剧照 (image_5ca167.png) 的对角俯仰透视与多维轨道漂移运镜
+        const camX = 11 + Math.sin(elapsed * 0.24) * 8 + mouse.x * 7;
+        const camY = 9 + Math.cos(elapsed * 0.19) * 6 - mouse.y * 6;
+        const camZ = 14 + Math.sin(elapsed * 0.15) * 9;
 
-        camera.position.set(orbitX, orbitY, orbitZ);
+        camera.position.set(camX, camY, camZ);
+        camLight.position.set(camX, camY, camZ + 4);
 
-        // 镜头焦点在多维书架象限间缓慢巡视
-        const lookX = Math.cos(elapsed * 0.14) * 12 - mouse.x * 5;
-        const lookY = Math.sin(elapsed * 0.16) * 10 + mouse.y * 5;
-        const lookZ = -35 + Math.cos(elapsed * 0.12) * 15;
+        // 视线斜向穿过层层叠叠的书架井道与条纹时间板
+        const lookX = -8 + Math.cos(elapsed * 0.16) * 6 - mouse.x * 4;
+        const lookY = -6 + Math.sin(elapsed * 0.14) * 5 + mouse.y * 4;
+        const lookZ = -28 + Math.cos(elapsed * 0.12) * 8;
 
-        // 赋予 32°~42° 的五维空间倾斜角（完全复刻参考图的对角透视感）
-        const rollAngle = 0.58 + Math.sin(elapsed * 0.2) * 0.12;
-        camera.up.set(Math.sin(rollAngle), Math.cos(rollAngle), 0.15).normalize();
+        // 35° 斜角倾侧 (完美对齐参考图中的对角线超立方体构图)
+        const roll = -0.56 + Math.sin(elapsed * 0.18) * 0.08;
+        camera.up.set(Math.sin(roll), Math.cos(roll), 0.12).normalize();
         camera.lookAt(lookX, lookY, lookZ);
       } else if (currentStage === 'diving') {
-        // 解锁瞬间：三维旋转回正 + 穿廊对齐运镜
-        diveProgress = Math.min(1, diveProgress + dt * 0.52);
+        // 阶段二：输入密码解锁瞬间 —— 摄像机从五维对角倾侧平滑回正，并推入正前方的书架舱室
+        diveProgress = Math.min(1, diveProgress + dt * 0.55);
         const ease =
           diveProgress < 0.5
             ? 4 * diveProgress * diveProgress * diveProgress
             : 1 - Math.pow(-2 * diveProgress + 2, 3) / 2;
 
-        curtainUniforms.uWarp.value = Math.sin(diveProgress * Math.PI);
-        curtainUniforms.uDim.value = THREE.MathUtils.lerp(1.05, 0.55, ease);
+        striatedTex.offset.x += dt * 0.8 * Math.sin(diveProgress * Math.PI);
 
-        // 从当前多维斜角平滑旋转回正，并滑入中央书房坐标
-        const startX = Math.sin(elapsed * 0.22) * 18;
-        const startY = Math.cos(elapsed * 0.18) * 14;
-        const startZ = Math.sin(elapsed * 0.15) * 22 + 18;
+        const camX = THREE.MathUtils.lerp(11, 0, ease);
+        const camY = THREE.MathUtils.lerp(9, 0, ease);
+        const camZ = THREE.MathUtils.lerp(14, 6, ease);
+        camera.position.set(camX, camY, camZ);
+        camLight.position.set(camX, camY, camZ + 4);
 
-        camera.position.set(
-          THREE.MathUtils.lerp(startX, 0, ease),
-          THREE.MathUtils.lerp(startY, 0, ease),
-          THREE.MathUtils.lerp(startZ, -14, ease)
+        const roll = THREE.MathUtils.lerp(-0.56, 0, ease);
+        camera.up.set(Math.sin(roll), Math.cos(roll), 0).normalize();
+        camera.lookAt(
+          THREE.MathUtils.lerp(-8, 0, ease),
+          THREE.MathUtils.lerp(-6, 0, ease),
+          -32
         );
-
-        const rollAngle = THREE.MathUtils.lerp(0.58, 0.0, ease);
-        camera.up.set(Math.sin(rollAngle), Math.cos(rollAngle), 0).normalize();
-        camera.lookAt(0, 0, -55);
 
         if (diveProgress >= 0.98 && !diveCompleted) {
           diveCompleted = true;
           if (diveCallbackRef.current) diveCallbackRef.current();
         }
       } else {
-        // 进入书房内部后：环境光幕柔和环绕，随鼠标产生深空视差
-        curtainUniforms.uWarp.value = 0.0;
-        curtainUniforms.uDim.value = 0.48;
-        camera.position.set(mouse.x * 4.5, -mouse.y * 3.0, -14);
+        // 阶段三：进入书架内部，五维环境保持柔和视差响应
+        camera.position.set(mouse.x * 3.5, -mouse.y * 2.5, 6);
+        camLight.position.set(mouse.x * 3.5, -mouse.y * 2.5, 10);
         camera.up.set(0, 1, 0);
-        camera.lookAt(mouse.x * 2.0, -mouse.y * 1.5, -60);
+        camera.lookAt(mouse.x * 1.5, -mouse.y * 1.2, -32);
       }
 
       renderer.render(scene, camera);
@@ -445,6 +607,8 @@ const TesseractScene3D = ({ stage, onDiveComplete }) => {
       cancelAnimationFrame(animId);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('resize', onResize);
+      striatedTex.dispose();
+      shelfBayTex.dispose();
       renderer.dispose();
       if (renderer.domElement && renderer.domElement.parentNode) {
         renderer.domElement.parentNode.removeChild(renderer.domElement);
@@ -456,7 +620,7 @@ const TesseractScene3D = ({ stage, onDiveComplete }) => {
 };
 
 /**
- * 3. 精准解析 `/api/library-index` 中的全部 60 本 PDF（严禁将文件夹元数据误判为书籍）
+ * 3. 精准解析 `/api/library-index` 中的全部 60 本 PDF
  */
 function normalizeLibraryData(payload) {
   if (!payload) return { items: [], folders: [], notes: [] };
@@ -464,24 +628,27 @@ function normalizeLibraryData(payload) {
   const rawFiles = [];
   const folderSet = new Set();
 
-  // 递归提取树形节点中的真实文件
   const extractFromTree = (nodes, parentFolder = '') => {
     if (!Array.isArray(nodes)) return;
     nodes.forEach((node) => {
       if (!node || typeof node !== 'object') return;
-      const children = node.items || node.files || node.books || node.children || node.entries;
+      const children =
+        node.items || node.files || node.books || node.children || node.entries;
       if (Array.isArray(children)) {
-        const nextFolder = node.path || node.name || node.title || node.folder || parentFolder;
+        const nextFolder =
+          node.path || node.name || node.title || node.folder || parentFolder;
         if (nextFolder) folderSet.add(nextFolder);
         extractFromTree(children, nextFolder);
         return;
       }
-      // 排除纯目录描述对象（没有后缀且带有 count/isDirectory 标记的对象）
       if (
         node.type === 'folder' ||
         node.type === 'directory' ||
         node.isDirectory === true ||
-        (typeof node.count === 'number' && !node.fileUrl && !node.extension && !node.format)
+        (typeof node.count === 'number' &&
+          !node.fileUrl &&
+          !node.extension &&
+          !node.format)
       ) {
         const dirName = node.path || node.name || node.title;
         if (dirName) folderSet.add(dirName);
@@ -491,7 +658,6 @@ function normalizeLibraryData(payload) {
     });
   };
 
-  // 优先读取主文件数组（避免同 folders 数组混杂导致重复或污染）
   const primaryArray =
     (Array.isArray(payload) && payload) ||
     payload.items ||
@@ -508,11 +674,13 @@ function normalizeLibraryData(payload) {
   if (Array.isArray(primaryArray) && primaryArray.length > 0) {
     extractFromTree(primaryArray);
   } else {
-    extractFromTree(payload.tree || payload.catalog?.tree || payload.folders || payload.categories);
+    extractFromTree(
+      payload.tree || payload.catalog?.tree || payload.folders || payload.categories
+    );
   }
 
-  // 收集显式声明的文件夹名
-  const explicitFolders = payload.folders || payload.categories || payload.catalog?.folders || [];
+  const explicitFolders =
+    payload.folders || payload.categories || payload.catalog?.folders || [];
   if (Array.isArray(explicitFolders)) {
     explicitFolders.forEach((f) => {
       const name = typeof f === 'string' ? f : f?.path || f?.name || f?.title;
@@ -538,7 +706,12 @@ function normalizeLibraryData(payload) {
     seen.add(dedupeKey);
 
     const parts = String(rawPath).split('/').filter(Boolean);
-    const fileName = raw.fileName || raw.name || parts[parts.length - 1] || raw.title || `Volume_${idx + 1}`;
+    const fileName =
+      raw.fileName ||
+      raw.name ||
+      parts[parts.length - 1] ||
+      raw.title ||
+      `Volume_${idx + 1}`;
     const inferredFolder =
       raw.folder ||
       raw.folderPath ||
@@ -671,7 +844,6 @@ export default function PrivateLibrary() {
   const [readingBook, setReadingBook] = useState(null);
   const [booksPerShelf, setBooksPerShelf] = useState(10);
 
-  // 根据窗口宽度动态调整每层书架容纳的本数，彻底杜绝同一层书架折行悬空
   useEffect(() => {
     const updateShelfCapacity = () => {
       const w = window.innerWidth;
@@ -685,7 +857,6 @@ export default function PrivateLibrary() {
     return () => window.removeEventListener('resize', updateShelfCapacity);
   }, []);
 
-  // 拉取你仓库中的 60 本真实 PDF 目录
   const fetchRealCatalog = async (autoEnterIfUnlocked = false) => {
     setLoadingCatalog(true);
     setSyncNotice('');
@@ -715,7 +886,9 @@ export default function PrivateLibrary() {
         setSyncNotice(`书库索引接口返回状态 HTTP ${res.status}，请点击右上角重试同步。`);
       }
     } catch {
-      setSyncNotice('当前环境未检测到 /api/library-index 响应（本地调试请使用 vercel dev 启动，或部署至 Vercel 线上以加载全部 60 本 PDF）。');
+      setSyncNotice(
+        '当前环境未检测到 /api/library-index 响应（本地调试请使用 vercel dev 启动，或部署至 Vercel 线上以加载全部 60 本 PDF）。'
+      );
     } finally {
       setLoadingCatalog(false);
     }
@@ -741,7 +914,6 @@ export default function PrivateLibrary() {
       const cleanPassword = password.trim();
       let apiUnlocked = false;
 
-      // 优先请求服务端会话解锁接口，确保 Cookie 写入以便拉取 60 本 PDF
       try {
         const res = await fetch('/api/library-auth', {
           method: 'POST',
@@ -755,7 +927,7 @@ export default function PrivateLibrary() {
         });
         if (res.ok) apiUnlocked = true;
       } catch {
-        // 忽略本地无 Serverless 时的网络异常
+        // ignore
       }
 
       const clientVerified = await verifyClientSideCipher(cleanPassword);
@@ -765,9 +937,7 @@ export default function PrivateLibrary() {
       }
 
       setPassword('');
-      // 解锁成功后立即拉取全部 60 本 PDF 目录
       await fetchRealCatalog(false);
-      // 触发《星际穿越》五维书架穿梭运镜
       setStage('diving');
     } catch (err) {
       setAuthError(err.message);
@@ -807,7 +977,6 @@ export default function PrivateLibrary() {
     });
   }, [catalog.items, selectedFolder, searchQuery]);
 
-  // 按当前分类或书架容量将 60 本 PDF 整齐排列到多层书架隔板上
   const shelfBays = useMemo(() => {
     const bays = [];
     for (let i = 0; i < filteredBooks.length; i += booksPerShelf) {
@@ -833,13 +1002,13 @@ export default function PrivateLibrary() {
 
   return (
     <div className="tesseract-root">
-      {/* 底层：Three.js《星际穿越》五维超立方体条形码光幕与多轴运镜 */}
+      {/* 底层：Three.js《星际穿越》五维超立方体条纹时间拉伸长廊与透光书架矩阵 */}
       <TesseractScene3D
         stage={stage}
         onDiveComplete={() => setStage('inside')}
       />
 
-      {/* 阶段一：五维超立方体多轴巡航 + 中央悬浮密钥舱 */}
+      {/* 阶段一：五维超立方体对角巡航 + 中央悬浮密钥舱 */}
       {stage === 'locked' && (
         <div className="tesseract-auth-overlay">
           <form onSubmit={handleUnlock} className="tesseract-auth-box">
@@ -861,7 +1030,7 @@ export default function PrivateLibrary() {
               THE TESSERACT
             </h1>
             <p className="text-xs text-amber-100/65 font-mono leading-relaxed mb-6">
-              Light-planes across five dimensions. Enter your gravitational key to align the tesseract and enter your bookshelf.
+              Every book and every gap on the shelf is stretched across time into five-dimensional light. Enter your key to enter the bookshelf.
             </p>
 
             <div className="relative mb-5">
@@ -904,7 +1073,6 @@ export default function PrivateLibrary() {
             {/* 左侧主舱：可顺畅上下滚动的多层背光实木/黄铜书柜 */}
             <main className="tesseract-chamber">
               <div className="tesseract-bookcase-frame">
-                {/* 书柜顶冠状态栏 */}
                 <div className="bookcase-cornice">
                   <div className="flex items-center gap-3">
                     <span>MURPH_BOOKSHELF // 5D_ARCHIVE_CHAMBER</span>
@@ -954,11 +1122,9 @@ export default function PrivateLibrary() {
                 ) : (
                   shelfBays.map((bay) => (
                     <div key={bay.tierNumber} className="tesseract-shelf-bay">
-                      {/* 书架后方透射出的五维书缝背光 */}
                       <div className="shelf-back-slits" />
                       <div className="shelf-top-downlight" />
 
-                      {/* 严格单排竖立的 3D 精装书籍（绝不折行悬空） */}
                       <div className="shelf-books-row">
                         {bay.books.map((book, idx) => {
                           const isSelected = selectedBook?.id === book.id;
@@ -1002,7 +1168,6 @@ export default function PrivateLibrary() {
                         })}
                       </div>
 
-                      {/* 3D 实木与黄铜承重书架横梁 */}
                       <div className="shelf-3d-plank">
                         <div className="plank-top-surface" />
                         <div className="plank-front-edge">
@@ -1034,7 +1199,6 @@ export default function PrivateLibrary() {
                   </button>
                 </div>
 
-                {/* 实时渲染选中 PDF 的第 1 页真实封面 */}
                 <PdfCoverPreview item={selectedBook} />
 
                 <h2 className="text-sm font-bold text-amber-50 leading-snug mb-4 line-clamp-2">
