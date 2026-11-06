@@ -938,3 +938,8 @@
   font-size: 11px;
   letter-spacing: 0.15em;
 }
+.pdf-continuous-stage { display: block; min-height: 0; min-width: 0; overflow: auto; overflow-anchor: none; overscroll-behavior: contain; }
+.pdf-continuous-pages { width: max-content; min-width: 100%; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.pdf-scroll-page { position: relative; flex: none; background: #fff; box-shadow: 0 3px 16px rgba(0,0,0,.35); }
+.pdf-scroll-page canvas { display: block; }
+.pdf-scroll-page[data-error]::after { content: attr(data-error); position: absolute; inset: 0; display: grid; place-items: center; color: #555; font: 14px sans-serif; }
