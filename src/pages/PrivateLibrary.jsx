@@ -26,85 +26,28 @@ GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 // 内存级 PDF 封面缓存，避免重复请求同一本书的第 1 页
 const coverDataUrlCache = new Map();
 
-// 当本地使用 npm run dev 未挂载 /api/library-index 时，自动生成 60 本书架占位馆藏以保证选书交互完整
-const LOCAL_FALLBACK_60 = Array.from({ length: 60 }, (_, i) => {
-  const sectors = [
-    'FLUID_DYNAMICS',
-    'RELATIVITY',
-    'MATHEMATICAL_ANALYSIS',
-    'NONLINEAR_CHAOS',
-    'NUMERICAL_PDE',
-    'STATISTICAL_PHYSICS'
-  ];
-  const titles = [
-    'Turbulent Flows // Stephen B. Pope',
-    'Gravitation // Misner Thorne Wheeler',
-    'Turbulence: The Legacy of A.N. Kolmogorov // Frisch',
-    'Nonlinear Dynamics and Chaos // Steven Strogatz',
-    'The Finite Element Method // Thomas J.R. Hughes',
-    'Real and Complex Analysis // Walter Rudin',
-    'Partial Differential Equations // Lawrence C. Evans',
-    'Statistical Mechanics: Entropy & Order Parameters // Sethna',
-    'Fluid Mechanics Vol.6 // Landau & Lifshitz',
-    'Differential Geometry of Curves and Surfaces // Do Carmo',
-    'Mathematical Methods of Classical Mechanics // V.I. Arnold',
-    'The Large Scale Structure of Space-Time // Hawking & Ellis'
-  ];
-  const folder = sectors[i % sectors.length];
-  const baseTitle = titles[i % titles.length];
-  const volNum = Math.floor(i / titles.length) + 1;
-  const title = volNum > 1 ? `${baseTitle} [Vol.${volNum}]` : baseTitle;
-  const rawName = `${title.replace(/[^a-zA-Z0-9]+/g, '_')}.pdf`;
-  return {
-    id: `local-vol-${i + 1}`,
-    title,
-    rawName,
-    path: `${folder}/${rawName}`,
-    folder,
-    ext: 'PDF',
-    size: (14 + ((i * 7) % 38)) * 1024 * 1024,
-    sizeLabel: `${14 + ((i * 7) % 38)}.4 MB`,
-    note: 'Five-dimensional archive volume synchronized along Murph’s bookshelf worldline.',
-    fileUrl: `/api/library-file?path=${encodeURIComponent(`${folder}/${rawName}`)}`,
-    downloadUrl: `/api/library-file?path=${encodeURIComponent(`${folder}/${rawName}`)}&download=1`,
-    isPdf: true
-  };
-});
-
 /**
  * 1. 真实 PDF 封面渲染组件 (利用 Range 分片流式截取 PDF 第一页作为立体书封)
  */
 const PdfCoverPreview = ({ item }) => {
-  const [coverSrc, setCoverSrc] = useState(
-    () => coverDataUrlCache.get(item?.id) || item?.coverUrl || item?.thumbnailUrl || ''
+  const [renderedCover, setRenderedCover] = useState({ id: '', src: '', status: 'idle' });
+  const directCover =
+    coverDataUrlCache.get(item?.id) || item?.coverUrl || item?.thumbnailUrl || '';
+  const generatedForItem = renderedCover.id === item?.id ? renderedCover : null;
+  const coverSrc = directCover || generatedForItem?.src || '';
+  const loading = Boolean(
+    item?.isPdf && !directCover && generatedForItem?.status !== 'error' && !generatedForItem?.src
   );
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!item) return undefined;
 
     const cached = coverDataUrlCache.get(item.id);
-    if (cached) {
-      setCoverSrc(cached);
-      setLoading(false);
-      return undefined;
-    }
-
-    if (item.coverUrl || item.thumbnailUrl) {
-      setCoverSrc(item.coverUrl || item.thumbnailUrl);
-      setLoading(false);
-      return undefined;
-    }
-
-    if (!item.isPdf || !item.fileUrl || String(item.id).startsWith('local-vol-')) {
-      setCoverSrc('');
-      setLoading(false);
+    if (cached || item.coverUrl || item.thumbnailUrl || !item.isPdf || !item.fileUrl) {
       return undefined;
     }
 
     let active = true;
-    setLoading(true);
-    setCoverSrc('');
 
     const loadingTask = getDocument({
       url: item.fileUrl,
@@ -136,13 +79,12 @@ const PdfCoverPreview = ({ item }) => {
           if (!active) return;
           const dataUrl = offCanvas.toDataURL('image/jpeg', 0.86);
           coverDataUrlCache.set(item.id, dataUrl);
-          setCoverSrc(dataUrl);
-          setLoading(false);
+          setRenderedCover({ id: item.id, src: dataUrl, status: 'ready' });
         });
       })
       .catch(() => {
         if (!active) return;
-        setLoading(false);
+        setRenderedCover({ id: item.id, src: '', status: 'error' });
       });
 
     return () => {
@@ -1005,7 +947,7 @@ const TesseractScene3D = ({ stage, morseSignal, onDiveComplete }) => {
 };
 
 /**
- * 3. 精准解析 `/api/library-index` 中的全部 60 本 PDF
+ * 3. Parse the private catalog returned by `/api/library-catalog`.
  */
 function normalizeLibraryData(payload) {
   if (!payload) return { items: [], folders: [], notes: [] };
@@ -1115,17 +1057,28 @@ function normalizeLibraryData(payload) {
       .replace(/^\./, '')
       .toUpperCase();
 
+    const version = raw.modified || raw.updatedAt || raw.mtime || raw.date || '';
     const encodedPath = encodeURIComponent(rawPath || fileName);
-    const encodedId = encodeURIComponent(raw.id || rawPath || fileName);
+    const encodedName = encodeURIComponent(fileName);
+    const encodedVersion = encodeURIComponent(version);
     const fileUrl =
       raw.fileUrl ||
       raw.streamUrl ||
       raw.readUrl ||
       raw.url ||
-      `/api/library-file?path=${encodedPath}&id=${encodedId}`;
+      `/api/library-file?pathname=${encodedPath}&filename=${encodedName}&v=${encodedVersion}`;
     const downloadUrl =
       raw.downloadUrl ||
       `${fileUrl}${fileUrl.includes('?') ? '&' : '?'}download=1`;
+    const coverPath = raw.coverPath || raw.thumbnailPath || '';
+    const coverUrl =
+      raw.coverUrl ||
+      raw.thumbnailUrl ||
+      (coverPath
+        ? `/api/library-file?pathname=${encodeURIComponent(coverPath)}&filename=${encodeURIComponent(
+            coverPath.split('/').pop() || 'cover'
+          )}&v=${encodedVersion}`
+        : '');
 
     items.push({
       id: raw.id || rawPath || `item-${idx}`,
@@ -1136,9 +1089,18 @@ function normalizeLibraryData(payload) {
       ext,
       size: raw.size || raw.sizeBytes || raw.fileSize || 0,
       sizeLabel: raw.sizeLabel || '',
-      updatedAt: raw.updatedAt || raw.mtime || raw.date || '',
-      note: raw.note || raw.notes || raw.description || raw.summary || '',
-      coverUrl: raw.coverUrl || raw.thumbnailUrl || '',
+      updatedAt: version,
+      authors: Array.isArray(raw.authors) ? raw.authors : raw.author ? [raw.author] : [],
+      year: raw.year || null,
+      tags: Array.isArray(raw.tags) ? raw.tags : [],
+      note:
+        raw.personalNote ||
+        raw.note ||
+        raw.notes ||
+        raw.description ||
+        raw.summary ||
+        '',
+      coverUrl,
       fileUrl,
       downloadUrl,
       isPdf: ext === 'PDF' || raw.readable === true
@@ -1175,44 +1137,6 @@ function getBookVisuals(book, idx) {
   return { tone, height, width, callNum };
 }
 
-// 浏览器端 PBKDF2 密码校验（兼容 gpx82068206）
-async function verifyClientSideCipher(inputPassword) {
-  const clean = inputPassword.trim();
-  if (clean === 'gpx82068206') return true;
-  try {
-    if (!window.crypto?.subtle) return false;
-    const saltStr = '5q4DdvfExgLsnbKrso59QCXI';
-    const targetB64 = 'WNUKDKvxUP0Bwu3sriGBmKzH3t0IPPWNgISmNvrgbqE';
-    const enc = new TextEncoder();
-    const keyMaterial = await window.crypto.subtle.importKey(
-      'raw',
-      enc.encode(clean),
-      { name: 'PBKDF2' },
-      false,
-      ['deriveBits']
-    );
-    const derivedBits = await window.crypto.subtle.deriveBits(
-      {
-        name: 'PBKDF2',
-        salt: enc.encode(saltStr),
-        iterations: 210000,
-        hash: 'SHA-256'
-      },
-      keyMaterial,
-      256
-    );
-    const bytes = new Uint8Array(derivedBits);
-    let binary = '';
-    bytes.forEach((b) => {
-      binary += String.fromCharCode(b);
-    });
-    const b64 = btoa(binary).replace(/=+$/, '');
-    return b64 === targetB64.replace(/=+$/, '');
-  } catch {
-    return false;
-  }
-}
-
 export default function PrivateLibrary() {
   const [stage, setStage] = useState('locked'); // 'locked' | 'diving' | 'inside'
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -1221,6 +1145,7 @@ export default function PrivateLibrary() {
 
   const [catalog, setCatalog] = useState({ items: [], folders: [], notes: [] });
   const [loadingCatalog, setLoadingCatalog] = useState(false);
+  const [catalogError, setCatalogError] = useState('');
 
   const [selectedFolder, setSelectedFolder] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -1267,48 +1192,40 @@ export default function PrivateLibrary() {
     setTimeout(() => setMorseEasterEggActive(false), 2600);
   };
 
-  const applyFallbackCatalog = () => {
-    const fallbackFolders = Array.from(new Set(LOCAL_FALLBACK_60.map((b) => b.folder)));
-    setCatalog({ items: LOCAL_FALLBACK_60, folders: fallbackFolders, notes: [] });
-    setSelectedBook((prev) => prev || LOCAL_FALLBACK_60[0]);
-  };
-
   const fetchRealCatalog = async (autoEnterIfUnlocked = false) => {
     setLoadingCatalog(true);
+    setCatalogError('');
     try {
-      const res = await fetch('/api/library-index', {
+      const res = await fetch('/api/library-catalog', {
         method: 'GET',
         credentials: 'include',
         headers: { Accept: 'application/json' }
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        const normalized = normalizeLibraryData(data);
-        if (normalized.items.length > 0) {
-          setCatalog(normalized);
-          setSelectedBook((prev) => prev || normalized.items[0]);
-        } else {
-          applyFallbackCatalog();
-        }
-        if (autoEnterIfUnlocked) {
-          setStage('inside');
-        }
-        return normalized;
+      if (res.status === 401 || res.status === 403) {
+        if (!autoEnterIfUnlocked) throw new Error('Your library session has expired. Sign in again.');
+        return null;
       }
-
-      if (res.status !== 401 && res.status !== 403) {
-        applyFallbackCatalog();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || `Unable to load the private catalog (${res.status}).`);
       }
-    } catch {
-      // 本地 npm run dev 无后端 API 时，自动载入 60 本书架数据以保证选书交互
-      if (!autoEnterIfUnlocked) {
-        applyFallbackCatalog();
+      const normalized = normalizeLibraryData(data);
+      if (normalized.items.length === 0) {
+        throw new Error('The private catalog is empty. Run Library Sync and try again.');
       }
+      setCatalog(normalized);
+      setSelectedBook((previous) =>
+        normalized.items.find((item) => item.id === previous?.id) || normalized.items[0]
+      );
+      if (autoEnterIfUnlocked) setStage('inside');
+      return normalized;
+    } catch (error) {
+      setCatalogError(error.message || 'Unable to load the private catalog.');
+      return null;
     } finally {
       setLoadingCatalog(false);
     }
-    return null;
   };
 
   useEffect(() => {
@@ -1328,32 +1245,22 @@ export default function PrivateLibrary() {
 
     try {
       const cleanPassword = password.trim();
-      let apiUnlocked = false;
-
-      try {
-        const res = await fetch('/api/library-auth', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'unlock',
-            password: cleanPassword,
-            passcode: cleanPassword
-          })
-        });
-        if (res.ok) apiUnlocked = true;
-      } catch {
-        // ignore
+      const res = await fetch('/api/library-auth', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: cleanPassword })
+      });
+      const authPayload = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(authPayload.error || 'ACCESS_DENIED: The library key is incorrect.');
       }
-
-      const clientVerified = await verifyClientSideCipher(cleanPassword);
-
-      if (!apiUnlocked && !clientVerified) {
-        throw new Error('ACCESS_DENIED: 密钥不匹配，请输入正确的书架密钥');
+      const loadedCatalog = await fetchRealCatalog(false);
+      if (!loadedCatalog?.items.length) {
+        throw new Error('Access granted, but the private catalog could not be loaded.');
       }
 
       setPassword('');
-      await fetchRealCatalog(false);
       setStage('diving');
     } catch (err) {
       setAuthError(err.message);
@@ -1364,14 +1271,7 @@ export default function PrivateLibrary() {
 
   const handleLock = async () => {
     try {
-      await fetch('/api/library-auth', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'lock'
-        })
-      });
+      await fetch('/api/library-auth', { method: 'DELETE', credentials: 'include' });
     } catch {
       // ignore
     }
@@ -1379,12 +1279,8 @@ export default function PrivateLibrary() {
     setReadingBook(null);
   };
 
-  // 确保进入书架内部后始终有书可选（优先真实后端数据，本地调试自动使用 60 本兜底馆藏）
-  const activeBooks = catalog.items.length > 0 ? catalog.items : LOCAL_FALLBACK_60;
-  const activeFolders =
-    catalog.folders.length > 0
-      ? catalog.folders
-      : Array.from(new Set(LOCAL_FALLBACK_60.map((b) => b.folder)));
+  const activeBooks = catalog.items;
+  const activeFolders = catalog.folders;
 
   const filteredBooks = useMemo(() => {
     return activeBooks.filter((item) => {
@@ -1535,6 +1431,12 @@ export default function PrivateLibrary() {
                   </button>
                 </div>
 
+                {catalogError && (
+                  <div className="mx-5 mt-4 border border-red-500/40 bg-red-950/70 px-4 py-3 text-xs font-mono text-red-200">
+                    LIBRARY_CONNECTION_ERROR // {catalogError}
+                  </div>
+                )}
+
                 {shelfBays.map((bay) => (
                   <div key={bay.tierNumber} className="tesseract-shelf-bay">
                     <div className="shelf-back-louvers" />
@@ -1562,7 +1464,7 @@ export default function PrivateLibrary() {
                             className={`book-3d-volume spine-tone-${tone} ${
                               isSelected ? 'is-selected' : ''
                             }`}
-                            title={`${book.title}\n分类: ${book.folder}\n(单击在右侧预览封面，双击直接阅读)`}
+                            title={`${book.title}\nCategory: ${book.folder}\nClick to inspect; double-click to read.`}
                           >
                             <div className="book-top-pages" />
                             <div className="book-right-pages" />
@@ -1630,6 +1532,18 @@ export default function PrivateLibrary() {
                     <span className="label">SECTOR</span>
                     <span className="value text-amber-300">{selectedBook.folder}</span>
                   </div>
+                  {selectedBook.authors.length > 0 && (
+                    <div className="inspector-meta-row">
+                      <span className="label">AUTHORS</span>
+                      <span className="value text-white">{selectedBook.authors.join(', ')}</span>
+                    </div>
+                  )}
+                  {selectedBook.year && (
+                    <div className="inspector-meta-row">
+                      <span className="label">YEAR</span>
+                      <span className="value">{selectedBook.year}</span>
+                    </div>
+                  )}
                   <div className="inspector-meta-row">
                     <span className="label">SIZE</span>
                     <span className="value">
